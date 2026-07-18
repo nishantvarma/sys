@@ -1,0 +1,5 @@
+#!/usr/bin/env rc
+
+file=`{f $* | fzy}
+~ $#file 0 && exit
+exec o $file

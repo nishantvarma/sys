@@ -1,0 +1,7 @@
+#!/usr/bin/env rc
+
+~ $#* 0 && exit
+match=`{s -n $* | fzy}
+~ $#match 0 && exit
+ifs=: parts=`{echo $match}
+exec e +$parts(2) $parts(1)

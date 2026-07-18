@@ -1,0 +1,93 @@
+#!/usr/bin/env bash
+
+shopt -s nullglob
+
+SESSIONS=~/.claude/projects
+
+nth()
+{
+    [[ $1 == [0-9]* ]] || return 1
+    local f j=0
+    for f in "$SESSIONS"/*/*.jsonl; do
+        ((++j == $1)) && echo "$f" && return
+    done
+}
+
+fields()  # stdout: cwd<TAB>title
+{
+    local cwd title
+    cwd=$(rg -om1 '"cwd":"([^"]*)"' -r '$1' "$1" 2>/dev/null)
+    title=$(rg -o '"customTitle":"([^"]*)"' -r '$1' "$1" 2>/dev/null | tail -1)
+    printf '%s\t%s' "$cwd" "$title"
+}
+
+sid()
+{
+    basename "$1" .jsonl
+}
+
+list()
+{
+    local cwd f i=0 proj title
+    for f in "$SESSIONS"/*/*.jsonl; do
+        IFS=$'\t' read -r cwd title < <(fields "$f")
+        proj=$(basename "$cwd")
+        printf '%d %s %s\n' "$((++i))" "$title" "$proj"
+    done
+}
+
+add()  # a [dir] [model] [effort]
+(
+    local dir=${1:-$PWD} model=$2 effort=$3 args
+    [[ -d $dir ]] || return 1
+    args=(--name scratch)
+    [[ -n $model ]] && args+=(--model "$model")
+    [[ -n $effort ]] && args+=(--effort "$effort")
+    cd "$dir" && claude "${args[@]}"
+)
+
+resume()
+(
+    local cwd f
+    f=$(nth "$1") || return
+    IFS=$'\t' read -r cwd _ < <(fields "$f")
+    cd "$cwd" && claude --resume "$(sid "$f")"
+)
+
+delete()
+{
+    local f
+    f=$(nth "$1") || return
+    rm -f "$f" && rm -rf "${f%.jsonl}"
+}
+
+fork()  # a f n [dir] [model] [effort]
+(
+    local n=$1 dir=$2 model=$3 effort=$4 cwd f title args
+    f=$(nth "$n") || return 1
+    IFS=$'\t' read -r cwd title < <(fields "$f")
+    dir=${dir:-$cwd}
+    [[ -d $dir ]] || return 1
+    args=(--resume "$(sid "$f")" --fork-session --name "$title")
+    [[ -n $model ]] && args+=(--model "$model")
+    [[ -n $effort ]] && args+=(--effort "$effort")
+    cd "$dir" && claude "${args[@]}"
+)
+
+renew()
+(
+    local cwd f title
+    f=$(nth "$1") || return
+    IFS=$'\t' read -r cwd title < <(fields "$f")
+    rm -f "$f" && rm -rf "${f%.jsonl}"
+    cd "$cwd" && claude --name "$title"
+)
+
+case $1 in
+    l) list ;;
+    [0-9]*) resume "$1" ;;
+    d) shift; delete "$1" ;;
+    x) shift; renew "$1" ;;
+    f) shift; fork "$@" ;;
+    *) add "$@" ;;
+esac

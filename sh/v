@@ -1,0 +1,68 @@
+#!/usr/bin/env rc
+
+git rev-parse --git-dir >/dev/null >[2=1] || exit 0
+
+fn commit {
+	if (~ $1 amend) {
+		msg=`{prompt 'message' ''}
+		if (~ $"msg '') args=(--amend --no-edit)
+		if not args=(--amend -m $"msg)
+	}
+	if not {
+		msg=`{prompt 'message' Fixups}
+		args=(-m $"msg)
+	}
+	git commit $args && push
+}
+
+fn push {
+	reply=`{choice 'push?' 'Y,n' y}
+	args=(); ~ $reply Y && args=--force
+	~ $reply y Y && git push origin $args
+}
+
+fn sync {
+	if (! git diff --cached --quiet) {
+		step -ab sync
+		reply=`{choice 'commit?' 'Y,n,a,r,u,v,x' y}
+		switch ($reply) {
+		case y Y
+			commit
+		case a A
+			commit amend
+		case r R
+			clear
+			exec v
+		case u U
+			git reset -p
+			sync
+		case x X
+			git gui
+			sync
+		case v V
+			gitk
+			sync
+		}
+	}
+}
+
+step -b status
+git status -s
+
+new=`{git ls-files --others --exclude-standard}
+if (! ~ $#new 0) {
+	echo
+	if (confirm 'add '$#new' new?')
+		for (f in $new)
+			if (confirm $f'?')
+				git add $f
+}
+
+if (! git diff --quiet) {
+	step -ab stage
+	git add -p
+}
+
+sync
+
+true

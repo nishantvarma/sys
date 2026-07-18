@@ -1,0 +1,15 @@
+#!/usr/bin/env rc
+
+nl=true
+if (~ $1 -n) {
+	nl=()
+	shift
+}
+switch ($1) {
+case green; tput setaf 2
+case yellow; tput setaf 3
+}
+shift
+if (~ $#nl 0) echo -n '['$*']'
+if not echo '['$*']'
+tput sgr0

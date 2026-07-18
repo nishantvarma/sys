@@ -1,0 +1,1 @@
+Horizontal space used to align columns. End-user content only. Columns are fixed-position — choose a fixed offset per table and apply it consistently. Use 2 spaces for two-column tables (minimum to read as a column break, not a word space), 4 for three or more (one tab stop, a natural visual jump for a wider separator).

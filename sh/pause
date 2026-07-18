@@ -1,0 +1,6 @@
+#!/usr/bin/env rc
+
+bracket -n green continue
+stty -echo
+read
+stty echo

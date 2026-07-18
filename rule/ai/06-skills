@@ -1,0 +1,20 @@
+## Meta
+
+Prefer scripts over AI guidance; use natural language only where code cannot.
+
+## Structure
+
+### Manual
+Self-contained for a human — steps, configure table, then reference Build.
+
+### Automated
+Claude drives via tmux. Ask first → Run → Report.
+
+### DRY
+Shared content lives in Manual. Automated references it, never duplicates.
+
+### Run
+Canonical execution — tmux commands, before/build/after. Referenced by both.
+
+### Report
+Component, machine, directory, branch, steps run, errors, next step.

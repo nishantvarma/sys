@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+cd "$(dirname "$0")"
+mkdir -p bin
+cp sh/* bin/
+[ -x bin/tangle ] || go build -o bin/tangle tangle/main.go
+t=(tangle fm ed)
+[ $# -gt 0 ] && t=("$@")
+for x in "${t[@]}"; do
+	(cd "$x" && ../bin/tangle && go build -o "../bin/$x" main.go)
+done

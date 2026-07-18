@@ -1,0 +1,26 @@
+#!/usr/bin/env rc
+
+fn title {
+	sleep 1
+	win=`{wmctrl -lp | grep $1 | awk '{print $1}'}
+	if (~ $2 st) shift 2
+	if not shift 1
+	if (~ $#* 0) title=st:`{pwd}
+	if not if (~ $#* 1) title=$1:`{pwd}
+	if not {
+		if (test -f $2) title=$1:`{realpath $2}
+		if not title=$1:$2
+	}
+	wmctrl -ir $win -T $title
+}
+
+if (! ~ $#* 0) {
+	if (~ $1 st && ! ~ $#TMUX 0) {
+		shift
+		tmux new-window $*
+	}
+	if not {
+		$* >/dev/null >[2=1] &
+		title $apid $* &
+	}
+}

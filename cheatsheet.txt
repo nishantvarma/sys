@@ -1,0 +1,68 @@
+ed — cheatsheet
+
+The cursor is a collapsed selection. Motions select what they
+cross; verbs act on the selection.
+
+move
+  h j k l      step (arrows too)
+  w b e        hop word: fwd, back, to end
+  0 $          line start, end
+  { }          prev, next blank line
+  g G          first, last line
+  pgup pgdn    page
+  :            goto line
+
+Hopping words is just w — each press re-aims; what it crossed
+stays selected, harmless; space clears it. j k keep the column
+you aimed at across short lines.
+
+select
+  x            line; xx grows
+  %            all
+  m            matching bracket
+  f t F T      to char on line: on it, before it; F T backward
+  space        collapse
+  v            extend: anchor pinned, motions move the head only
+
+Repeats: aims re-aim (w w w = three hops), shapes grow (xx),
+v makes any motion grow. The status line shows extend.
+
+A leading count spells a repeat out: 3w is w w w, 5j five downs,
+2x two lines. It just replays the key, so 3o is o o o, not three
+opens — a bare 0 is still line-start, not a count.
+
+act — on the selection, always
+  d c          delete, change (then insert)
+  y            yank, also to the system clipboard
+  p P          paste after, before; a selection is replaced,
+               register kept — y p p p repeats one yank
+  r            overwrite selection with one char
+  > <          indent, dedent
+  J            join
+  u U          undo, redo
+
+insert
+  i a A        before caret, after, at line end
+  o O          open below, above
+  esc          leave
+Tab, enter, backspace, arrows work; terminal paste goes here.
+
+find
+  /            literal search
+  n N          next, prev
+  *            selection becomes the pattern, found — w * n n
+
+file
+  s R          save, reload
+  q            quit, 2x discards
+  ?            help, generated from the key table
+
+notes
+- Line end is a place: select through it and the break comes
+  too — cut, join, line paste fall out.
+- One caret, one register. Counts replay a key, nothing more.
+  Fan-out is grep and fm.
+- * is literal, single-line.
+
+change it: keys and help are one table,
+ed/3-mode/03-normalkeys.go — edit, ./build ed.

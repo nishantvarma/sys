@@ -1,0 +1,6 @@
+#!/usr/bin/env rc
+
+fn show { $* | less; true }
+
+file=`{file $1}
+if (~ $file *directory*) show tree --gitignore $1

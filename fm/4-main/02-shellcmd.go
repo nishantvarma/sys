@@ -1,0 +1,1 @@
+var shellCmd = []string{"rc"}

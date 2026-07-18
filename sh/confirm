@@ -1,0 +1,14 @@
+#!/usr/bin/env rc
+
+if (~ $2 y)
+	hint='[Y/n] '
+if not
+	hint='[y/n] '
+
+cue
+echo -n $1 $hint
+reply=`{read}
+if (~ $#reply 0)
+	~ $2 y
+if not
+	~ $reply y Y

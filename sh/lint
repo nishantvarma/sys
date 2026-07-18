@@ -1,0 +1,10 @@
+#!/usr/bin/env rc
+
+if (~ $1 -f) {
+	ruff format $*(2-)
+	ruff check --fix --select I,F,E,W $*(2-)
+}
+if not {
+	ruff format --diff $*
+	ruff check --select I,F,E,W $*
+}

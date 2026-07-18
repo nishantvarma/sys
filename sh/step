@@ -1,0 +1,13 @@
+#!/usr/bin/env rc
+
+a=() b=()
+while (~ $1 -*) {
+	~ $1 -*a* && a=1
+	~ $1 -*b* && b=1
+	shift
+}
+
+if (~ $a 1) echo
+bracket yellow $*
+if (~ $b 1) echo
+true

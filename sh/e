@@ -1,0 +1,4 @@
+#!/usr/bin/env rc
+
+if (~ $#EDITOR 0) EDITOR=ed
+spawn st $EDITOR $*
