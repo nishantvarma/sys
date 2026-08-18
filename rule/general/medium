@@ -1,0 +1,26 @@
+who reads, and to do what, picks the medium. the idea is the same in
+each — `general/reader`.
+
+  a person, once       a page. documentation, long articles. it shows
+                       the outline and the drawings, and it folds.
+  a room               a deck. one idea a slide; keys move, p prints.
+  the author, at work  the file tree. notes, plans, state. ls is the
+                       index — `ai/brain`.
+  a person, watching   a todo. one line a task, in run order, pointing
+                       at its step in the plan, never copying it. what
+                       is next and what blocks it are derived, never typed.
+  a program            bare text. code, data, config. a parser is the
+                       reader, and markup is noise to it.
+
+the test: name who opens it and what they do next. a program opening a
+page strips the markup; a newcomer opening a bare tree cannot see its
+outline.
+
+start from a skeleton, never from a blank page:
+`~/src/sys/medium/page.html`, `~/src/sys/medium/deck.html`,
+`~/src/sys/medium/todo.html`
+
+every skeleton has one shape: head tokens style content engine, each
+marked -- name -- in its own comment syntax. head is the edit contract;
+the map is grep -n -- '-- [a-z]* --'. fill content, never edit engine —
+check holds each page's engine to its skeleton's.

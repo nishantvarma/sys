@@ -1,0 +1,87 @@
+what you touch stays reachable.
+
+it is a find:
+
+    f    by name
+    s    by content
+    m    by having been there
+
+touching is the verbs that take a noun — open, edit, go there. see and
+find touch nothing. the note is on the verb consuming its noun, not on
+the noun changing.
+
+    m          ranked, each address under its newest verb
+    m n        the nth, address alone
+    m kw...    the best-scoring match
+
+history and memory
+
+the log is history: what happened, in order. m is memory: what it is
+worth now. one line per touch — when, verb, address — appended, never
+rewritten. nothing derived, nothing updated in place.
+
+`sh/c:/awk -v addr/` is where this breaks today. c rewrites the log so
+an address appears once under its newest verb — a ranking decision taken
+by the writer, and it spends the count to make it. after the rewrite,
+thirty opens today and one open last month are the same single line, and
+no reader tells them apart again. a writer that ranks throws away the
+history it ranked from. c becomes an append and knows nothing else.
+
+what it buys: the half-life is a number in one file, and changing it
+re-scores everything already logged. get the split wrong and the same
+change is a migration.
+
+what a touch is worth
+
+not per open. thirty opens today is one day's work, and a place touched
+on ten days across a month is the habit — the burst must not bury it. so
+credit is per address per day:
+
+    score = sum over the days it was touched, 2^(-age in days / h)
+
+h of seven: touched on one day only, it scores .91 the next day, .5
+after a week, .05 after a month. five days spread over three weeks come
+to about 2.2, so habit outranks burst by two to one, and neither count
+nor recency is kept separately to say it.
+
+forgetting is a floor on that score and not a rule of its own. below it
+the address is not offered. `sh/w:/the log outlives/` stops curating —
+no existence sweep, no newest-mention dedupe — and truncates the head,
+which is invisible because what it cuts scores nothing.
+
+the reader, whole:
+
+    tac log | awk -v h=7 -v now=$now '
+        { d = int((now - $1)/86400); k = $3; sub(/:[0-9]*$/,"",k)
+          if (!seen[k,d]++) s[k] += 2^(-d/h)
+          if (!v[k]) v[k] = $2 " " $3 }
+        END { for (k in s) if (s[k] > .1) print s[k] "\t" v[k] }' |
+        sort -rn | cut -f2
+
+back is not memory
+
+it is what blocks all of the above. bare m and m n are one list, so if
+the order becomes score, m 1 stops being back — and back is exact or it
+is nothing, never the highest-scoring other place.
+
+back was never m's to hold. cur is per window and the log is one for
+the machine, so m 1 already answers with another window's place. it
+belongs beside cur: c keeps prev, per window, and back is c `{c -}. then
+m drops the tmux id, the cur read, and m 0 — c bare is that — and is
+read, rank, print. `sh/e:16`, `sh/o:33` and `sh/p:50` ask c instead.
+
+only c writes prev. `fm/4-main/27-say.go` writes cur straight, on every
+row, and must keep bypassing c or the log fills with browsing — so back
+is the last address said out loud and not the last row passed over,
+which is the one it is worth being.
+
+that deletion is the point. the writer holds the fact and only the fact,
+m holds what it is worth and only that.
+
+then
+
+zoxide. ranking is what makes m kw... possible, and it is the z half of
+`todo/next:/zoxide/` — if the log covers a directory you only cd'd into,
+m is zoxide and z frees.
+
+`todo/review:/said again should bump/` falls out: appending is the bump.

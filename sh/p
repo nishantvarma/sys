@@ -1,0 +1,57 @@
+#!/usr/bin/env -S 9 rc
+
+# p is o for text. o is handed a name and reads the extension; p is handed
+# whatever was on screen, so nothing is trusted to be what it looks like —
+# c is asked what the word names, and p only decides who gets it. tmux
+# passes the word in a pane option, never in the command, so screen text is
+# never parsed as a shell command, and a word arriving any other way is
+# written back to that option: what was last said is where a click left it.
+
+pane=()
+if (~ $1 %*) { pane=(-t $1); TMUX_PANE=$1; shift }
+if not if (! ~ $#TMUX_PANE 0) pane=(-t $TMUX_PANE)
+
+mode=()
+if (~ $1 -a -c) { mode=$1; shift }
+
+ifs='
+'
+if (~ $1 -) *=`{cat}
+if not if (~ $#* 0) *=`{tmux show $pane -pqv @p >[2]/dev/null}
+if (! ~ $#pane 0) if (! ~ $#* 0) tmux set-option -p $pane @p $"*
+
+# tmux runs p from wherever the server was started — run-shell -c is not
+# format-expanded and copy-pipe inherits the server. the pane's own cwd is
+# the directory that printed the text, so ask for it.
+if (! ~ $#pane 0) {
+	dir=`{tmux display $pane -p '#{pane_current_path}' >[2]/dev/null}
+	if (! ~ $#dir 0) cd $"dir
+}
+
+# the strip is the screen's, not the resolver's: a word torn out of a line
+# arrives wearing its punctuation. a url is no file, so it is not said;
+# everything else is, and c is where the file system and git get asked.
+text=`{echo $"* | sed 's,^[^/~._a-zA-Z0-9]*,,; s,[^/~_a-zA-Z0-9]*$,,'}
+if (~ $#text 0) exit
+n=$"text
+if (! ~ $"text http://* https://*) n=`{c $"text}
+
+if (~ $mode -a) {
+	dst='{marked}'
+	if (~ `{tmux display -p '#{pane_marked_set}'} 0) dst='{last}'
+	tmux send -t $dst -l ' '^$"n
+	exit
+}
+if (~ $mode -c) exit
+
+# said once, then handed on whole: m 0 is the address with its line, so
+# the verb downstream reads a proper noun and not the pronoun again.
+if (~ $"text http://* https://*) spawn microsoft-edge $"text
+if not if (test -e $"n) o `{m 0}
+if not if (git rev-parse -q --verify $"text^'^{commit}' >/dev/null >[2=1]) {
+	spawn -t git show $"text
+}
+
+s=$status
+if (! ~ $#pane 0) s=0
+exit $s

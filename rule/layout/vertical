@@ -1,0 +1,3 @@
+line width: 79 columns max. html and markdown are exempt.
+
+  awk 'length>79 {print FILENAME":"FNR}' $(find . -type f)

@@ -1,0 +1,303 @@
+<!doctype html>
+<!-- -- head -- -->
+<!-- a todo. the data is the tasks block in content. edit that, the title
+     and the notes. edit nothing else.
+
+     task   state id after title `plan:/pattern/`
+     repo   two spaces, then: state repo commit
+            one task per line, in run order. after is ids joined by commas,
+            or -. the ref is a path from the repo root; pattern is a fixed
+            string, first match.
+
+     state  todo now done fail open. open is a decision for a human.
+            a task with repo rows types - and takes its state from them.
+            blocked is derived from after. never type either.
+
+     move   change the first word of the line: grep -n ' t1 ' todo.html
+     map    grep -n -- '-- [a-z]* --' todo.html
+     check  check todo.html
+     broken edits show as a red list at the top of the page. -->
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>title</title>
+
+<style>
+/* -- tokens -- */
+:root {
+  --bg: #f5f6f4; --panel: #ffffff; --fg: #1c211f; --dim: #68716d;
+  --line: #e5e8e4; --hit: #fff4d6;
+  --done: #2e8653; --now: #2463c7; --fail: #c4332a; --open: #b0730f;
+  --blocked: #7e8682; --todo: #a3aaa6;
+  --mono: ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #111413; --panel: #181c1a; --fg: #e3e7e4; --dim: #9aa39e;
+    --line: #262b28; --hit: #3a3218;
+    --done: #52b57c; --now: #6aa2f2; --fail: #ee665b; --open: #e2a746;
+    --blocked: #8b938f; --todo: #626a66;
+  }
+}
+
+/* -- style -- */
+body { margin: 0 auto; max-width: 880px; padding: 0 16px 48px;
+       background: var(--bg); color: var(--fg);
+       font: 14px/1.5 system-ui, sans-serif; }
+a { color: inherit; }
+h1 { font-size: 15px; display: flex; justify-content: space-between; }
+label { font: 12.5px var(--mono); color: var(--dim); }
+#errors { color: var(--fail); font-family: var(--mono); }
+#next { display: block; margin: 8px 0; color: var(--fg); }
+.bar { display: flex; height: 6px; background: var(--line);
+       border-radius: 3px; overflow: hidden; }
+.bar i { height: 100%; }
+#legend { font: 12.5px var(--mono); color: var(--dim); margin: 6px 0 14px; }
+#legend span { margin-right: 12px; }
+#notes { color: var(--dim); margin-bottom: 12px; }
+#list { background: var(--panel); border: 1px solid var(--line);
+        border-radius: 10px; }
+.task { border-top: 1px solid var(--line); }
+.task:first-child { border-top: 0; }
+.task:target > .row { background: var(--hit); }
+.row { display: grid; grid-template-columns: 16px 48px minmax(0, 1fr) auto;
+       gap: 0 10px; padding: 7px 14px; }
+summary.row { cursor: pointer; list-style: none; }
+.g { font: 700 13px var(--mono); text-align: center; }
+.id, .meta, .cnt, td { font: 12px var(--mono); color: var(--dim); }
+.meta { display: block; overflow-wrap: anywhere; }
+.cnt .bar { width: 56px; height: 4px; display: inline-flex; }
+table { border-collapse: collapse; margin: 0 14px 10px 88px; }
+td { padding: 2px 12px 2px 0; }
+@media (max-width: 520px) { table { margin-left: 14px; } }
+</style>
+
+<!-- -- content -- -->
+<h1>title <label><input type="checkbox" id="live"> live</label></h1>
+<ul id="errors"></ul>
+<a id="next"></a>
+<div class="bar" id="bar"></div>
+<div id="legend"></div>
+<details id="notes"><summary>notes</summary>
+<p>what this list is for, and where its plan lives.</p>
+</details>
+<main id="list"></main>
+
+<script type="text/plain" id="tasks">
+todo t1 - the first step, in a few words `plan:/step 1/`
+open q1 - decide: the question only a human can answer `plan:/decide/`
+- t2 t1,q1 a step done once per repo `plan:/step 2/`
+  todo example a1b2c3d
+</script>
+
+<script>
+// -- engine --
+// key order is the bar order. ⏸ needs the text variation selector, or it
+// renders as a colour emoji.
+const glyphs = {done: '✓', now: '▸', fail: '✗', open: '?', blocked: '⏸︎',
+                todo: '·'};
+const typed = ['todo', 'now', 'done', 'fail', 'open'];
+
+// a plain function over the text, so a shell check can lift it
+function parse(text) {
+  const tasks = [], errors = [], byid = {}, rows = new Set();
+  const bad = (why, line) => errors.push(why + ': ' + line.trim());
+  const task = /^(\S+) (\S+) (\S+) (.+?)(?: `([a-z0-9._/-]+):\/([^/`]+)\/`)?$/;
+  for (const line of text.split('\n')) {
+    if (!line.trim()) continue;
+    let m = line.match(/^  (\S+) (\S+) (.+)$/);
+    if (m) {
+      const t = tasks[tasks.length - 1];
+      const [, state, repo, commit] = m;
+      if (!t) { bad('repo row before any task', line); continue; }
+      if (!typed.includes(state)) bad('unknown state "' + state + '"', line);
+      if (rows.has(repo + ' ' + commit)) bad('duplicate repo row', line);
+      rows.add(repo + ' ' + commit);
+      t.rows.push({state, repo, commit});
+      continue;
+    }
+    m = line.match(task);
+    if (!m) { bad('not a task or repo row', line); continue; }
+    const [, state, id, after, title, path, pattern] = m;
+    if (title.includes('`')) bad('malformed ref', line);
+    if (state !== '-' && !typed.includes(state))
+      bad('unknown state "' + state + '"', line);
+    if (!/^[a-z0-9]+$/.test(id)) bad('bad id "' + id + '"', line);
+    if (byid[id]) bad('duplicate id "' + id + '"', line);
+    const t = {state, id, title, path, pattern, line, rows: [],
+               after: after === '-' ? [] : after.split(',')};
+    byid[id] = t;
+    tasks.push(t);
+  }
+  for (const t of tasks) {
+    if (t.rows.length && t.state !== '-')
+      bad('typed state on a task with repo rows', t.line);
+    if (!t.rows.length && t.state === '-')
+      bad('- on a task without repo rows', t.line);
+    for (const a of t.after)
+      if (!byid[a]) bad('after names missing id "' + a + '"', t.line);
+  }
+  // a cycle: a task reached again while its own after chain is walked
+  const walking = new Set(), walked = new Set();
+  const walk = t => {
+    if (walked.has(t)) return;
+    if (walking.has(t)) { bad('cycle through "' + t.id + '"', t.line); return; }
+    walking.add(t);
+    t.after.forEach(a => byid[a] && walk(byid[a]));
+    walking.delete(t);
+    walked.add(t);
+  };
+  tasks.forEach(walk);
+  for (const t of tasks) {
+    const s = t.rows.map(r => r.state);
+    if (t.rows.length)
+      t.state = s.includes('fail') ? 'fail'
+        : s.every(x => x === 'done') ? 'done'
+        : s.includes('now') || s.includes('done') ? 'now'
+        : s.includes('open') ? 'open' : 'todo';
+  }
+  for (const t of tasks) {
+    const waiting = t.after.some(a => byid[a] && byid[a].state !== 'done');
+    if (waiting && t.state === 'done')
+      bad('done while a dependency is not', t.line);
+    t.shown = waiting && t.state === 'todo' ? 'blocked' : t.state;
+    t.rows.forEach(r => r.shown = t.shown === 'blocked' ? 'blocked' : r.state);
+  }
+  return {tasks, errors};
+}
+
+const make = (tag, text, cls) => {
+  const e = document.createElement(tag);
+  if (text != null) e.textContent = text;
+  if (cls) e.className = cls;
+  return e;
+};
+const glyph = s => {
+  const g = make('span', glyphs[s], 'g');
+  g.style.color = 'var(--' + s + ')';
+  g.title = s;
+  return g;
+};
+const tally = ss => {
+  const n = {};
+  Object.keys(glyphs).forEach(s => n[s] = 0);
+  ss.forEach(s => n[s]++);
+  return n;
+};
+const bar = (ss, into) => {
+  const n = tally(ss);
+  Object.keys(glyphs).filter(s => s !== 'todo' && n[s]).forEach(s => {
+    const i = make('i');
+    i.style.width = 100 * n[s] / ss.length + '%';
+    i.style.background = 'var(--' + s + ')';
+    into.append(i);
+  });
+  return into;
+};
+
+const {tasks, errors} = parse(document.getElementById('tasks').textContent);
+errors.forEach(e => document.getElementById('errors').append(make('li', e)));
+
+// a task is a row: glyph, id, title over its plan ref and after, count
+const line = (t, tag) => {
+  const row = make(tag, null, 'row');
+  const title = make('span', t.title);
+  const meta = make('span', null, 'meta');
+  if (t.path) {
+    const plan = t.path.split('/').pop();
+    // plans sit beside this page
+    const a = make('a', plan + ':/' + t.pattern + '/');
+    a.href = plan;
+    meta.append(a);
+  }
+  t.after.forEach(id => {
+    const a = make('a', id);
+    a.href = '#' + id;
+    meta.append(' after ', a);
+  });
+  title.append(meta);
+  const cnt = make('span', null, 'cnt');
+  if (t.rows.length) {
+    const ss = t.rows.map(r => r.shown);
+    cnt.append(tally(ss).done + '/' + ss.length + ' ',
+               bar(ss, make('span', null, 'bar')));
+  }
+  row.append(glyph(t.shown), make('span', t.id, 'id'), title, cnt);
+  return row;
+};
+const list = document.getElementById('list');
+for (const t of tasks) {
+  const e = make(t.rows.length ? 'details' : 'div', null, 'task');
+  e.id = t.id;
+  e.append(line(t, t.rows.length ? 'summary' : 'div'));
+  if (t.rows.length) {
+    const table = make('table');
+    t.rows.forEach(r => {
+      const tr = table.insertRow();
+      tr.insertCell().append(glyph(r.shown));
+      tr.insertCell().textContent = r.repo;
+      tr.insertCell().textContent = r.commit;
+    });
+    e.append(table);
+    e.open = t.shown === 'now' || t.shown === 'fail';
+  }
+  list.append(e);
+}
+
+// totals count repo rows, not the tasks that hold them
+const leaves = tasks.flatMap(t => t.rows.length ? t.rows.map(r => r.shown)
+                                                 : [t.shown]);
+const n = tally(leaves);
+bar(leaves, document.getElementById('bar'));
+const legend = document.getElementById('legend');
+legend.append(make('span', n.done + '/' + leaves.length + ' done'));
+Object.keys(glyphs).forEach(s => {
+  const e = make('span', ' ' + n[s] + ' ' + s);
+  e.prepend(glyph(s));
+  legend.append(e);
+});
+
+// the first task running, else the first not started and not waiting
+const next = document.getElementById('next');
+const pick = tasks.find(t => t.shown === 'now') ||
+             tasks.find(t => t.shown === 'todo');
+if (pick) {
+  const row = pick.rows.find(r => r.state === 'now') ||
+              pick.rows.find(r => r.state === 'todo');
+  next.href = '#' + pick.id;
+  next.append('next ', glyph(pick.shown), ' ' + pick.id + ' ' + pick.title +
+              (row ? ' · ' + row.repo : ''));
+} else {
+  next.textContent = 'next: nothing left to run';
+}
+
+// reload on a timer: an edit on disk shows without a keypress. the stored
+// value is what live keeps across the reload; its presence means live is on.
+const key = location.pathname;
+const live = document.getElementById('live');
+let kept = null;
+try { kept = JSON.parse(sessionStorage.getItem(key)); } catch (e) {}
+if (kept) {
+  document.querySelectorAll('details[id]').forEach(d =>
+    d.open = kept.open.includes(d.id));
+  scrollTo(0, kept.y);
+  live.checked = true;
+}
+let timer;
+const arm = () => {
+  clearTimeout(timer);
+  if (!live.checked) {
+    try { sessionStorage.removeItem(key); } catch (e) {}
+    return;
+  }
+  timer = setTimeout(() => {
+    const open = [...document.querySelectorAll('details[open]')]
+      .map(d => d.id);
+    try { sessionStorage.setItem(key, JSON.stringify({y: scrollY, open})); }
+    catch (e) {}
+    location.reload();
+  }, 10000);
+};
+live.onchange = arm;
+arm();
+</script>

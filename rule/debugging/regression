@@ -1,0 +1,3 @@
+the reproduction, kept. `debugging/reproduce` gets the trigger; the test
+is that trigger left in the tree, so the fix stays falsifiable after you
+forget why it broke.
