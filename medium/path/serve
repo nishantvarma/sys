@@ -1,0 +1,11 @@
+#!/usr/bin/env sh
+# the copy at http://localhost:8080/path.html. pdf is sent as
+# application/pdf, which chrome shows; quark sends application/x-pdf, which
+# chrome downloads
+exec node -e '
+const home = process.env.HOME, data = `${home}/storage/shared/Data`;
+import(`${home}/quark.mjs`).then(({ quark, types }) => {
+  quark(data, `${data}/path.html`, { ...types, pdf: "application/pdf" })
+    .listen(8080, "127.0.0.1");
+  console.log("http://localhost:8080/path.html");
+});'

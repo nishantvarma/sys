@@ -1,0 +1,10 @@
+same idea, same form. paired names for paired acts — open/close,
+encode/decode; parallel branches in parallel shape. the reader reads one,
+skims the other, and the difference is all that is left to read.
+a symmetry broken is a case missing or a bug — or a special case the
+design should have absorbed.
+
+the test: diff the pair. what differs should be the only difference.
+
+`programming/dry` rules the fact, this the form — alike in form, apart in
+fact, is fine.

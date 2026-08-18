@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+
+# skel skeleton page...
+#
+# copy a skeleton's style and engine into each page, over the page's own
+# copy of them — the two parts check holds (general/medium). head, the
+# rules under local and content are the page's, and stay.
+# skeleton is page, deck, todo or path.
+#
+#	stdout	the pages that changed
+#	exit	1 if a page lacks a mark; that page is left as it was
+
+set -u
+
+medium=$(dirname "$(readlink -f "$0")")/../medium
+[ $# -ge 2 ] || { echo "usage: skel skeleton page..." >&2; exit 2; }
+s=$medium/$1.html
+shift
+[ -f "$s" ] || { echo "skel: no skeleton $s" >&2; exit 2; }
+
+tmp=$(mktemp)
+trap 'rm -f "$tmp"' EXIT
+rc=0
+for f; do
+	# a page with a mark missing would lose what follows the gap. prettier
+	# indents what sits inside style and script, marks included
+	for mark in '/* -- tokens -- */' '/* -- local -- */' '// -- engine --'; do
+		sed 's/^ *//' "$f" | grep -qxF -- "$mark" && continue
+		echo "skel: $f: no $mark" >&2
+		rc=1
+		continue 2
+	done
+	awk '
+	{ t = $0; sub(/^ +/, "", t) }
+	FNR == NR {
+		if (t == "/* -- tokens -- */") part = "style"
+		if (t == "/* -- local -- */") part = ""
+		if (t == "// -- engine --") part = "engine"
+		if (part) held[part] = held[part] $0 "\n"
+		next
+	}
+	t == "/* -- tokens -- */" { printf "%s", held["style"]; skip = 1 }
+	t == "/* -- local -- */" { skip = 0 }
+	t == "// -- engine --" { printf "%s", held["engine"]; exit }
+	!skip' "$s" "$f" > "$tmp"
+	cmp -s "$tmp" "$f" && continue
+	# through a symlink, and with the page's own mode
+	cat "$tmp" > "$f"
+	echo "$f"
+done
+exit $rc

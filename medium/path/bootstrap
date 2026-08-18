@@ -1,0 +1,19 @@
+#!/usr/bin/env sh
+# once, in termux on the tablet. asks for the laptop's password once, at
+# ssh-copy-id; nothing after it does
+set -e
+laptop=tnishant@192.168.29.13
+termux-setup-storage
+pkg install -y openssh rsync nodejs
+key=$HOME/.ssh/id_ed25519
+[ -f $key ] || ssh-keygen -t ed25519 -N '' -f $key
+ssh-copy-id $laptop
+p=$laptop:src/sys/medium/path
+scp $p/keep $p/pull $p/serve $HOME/
+# the laptop may log in here too, on port 8022
+scp $laptop:.ssh/id_ed25519.pub $HOME/.ssh/authorized_keys
+sshd
+# a script cannot grant all-files access, and the grant reaches only a new
+# termux process
+echo 'settings → all files access → termux on; force stop termux;'
+echo 'reopen it, then: sshd; sh pull; sh serve'

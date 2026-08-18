@@ -1,0 +1,71 @@
+the tablet holds a subset of the library as plain files, copied one way from
+the laptop, and serves them to its own chrome. the laptop is the truth; the
+tablet is a clone of the part named in `medium/path/keep`, one path per
+line from the library's root.
+
+three scripts do it, and the page is unchanged. `medium/path/pull` copies
+what keep names from the laptop with rsync. `medium/path/serve` serves the
+copy at localhost:8080 with quark.mjs under node. `medium/path/bootstrap`
+sets up a fresh tablet.
+
+termux runs them: a linux userland as an android app. pkg installs rsync,
+openssh and node; sshd on port 8022 lets the laptop log in and drive the
+tablet. each side's key is in the other's authorized_keys, so pull and ssh
+ask for nothing. a new tablet starts with one command in termux:
+
+  pkg install -y openssh \
+  && scp tnishant@192.168.29.13:src/sys/medium/path/bootstrap . \
+  && sh bootstrap
+
+bootstrap ends by printing the step no script can take: grant all-files
+access, force stop termux, reopen it.
+
+the tablet keeps its own copy of keep and edits it there. the one in this
+folder is the list the tablet was set up with; copy the tablet's back after
+editing, or a lost tablet takes its list with it.
+
+finding the tablet: the router hands out its address, 192.168.29.27 when
+this was written. if it moves, a scan for sshd finds it:
+
+  for i in $(seq 254); do
+    (timeout .5 bash -c "echo >/dev/tcp/192.168.29.$i/8022" 2>/dev/null \
+    && echo 192.168.29.$i) &
+  done; wait
+
+the tablet's address matters only for driving it from the laptop. pull
+needs the laptop's, 192.168.29.13; that is the one to reserve in the router.
+
+rejected
+  a service worker caching the subset inside chrome, with no termux:
+    about 60 lines of new code, a developer flag (plain http is not a
+    secure context), copies no other app can open, and eviction under
+    storage pressure. here the copies are files
+  syncthing: two-way sync, a daemon, a protocol. the need is one way
+  quark itself: it chroots, and android refuses that without root. serve
+    runs quark.mjs, which pull brings along with the library
+
+surprises
+  shared storage refuses chmod and utime, so rsync -a fails there
+  all-files access reaches only a new termux process: grant, force stop,
+    reopen, sshd. until then termux can still write documents/ and
+    download/, which hides the missing grant
+  pkill -f quark.mjs over ssh matches its own command line and kills the
+    session
+  chrome on android has no pdf viewer: a pdf in a frame is downloaded and
+    opened in drive. the page draws it with pdf.js instead, fetched once
+    from cdnjs and cached a year, so it works offline after one online open
+
+deferred
+  ticks and places live per origin: localhost:8080 on the tablet and
+    192.168.29.13:8080 on the laptop keep separate sets
+  pull never deletes: a path dropped from keep stays on the tablet
+  pull skips a file whose size matches, so an edit that keeps the size
+    is not copied
+  a new subject's path.md is not in keep until added by hand
+  serve does not start on its own; termux:boot would
+  nothing notices that the laptop came up; pull runs by hand
+  pdf.js draws no text layer: a pdf's text cannot be selected or found,
+    and no place in it is kept
+
+check: on the tablet, wifi off, reload localhost:8080/path.html. the
+outline and every kept file open; the rest is struck through.
