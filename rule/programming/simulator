@@ -1,0 +1,23 @@
+a fake world with the real inputs. before the host will have you, write
+the world it would hand you — the calls, the rows, the clock — and build
+against that.
+
+the test: name what the fake gets wrong. that list is the integration
+risk and it is short, or you are not simulating the host, you are
+imagining it.
+
+the inputs are the deliverable, not the fake. capture them from the real
+thing once — a recorded response, a dumped row, an actual file — then
+freeze. invented inputs test the invention.
+
+`debugging/reproduce:/on demand/` turned around: there you own the
+trigger for a bug that exists, here the world for code that does not.
+one property either way — it runs when you say so.
+
+keep it running after integration or delete it. a simulator that rots is
+a second truth and the wrong one; it lives beside the code, started by
+the same command. `debugging/regression` is the case that earned a place
+in it.
+
+what it cannot fake is the integration — so integrate early and small,
+and let the first real call correct the list.

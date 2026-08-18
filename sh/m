@@ -1,0 +1,33 @@
+#!/usr/bin/env -S 9 rc
+
+# m is cur over time: here, then the log newest first. m n is the nth
+# line — 0 is here, 1 is one back, so back is c `{m 1}. cur leads even
+# when it is not the log's head, and it will not be: a view moves this
+# without saying it, and a log-only m walks past where you stand.
+#
+# a log line is a verb then an address, so bare m is the commands — pick
+# one and run it. numbered, m is the address alone: c `{m 1} is back, and
+# the numbered form is what a script reads, so it stays a noun.
+
+ifs='
+'
+
+dir=$home/.config/sys
+id=none
+if (! ~ $#TMUX_PANE 0) {
+	id=`{tmux display -t $TMUX_PANE -p '#{window_id}' >[2]/dev/null}
+	if (~ $#id 0) id=none
+}
+
+here=`{cat $dir/cur/$"id >[2]/dev/null}
+if (~ $#here 0) here=`{pwd}
+log=`{tac $dir/log >[2]/dev/null}
+if (! ~ $#log 0) {
+	head=`{echo $log(1) | sed 's,^[^ ]* ,,'}
+	if (~ $"head $"here) log=$log(2-)
+}
+
+if (~ $#* 0) { echo c $"here; for (l in $log) echo $"l; exit }
+if (~ $1 0) { echo $"here; exit }
+l=$log($1)
+if (! ~ $#l 0) echo $"l | sed 's,^[^ ]* ,,'

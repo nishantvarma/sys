@@ -1,0 +1,22 @@
+work ships with the check that would show it wrong. the check is the
+deliverable, not a step after it.
+
+the test: name what would falsify this. no answer, and it is a claim,
+not a result.
+
+without one the reader has two options, read all of it or take all of
+it. the check is the third: reading the check is bounded, reading the
+change is not. that is what it buys — accepting without reading, which
+is the only way anything large is ever accepted.
+
+it need not be code. `general/measurefirst:/the number that moved/` is a
+number, `programming/simulator:/name what the fake gets wrong/` is a
+list, `general/jargon:/hand it to someone/` is a reader. what makes it a
+check is that it can come back negative.
+
+it outlives the work or it was a demonstration. `debugging/regression`
+is the smallest case — the trigger left in the tree, so the fix stays
+falsifiable after you forget why it broke.
+
+`general/metacircular` is this leaf turned on the tree itself:
+~/src/sys/bin/check is every check the tree ships, one run.

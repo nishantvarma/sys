@@ -1,0 +1,157 @@
+<!doctype html>
+<!-- -- head -- -->
+<!-- a deck. the data is content: one <section id> per slide, one idea
+     each. edit that, and add rules under local. edit nothing else.
+
+     add    copy a <section id> block. its id is its address:
+            deck.html#id. #3 opens the third, for a slide with no id.
+     keys   ← → space pgup pgdn move, p prints the pdf
+     map    grep -n -- '-- [a-z]* --' deck.html
+     check  check deck.html -->
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>title</title>
+
+<style>
+/* -- tokens -- */
+:root {
+  --bg: #121212; --panel: #1b1b1b; --line: #2e2e2e;
+  --fg: #cfcfcf; --dim: #878787; --hi: #f5f5f5;
+  --accent: #ffffff; --bad: #d98a80; --ok: #8fb8a4;
+  --mono: ui-monospace, Menlo, Consolas, monospace;
+}
+
+/* -- style -- */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--fg);
+       font: 17px/1.55 system-ui, sans-serif; overflow: hidden;
+       display: flex; align-items: center; justify-content: center;
+       padding: 5vh 6vw; }
+section { display: none; width: 100%; max-width: 920px; }
+section.on { display: block; animation: in .22s ease-out; }
+@keyframes in { from { opacity: 0; transform: translateY(8px); } }
+.kicker { color: var(--accent); font-size: 13px; font-weight: 600;
+          letter-spacing: .08em; text-transform: uppercase;
+          margin-bottom: 1.1em; }
+h1 { font-size: clamp(30px, 4.6vw, 48px); color: var(--hi);
+     letter-spacing: -.02em; line-height: 1.12; }
+h1 em { color: var(--accent); font-style: normal; }
+h2 { font-size: clamp(22px, 3vw, 32px); color: var(--hi);
+     letter-spacing: -.01em; margin-bottom: .15em; }
+.lede { margin-top: 1em; font-size: clamp(16px, 2vw, 21px);
+        color: var(--dim); max-width: 42em; }
+.sub { color: var(--dim); font-size: clamp(14px, 1.6vw, 17px);
+       margin-bottom: 1.6em; }
+.cap { color: var(--dim); font-size: 13px; margin: .7em 0 1.2em; }
+.lede b { color: var(--hi); font-weight: 600; }
+.sub b, .cap b { color: var(--fg); font-weight: 600; }
+pre { background: var(--panel); border: 1px solid var(--line);
+      border-radius: 8px; padding: 1.1em 1.3em; overflow: auto;
+      font: clamp(12px, 1.45vw, 14.5px)/1.65 var(--mono); }
+pre + pre { margin-top: .8em; }
+pre.wide { max-height: 56vh; }
+pre.bad { border-left: 3px solid var(--bad); }
+pre.ok { border-left: 3px solid var(--ok); }
+pre b { color: var(--hi); }
+pre .c { color: var(--dim); }
+ul { list-style: none; margin-top: 1em; }
+li { padding: .35em 0 .35em 1.5em; position: relative; }
+li::before { content: "›"; position: absolute; left: .2em;
+             color: var(--accent); font-weight: 700; }
+.bar { position: fixed; left: 0; right: 0; bottom: 0; height: 3px;
+       background: var(--line); }
+.bar i { display: block; width: calc(var(--at, 0) * 100%); height: 100%;
+         background: var(--accent); transition: width .2s; }
+.num, .hint { position: fixed; bottom: 16px; color: var(--dim);
+              font: 12px var(--mono); }
+.num { right: 18px; }
+.hint { left: 18px; }
+
+/* every slide, one to a page, colours and all. a 16:9 sheet is 720px tall
+   and a slide wants 1000px, so the page lays out at 1/zoom and shrinks onto
+   it. min-height is the sheet over the zoom, rounded down: a hair over and
+   every slide takes two pages. safe center starts a long slide at the top
+   instead of clipping it; one that still spills is too long. without
+   animation: none the current slide prints mid-fade, blank. */
+@media print {
+  @page { size: 13.33in 7.5in; margin: 0; }
+  * { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  html, body { height: auto; display: block; overflow: visible; padding: 0; }
+  section, section.on { display: flex; flex-direction: column;
+    justify-content: safe center; zoom: .72; min-height: 10.4in;
+    max-width: none; padding: .4in .55in; break-after: page;
+    animation: none; }
+  section:last-of-type { break-after: auto; }
+  pre.wide { max-height: none; overflow: visible; }
+  .bar, .num, .hint { display: none; }
+}
+
+/* -- local -- */
+</style>
+
+<!-- -- content -- -->
+<section id="claim">
+  <div class="kicker">idea</div>
+  <h1>the <em>claim</em>, in one line</h1>
+  <p class="lede">what breaks, and the shape of the fix. <b>the sentence to keep.</b></p>
+</section>
+
+<section id="evidence">
+  <div class="kicker">evidence</div>
+  <h2>one slide, one idea</h2>
+  <p class="sub">what this slide shows. <b>its number.</b></p>
+  <pre class="wide">quoted from a run
+<b>the line that matters</b>
+<span class="c">the rest, dimmed</span></pre>
+  <p class="cap">what to read in it.</p>
+</section>
+
+<section id="fix">
+  <div class="kicker">fix</div>
+  <h2>before, then after</h2>
+  <pre class="bad">the line that broke</pre>
+  <pre class="ok">the line that holds</pre>
+  <ul>
+    <li>what changed, in one line</li>
+  </ul>
+</section>
+
+<script type="module">
+// -- engine --
+document.body.insertAdjacentHTML('beforeend',
+  '<div class="bar"><i></i></div><div class="num"></div>' +
+  '<div class="hint">← → space · p pdf</div>');
+const slides = [...document.querySelectorAll('section')];
+const num = document.querySelector('.num');
+const step = {ArrowRight: 1, ' ': 1, PageDown: 1, ArrowLeft: -1, PageUp: -1};
+let i = 0;
+
+const show = k => {
+  i = Math.max(0, Math.min(slides.length - 1, k));
+  slides.forEach((s, j) => s.classList.toggle('on', j === i));
+  const s = slides[i];
+  if (!s) return;
+  num.textContent = i + 1 + ' / ' + slides.length;
+  document.body.style.setProperty('--at', (i + 1) / slides.length);
+  // replace, not push: back leaves the deck instead of stepping through it
+  history.replaceState(null, '', '#' + (s.id || i + 1));
+};
+// an id first; a number only for a slide that has none
+const find = () => {
+  const h = decodeURIComponent(location.hash.slice(1));
+  const k = slides.findIndex(s => h && s.id === h);
+  return k >= 0 ? k : (parseInt(h, 10) || 1) - 1;
+};
+
+addEventListener('keydown', e => {
+  if (e.metaKey || e.altKey || e.ctrlKey) return;
+  if (e.key === 'p') print();
+  else if (step[e.key]) show(i + step[e.key]);
+  else return;
+  e.preventDefault();
+});
+addEventListener('hashchange', () => show(find()));
+show(find());
+</script>

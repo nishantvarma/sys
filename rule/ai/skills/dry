@@ -1,0 +1,2 @@
+shared content lives in `ai/skills/manual`
+`ai/skills/automated` references it, never copies

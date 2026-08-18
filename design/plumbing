@@ -1,0 +1,105 @@
+tmux is the bus. o is the table. no plumber.
+
+the decision
+
+one dispatcher, bin/o, reached by every producer. one resolver, sh/p,
+for text whose meaning is not yet known. ~/lib/plumbing stops being a
+second table and becomes a shim into p. nothing new runs.
+
+the drift that raised this — djvu evince against djvu zathura, mp3 mpv
+against mp3 mocp — is two owners of one table, and the fix for two
+owners is one owner (root). a router removes no owner; it adds a third
+participant.
+
+the bus was never vacant
+
+tmux is not a sibling of ed and fm, it is what they run inside: a
+long-lived user server with a namespace, addressable objects, and a way
+to hand a message to one of them. that is the plumber's job, already
+filled and already paid for.
+
+	plumber           tmux
+	the daemon        the server, running regardless
+	$NAMESPACE        /tmp/tmux-$uid/{default,...}, $TMUX, -L
+	ports             panes: %57, {marked}, {last}
+	plumb/send        set-option -p, run-shell, send-keys
+	attr name=value   pane options: @p
+	wdir              #{pane_current_path}
+	click             #{mouse_x}, #{mouse_word}
+	plumb start       run-shell -b
+	plumb client      split-window, spawn -t
+
+conf:16 sets @p and p:19 reads it — a name=value pair carried out of
+band so screen text is never a shell command. that is a plumb message,
+built for plumb's reason, arrived at without it. p:56 sends to {marked}
+else {last} — a port you point at and can see, whose failure is text in
+the wrong prompt and not a message into nowhere.
+
+a second daemon duplicates the transport and is blind to the first
+one's objects. that blindness is the cost in full: a plumber started
+from the X session cannot name a pane, so plumb start e cannot split
+the right one. named attributes are not rule variables — $attr is the
+whole string — so the pane crosses back as text for another script to
+unpick. a script to recover what tmux gives away.
+
+the rules file cannot hold the rules
+
+the language is is, isdir, isfile, matches, set, add, delete, and to,
+client, start. no shell predicate. git rev-parse at p:65, the a/ b/
+strip at :38 and the repo-root second guess at :35 cannot be written in
+it and stay in p. inverting does not move the decision, it splits it:
+the easy half becomes rules, the hard half does not move, and there are
+two owners again, one level down.
+
+the shape
+
+	tmux/conf   gesture    which text, which pane   needs the grid
+	sh/p        resolve    text → object            needs a shell
+	sh/o        dispatch   object → program         needs a name
+
+each layer needs what its owner has and nothing else does. plumb wants
+resolve and dispatch in one language and can do half of resolve. one
+mechanism per thing beats three composed through a router (simple).
+
+the change
+
+	type is text
+	data matches '[a-zA-Z0-9_\-./:~@#]+'
+	plumb to open
+	plumb start p $0
+
+untested; nothing is running to test it against. an edit rule ahead of
+it if acme should open files itself. acme's button 3 then gets the same
+chain as right-click. delete the file outright if acme never opens —
+the change is a deletion either way (terse).
+
+what is given up
+
+extent by pattern. plumb takes the longest leftmost match containing
+the click; word-separators " " is the cheap version and it is global,
+so double-click and every copy-mode word motion move with it. if it
+ever bites: mouse_x and copy_cursor_x into p, matched against p's own
+patterns — same idea, no daemon. address:11 named it.
+
+delivery to a running program with no pane. tmux can start one, never
+hand a message to one already open. answered per program where it
+matters — o:18 is mocp -S then mocp -l, a plumb client rule written by
+hand for the one program that needed it, kept in the dispatcher.
+
+revisit when
+
+a gesture source outside tmux meets a consumer that must be reached
+while already running. a second gesture source alone changes nothing;
+it execs p, as tmux does. ed with a look chord would need p -w first —
+p takes wdir from the pane (p:24), and a pane running ed reports ed's
+cwd, not the edited file's.
+
+-CC is a different question
+
+control mode is a text protocol: commands in, %begin/%end out, %output
+%pane <bytes> and notifications alongside; -CC is that with echo off,
+what iTerm2 attaches with. it moves who draws and who holds the mouse,
+not who decides. the client takes raw bytes and must be a terminal, and
+having no tty it never fires tmux's mouse bindings — mouse_word,
+copy_cursor_word, copy-mode, copy-pipe all go. it is the road to owning
+the grid. address:1 turned that down.

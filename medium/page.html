@@ -1,0 +1,316 @@
+<!doctype html>
+<!-- -- head -- -->
+<!-- a page. the data is main, in content: one <details id> per node,
+     nested for depth, one heading in each summary. edit that, and add
+     rules under local. edit nothing else.
+
+     add    copy a <details id> block. its id is its address: page.html#id
+     fold   the open attribute is where the page opens folded. the index
+            shows it and toggles it, and keeps no state of its own
+     index  the index and the numbers are built from the nodes. never
+            type either; delete a node and the rest renumber
+     keys   ↑ ↓ j k move, → l unfold or step in, ← h fold or go up, enter
+            go to it, / find a heading, z fold the rest, e unfold all,
+            c fold all, esc close the find
+     map    grep -n -- '-- [a-z]* --' page.html
+     check  check page.html; node page/run.mjs [page]... -->
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>title</title>
+
+<style>
+/* -- tokens -- */
+:root {
+  color-scheme: light dark;
+  --bg: light-dark(#ffffff, #0f0f0f);
+  --panel: light-dark(#f4f4f3, #1a1a1a);
+  --fg: light-dark(#0a0a0a, #f2f2f2);
+  --dim: light-dark(#6b6b6b, #8f8f8f);
+  --line: light-dark(#e5e5e5, #262626);
+  --accent: light-dark(#1f4fd8, #7b97ff);
+  --sans: 'Ubuntu Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --mono: 'Ubuntu Sans Mono', 'SF Mono', Menlo, Consolas, monospace;
+}
+
+/* -- style -- */
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg);
+       font: 1rem/1.6 var(--sans); }
+a { color: var(--accent); }
+pre, code { font-family: var(--mono); font-size: .85em; }
+pre { padding: .75rem 1rem; overflow-x: auto; background: var(--panel); }
+p { max-width: 72ch; }
+h1 { margin: 0 0 1.5rem; font-size: 2.75rem; letter-spacing: -.03em;
+     line-height: 1.05; }
+.page { display: grid; grid-template-columns: 18rem minmax(0, 1fr);
+        gap: 3rem; max-width: 75rem; margin: auto; padding: 2rem 1rem 6rem; }
+.n { color: var(--dim); font-weight: 400; font-variant-numeric: tabular-nums; }
+
+nav { position: sticky; top: 0; align-self: start; max-height: 100vh;
+      overflow: auto; padding-block: 1rem; scrollbar-width: thin;
+      font-size: .8125rem; line-height: 1.35; }
+nav ul { margin: 0; padding: 0; list-style: none; }
+nav ul ul { padding-left: 1rem; }
+nav [aria-expanded=false] > ul { display: none; }
+nav a { display: grid; grid-template-columns: 1rem auto minmax(0, 1fr);
+        column-gap: .375rem; padding: .3125rem .5rem; color: inherit;
+        text-decoration: none; }
+nav a:hover { background: var(--panel); }
+nav > ul > li { border-top: 1px solid var(--line); }
+nav > ul > li > a { font-weight: 700; }
+.twisty { color: var(--dim); font-size: .6875rem; }
+nav [aria-expanded=false] > a > .twisty::before { content: '▸'; }
+nav [aria-expanded=true] > a > .twisty::before { content: '▾'; }
+nav .focus > a { background: var(--panel); color: var(--accent);
+                 box-shadow: inset 3px 0 var(--accent); }
+
+details { border-top: 1px solid var(--line); }
+main > details { border-top-color: var(--fg); }
+summary { display: flex; gap: .5rem; align-items: baseline;
+          padding: .625rem .5rem; cursor: pointer; list-style: none; }
+summary::before { flex: none; width: 1rem; color: var(--dim);
+                  font-size: .6875rem; content: '▸'; }
+details[open] > summary::before { content: '▾'; }
+summary > :last-child { margin: 0; font-size: 1rem; line-height: 1.35;
+                        letter-spacing: -.01em; }
+main > details > summary > :last-child { font-size: 1.125rem; }
+summary:hover > :last-child { color: var(--accent); }
+.focus > summary { box-shadow: inset 3px 0 var(--accent); }
+details > div { padding: 0 0 1.25rem 2rem; }
+
+dialog { width: min(36rem, 100% - 2rem); margin-top: 12vh; padding: 0;
+         border: 1px solid var(--line); background: var(--bg);
+         color: var(--fg); box-shadow: 0 12px 40px rgb(0 0 0 / .2); }
+dialog::backdrop { background: rgb(0 0 0 / .15); }
+dialog input { width: 100%; padding: .875rem 1rem; border: 0;
+               border-bottom: 1px solid var(--line); background: none;
+               color: inherit; font: 1.0625rem var(--sans); outline: 0; }
+dialog ol { max-height: 50vh; margin: 0; padding: .25rem; overflow: auto;
+            list-style: none; }
+dialog li { display: flex; gap: .75rem; padding: .5rem .75rem;
+            font-size: .875rem; cursor: pointer; }
+[aria-selected=true] { background: var(--accent); color: var(--bg); }
+[aria-selected=true] .n { color: inherit; }
+
+/* one column: the text, whose headings folded are the index */
+@media (width < 50rem) {
+  .page { grid-template-columns: minmax(0, 1fr); }
+  nav { display: none; }
+}
+@media print {
+  nav, summary::before { display: none; }
+  .page { display: block; }
+}
+
+/* -- local -- */
+</style>
+
+<!-- -- content -- -->
+<div class="page">
+<nav></nav>
+<main>
+
+<h1>title</h1>
+<p>what this is, and who it is for.</p>
+
+<details id="what" open>
+<summary><h2>what it is</h2></summary>
+<div>
+  <p>the idea, top-down.</p>
+
+  <details id="example" open>
+  <summary><h3>an example</h3></summary>
+  <div>
+    <pre>quoted from a run</pre>
+  </div>
+  </details>
+</div>
+</details>
+
+<details id="state">
+<summary><h2>where it stands</h2></summary>
+<div>
+  <p>done, not done, open.</p>
+</div>
+</details>
+
+</main>
+</div>
+
+<script type="module">
+// -- engine --
+const el = (tag, props) => Object.assign(document.createElement(tag), props);
+const main = document.querySelector('main');
+const nav = document.querySelector('nav');
+const nodes = [...main.querySelectorAll('details[id]')];
+const up = d => d.parentElement.closest('details[id]');
+const shown = () =>
+  nodes.filter(d => !d.parentElement.closest('details:not([open])'));
+let focused;
+
+// the nav is rebuilt whole: a page made before the keys holds buttons there
+const index = (parent, prefix) => {
+  const ul = el('ul');
+  nodes.filter(d => up(d) === parent).forEach((d, i) => {
+    const head = d.querySelector('summary');
+    const n = el('span', {className: 'n', textContent: prefix + (i + 1)});
+    const a = el('a', {href: '#' + d.id});
+    a.append(el('span', {className: 'twisty'}), n, head.textContent.trim());
+    head.prepend(n.cloneNode(true));
+    d.li = ul.appendChild(el('li', {ariaExpanded: d.open}));
+    d.li.node = d;
+    d.li.append(a);
+    if (nodes.some(k => up(k) === d))
+      d.li.append(index(d, n.textContent + '.'));
+  });
+  return ul;
+};
+nav.replaceChildren(index(null, ''));
+
+function focus(d) {
+  if (!d) return;
+  focused?.classList.remove('focus');
+  focused?.li.classList.remove('focus');
+  focused = d;
+  d.classList.add('focus');
+  d.li.classList.add('focus');
+  d.li.scrollIntoView({block: 'nearest'});
+}
+const show = d => {
+  focus(d);
+  d?.firstElementChild.scrollIntoView();
+};
+
+// the index row mirrors its node; a fold that hides the keys takes them
+document.addEventListener('toggle', ({target: d}) => {
+  if (!d.li) return;
+  d.li.ariaExpanded = d.open;
+  if (!d.open && d !== focused && d.contains(focused)) focus(d);
+}, true);
+
+// every ancestor, not only nodes: a closed fold hides its target too
+const reveal = t => {
+  for (let d = t && t.closest('details'); d;
+       d = d.parentElement.closest('details'))
+    d.open = true;
+};
+const follow = () => {
+  const t = document.getElementById(location.hash.slice(1));
+  if (!t) return;
+  reveal(t);
+  t.scrollIntoView();
+  focus(t.closest('details[id]'));
+};
+// a click on the hash already shown fires no hashchange
+document.addEventListener('click', e => {
+  const a = e.target.closest('a[href^="#"]');
+  if (a && !e.defaultPrevented) reveal(document.getElementById(a.hash.slice(1)));
+});
+addEventListener('hashchange', follow);
+
+nav.addEventListener('click', e => {
+  const d = e.target.closest('li')?.node;
+  if (!d || !e.target.closest('.twisty')) return;
+  e.preventDefault();
+  d.open = !d.open;
+});
+main.addEventListener('click', e => {
+  const d = e.target.closest('summary')?.parentElement;
+  if (d?.li) focus(d);
+});
+
+// the node being read: the last summary above a line near the top. ask
+// the folds, not the layout: firefox boxes a summary under a closed one
+const reading = () => shown().filter(d =>
+  d.firstElementChild.getBoundingClientRect().top < 90).pop() || nodes[0];
+const inview = d => {
+  const r = d.firstElementChild.getBoundingClientRect();
+  return r.bottom > 0 && r.top < innerHeight;
+};
+// the keys stay where they were put until that scrolls away
+addEventListener('scroll', () => focused && inview(focused)
+  || focus(reading()));
+
+const every = open => () => nodes.forEach(d => d.open = open);
+addEventListener('beforeprint', every(true));
+
+function move(by) {
+  const all = shown();
+  show(all[Math.max(0, Math.min(all.length - 1, all.indexOf(focused) + by))]);
+}
+const right = () => focused.open ? move(1) : focused.open = true;
+const left = () => focused.open ? focused.open = false : show(up(focused));
+function rest() {
+  for (const d of nodes)
+    if (!d.contains(focused) && !focused.contains(d)) d.open = false;
+  show(focused);
+}
+const go = d => location.hash === '#' + d.id ? follow() : location.hash = d.id;
+const keys = {
+  ArrowDown: () => move(1), j: () => move(1),
+  ArrowUp: () => move(-1), k: () => move(-1),
+  ArrowRight: right, l: right,
+  ArrowLeft: left, h: left,
+  Enter: () => go(focused),
+  '/': find, z: rest, e: every(true), c: every(false),
+};
+
+// -- find --
+// headings only: the browser's own find already reaches into closed folds
+const dialog = document.body.appendChild(el('dialog', {innerHTML:
+  '<input placeholder="find a heading" autocomplete="off">'
+  + '<ol role="listbox"></ol>'}));
+const query = dialog.querySelector('input');
+const results = dialog.querySelector('ol');
+const says = d => d.li.firstChild.textContent.toLowerCase();
+let hits = [], hit = 0;
+function find() {
+  query.value = '';
+  search();
+  dialog.showModal();
+}
+function search() {
+  const typed = query.value.toLowerCase().split(/\s+/).filter(Boolean);
+  hits = typed.length
+    ? nodes.filter(d => typed.every(w => says(d).includes(w))).slice(0, 12)
+    : [];
+  hit = 0;
+  paint();
+}
+const paint = () => results.replaceChildren(...hits.map((d, i) => {
+  const li = el('li', {role: 'option', ariaSelected: i === hit});
+  li.append(...[...d.li.firstChild.childNodes].slice(1)
+    .map(c => c.cloneNode(true)));
+  return li;
+}));
+function pick(d) {
+  dialog.close();
+  go(d);
+}
+query.oninput = search;
+query.onkeydown = e => {
+  if (e.key === 'ArrowDown') hit = Math.min(hits.length - 1, hit + 1), paint();
+  else if (e.key === 'ArrowUp') hit = Math.max(0, hit - 1), paint();
+  else if (e.key === 'Enter' && hits[hit]) pick(hits[hit]);
+  else return;
+  e.preventDefault();
+};
+results.onclick = e => {
+  const i = [...results.children].indexOf(e.target.closest('li'));
+  if (hits[i]) pick(hits[i]);
+};
+
+// a page's own key handler wins where it prevents the default
+addEventListener('keydown', e => {
+  if (e.defaultPrevented || dialog.open || e.ctrlKey || e.metaKey || e.altKey
+      || e.target.closest('input, select, textarea') || !focused) return;
+  const act = keys[e.key];
+  if (!act) return;
+  e.preventDefault();
+  act();
+});
+
+follow();
+if (!focused) focus(reading());
+</script>

@@ -1,0 +1,1567 @@
+<!doctype html>
+<!-- -- head -- -->
+<!-- a path reader. the data is not in this file: it is the path.md in each
+     folder beside it, and the files those name. edit them, and add rules
+     under local. edit nothing else.
+
+     subject  a folder beside this page that holds a path.md. its # heading
+              is the title, the lines under it the note
+     stage    a ## heading
+     entry    a list item: `path` — **title** — note. a path runs from the
+              subject's folder, and ../ reaches a sibling. the tick is kept
+              under the title, else under the first path
+     group    a line all in **bold** heads the entries below it
+     block    lines indented four spaces, or a table, kept as written
+
+     hash     what is open, as a path from here: path.html#math/calc.
+              opening unfolds the outline down to it
+     keys     ↑ ↓ j k move, → l unfold or step in or open, ← h fold or go
+              up, enter open, x tick, n p next or previous file, / find,
+              1–9 a stage of the subject the keys are in, or a subject
+              from a subject's row, z fold the rest, f full width, esc close
+     kept     in this browser: ticks, folds and places in lectures in
+              localstorage under pathreader:, and the chosen folder in
+              indexeddb pathreader. choosing a folder that holds the last
+              one moves what was kept under the last to the new
+     serve    quark -l in this folder, or open this file and choose this
+              folder
+     deploy   cp path.html ~/Data; cp path.html ~/Unsynced
+     map      grep -n -- '-- [a-z]* --' path.html
+     check    check path.html; node path/run.mjs [library] [page] -->
+<html lang="en">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>path</title>
+  <link
+    rel="icon"
+    href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16'><rect x='2' y='2' width='12' height='12' fill='%231f4fd8'/></svg>"
+  />
+
+  <style>
+    /* -- tokens -- */
+    :root {
+      color-scheme: light dark;
+      --paper: light-dark(#ffffff, #0f0f0f);
+      --panel: light-dark(#f4f4f3, #1a1a1a);
+      --ink: light-dark(#0a0a0a, #f2f2f2);
+      --muted: light-dark(#6b6b6b, #8f8f8f);
+      --rule: light-dark(#e5e5e5, #262626);
+      --accent: light-dark(#1f4fd8, #7b97ff);
+      --sans: 'Ubuntu Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      --serif: Charter, 'Bitstream Charter', Georgia, serif;
+      --mono: 'Ubuntu Sans Mono', 'SF Mono', Menlo, Consolas, monospace;
+    }
+
+    /* -- style -- */
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      display: grid;
+      grid-template: minmax(0, 1fr) / minmax(0, 1fr);
+      block-size: 100dvh;
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font: 0.9375rem/1.5 var(--sans);
+    }
+    body.ready {
+      grid-template-columns: auto minmax(0, 1fr);
+    }
+    body.wide {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    body.wide main,
+    aside:empty {
+      display: none;
+    }
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+    code {
+      font: 0.8em var(--mono);
+    }
+    button {
+      font: inherit;
+      color: inherit;
+      cursor: pointer;
+    }
+    :focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: -2px;
+    }
+
+    /* until a folder is chosen, or the server answers */
+    .landing {
+      padding: 5rem max(1.5rem, 50% - 21rem) 8rem;
+    }
+    .landing h1 {
+      margin: 0 0 1.5rem;
+      font-size: 2.75rem;
+      letter-spacing: -0.03em;
+      line-height: 1.05;
+    }
+    .landing p {
+      max-inline-size: 36rem;
+      color: var(--muted);
+    }
+    .landing button {
+      padding: 0.5rem 1.25rem;
+      border: 0;
+      background: var(--accent);
+      color: var(--paper);
+    }
+    output {
+      color: var(--accent);
+    }
+
+    main {
+      overflow: auto;
+      scrollbar-width: thin;
+    }
+    body.ready main {
+      inline-size: 32rem;
+      min-inline-size: 22rem;
+      max-inline-size: 60vw;
+      padding: 0 0.5rem 6rem;
+      border-inline-end: 1px solid var(--rule);
+      resize: horizontal;
+    }
+    header {
+      position: sticky;
+      inset-block-start: 0;
+      z-index: 1;
+      padding: 1rem 0.625rem 0.625rem;
+      border-block-end: 1px solid var(--ink);
+      background: var(--paper);
+    }
+    header h1 {
+      margin: 0;
+      font-size: 1rem;
+      letter-spacing: -0.01em;
+    }
+    main ul {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+    [aria-expanded='false'] > ul {
+      display: none;
+    }
+    .row {
+      display: grid;
+      column-gap: 0.625rem;
+      align-items: start;
+      grid-template:
+        'twisty tick text side' 'twisty tick where where'
+        / 1rem 1.5rem minmax(0, 1fr) auto;
+      padding: 0.4375rem 0.625rem;
+      padding-inline-start: calc(0.25rem + var(--depth) * 1.25rem);
+      scroll-margin-block: 4rem 1rem;
+      cursor: pointer;
+    }
+    .row:hover {
+      background: color-mix(in oklab, var(--panel) 60%, transparent);
+    }
+    .row:has(:checked) {
+      color: var(--muted);
+    }
+    .focus {
+      box-shadow: inset 0 0 0 2px var(--accent);
+    }
+    [aria-current] > .row {
+      background: var(--panel);
+      box-shadow: inset 3px 0 var(--accent);
+    }
+    [aria-current] > .focus {
+      box-shadow:
+        inset 3px 0 var(--accent),
+        inset 0 0 0 2px var(--accent);
+    }
+    [aria-current] > .row :is(strong, a) {
+      color: var(--accent);
+    }
+    .twisty {
+      grid-area: twisty;
+      padding-block-start: 0.125rem;
+      color: var(--muted);
+      font-size: 0.6875rem;
+    }
+    [aria-expanded] > .row > .twisty::before {
+      content: '▸';
+    }
+    [aria-expanded='true'] > .row > .twisty::before {
+      content: '▾';
+    }
+    .text {
+      grid-area: text;
+      margin: 0;
+    }
+    .row::after,
+    .file small {
+      grid-area: side;
+      color: var(--muted);
+      font: 0.6875rem/1.9 var(--mono);
+    }
+    :is(.subject, .stage) > .row {
+      grid-template:
+        'twisty text side'
+        / 1rem minmax(0, 1fr) auto;
+      font-weight: 700;
+    }
+    :is(.subject, .stage) > .row::after {
+      content: attr(data-count);
+      font-weight: 400;
+    }
+    .subject > .row {
+      padding-block: 1rem 0.75rem;
+      font-size: 1.0625rem;
+    }
+    .subject + .subject {
+      border-block-start: 1px solid var(--ink);
+    }
+    .stage > .row {
+      margin-block-start: 0.25rem;
+      padding-block: 0.75rem;
+      border-block-start: 1px solid var(--rule);
+    }
+    .group,
+    .kicker {
+      color: var(--muted);
+      font-size: 0.6875rem;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .group {
+      margin: 1rem 0 0.25rem;
+      padding-inline-start: calc(1.875rem + var(--depth) * 1.25rem);
+    }
+    .entry > .row::after {
+      content: attr(data-type);
+      font: 500 0.625rem/2 var(--mono);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .entry strong {
+      display: block;
+      font-weight: 500;
+    }
+    .note,
+    .prose .text {
+      display: block;
+      color: var(--muted);
+      font-size: 0.8125rem;
+    }
+    .prose > .row {
+      grid-template:
+        'twisty tick text'
+        / 1rem 1.5rem minmax(0, 1fr);
+      cursor: default;
+    }
+    pre.text {
+      font: 0.6875rem/1.6 var(--mono);
+      overflow-x: auto;
+    }
+    .where {
+      grid-area: where;
+      margin: 0;
+      overflow: hidden;
+      color: var(--muted);
+      font: 0.6875rem/1.7 var(--mono);
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+    .where code {
+      font: inherit;
+    }
+    a[data-absent] {
+      text-decoration: line-through;
+    }
+    .tick {
+      grid-area: tick;
+      position: relative;
+      display: grid;
+      place-content: center;
+      inline-size: 1.5rem;
+      aspect-ratio: 1;
+      border: 1.5px solid var(--rule);
+      border-radius: 50%;
+      color: var(--muted);
+      font: 600 0.625rem/1 var(--sans);
+      font-variant-numeric: tabular-nums;
+    }
+    .tick:hover {
+      border-color: var(--accent);
+    }
+    .tick:has(:checked) {
+      border-color: var(--accent);
+      background: var(--accent);
+      color: var(--paper);
+    }
+    .tick > input {
+      position: absolute;
+      inset: -1.5px;
+      margin: 0;
+      border-radius: 50%;
+      appearance: none;
+      cursor: pointer;
+    }
+    .file > .row {
+      grid-template:
+        'twisty tick text side'
+        / 1rem 1rem minmax(0, 1fr) auto;
+      padding-block: 0.3125rem;
+      font-size: 0.8125rem;
+    }
+    .file .text {
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+    .file .tick {
+      inline-size: 1rem;
+      margin-block-start: 0.1875rem;
+      font-size: 0.5rem;
+    }
+
+    aside {
+      display: grid;
+      grid-template: auto minmax(0, 1fr) / minmax(0, 1fr);
+      container-type: inline-size;
+    }
+    aside > :last-child {
+      overflow: auto;
+    }
+    aside > :is(img, audio, .msg) {
+      place-self: center;
+    }
+    nav {
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+      min-block-size: 3.125rem;
+      padding: 0.75rem 1.25rem;
+      border-block-end: 1px solid var(--rule);
+      color: var(--muted);
+      font-size: 0.8125rem;
+    }
+    nav > span {
+      flex: 1;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+    nav b {
+      color: var(--ink);
+      font-weight: 500;
+    }
+    nav a:not([href]) {
+      opacity: 0.35;
+    }
+    nav :is(a, button):hover {
+      color: var(--accent);
+    }
+    nav button {
+      padding: 0;
+      border: 0;
+      background: none;
+    }
+    aside :is(iframe, video) {
+      display: block;
+      inline-size: 100%;
+      block-size: 100%;
+      border: 0;
+    }
+    aside video {
+      background: #000;
+    }
+    aside img {
+      max-inline-size: 100%;
+      max-block-size: 100%;
+      object-fit: contain;
+    }
+    aside > pre {
+      margin: 0;
+      padding: 2.5rem max(1.5rem, 50% - 22rem);
+      font: 0.8125rem/1.7 var(--mono);
+      white-space: pre-wrap;
+    }
+    .msg {
+      margin: 0;
+      color: var(--muted);
+    }
+    .card {
+      align-self: center;
+      display: grid;
+      gap: 1rem;
+      padding: 3rem max(2rem, 50% - 20rem);
+    }
+    .card h1 {
+      margin: 0;
+      font-size: clamp(2rem, 5cqi, 3.25rem);
+      letter-spacing: -0.03em;
+      line-height: 1.05;
+      text-wrap: balance;
+    }
+    .card p {
+      margin: 0;
+      max-inline-size: 34rem;
+    }
+    .sub {
+      color: var(--muted);
+      font-size: 1.0625rem;
+    }
+    .meta {
+      color: var(--muted);
+      font: 0.75rem var(--mono);
+    }
+    .go {
+      justify-self: start;
+      margin-block-start: 0.5rem;
+      padding: 0.625rem 1.125rem;
+      background: var(--accent);
+      color: var(--paper);
+      font-size: 0.875rem;
+    }
+    .bar {
+      block-size: 3px;
+      max-inline-size: 20rem;
+      background: var(--rule);
+    }
+    .bar > i {
+      display: block;
+      block-size: 100%;
+      background: var(--accent);
+    }
+
+    dialog {
+      inline-size: min(36rem, 100% - 2rem);
+      margin-block-start: 12vh;
+      padding: 0;
+      border: 1px solid var(--rule);
+      background: var(--paper);
+      color: var(--ink);
+      box-shadow: 0 12px 40px rgb(0 0 0 / 0.2);
+    }
+    dialog::backdrop {
+      background: rgb(0 0 0 / 0.15);
+    }
+    dialog input {
+      inline-size: 100%;
+      padding: 0.875rem 1rem;
+      border: 0;
+      border-block-end: 1px solid var(--rule);
+      background: none;
+      color: inherit;
+      font: 1.0625rem var(--sans);
+      outline: 0;
+    }
+    dialog ol {
+      margin: 0;
+      padding: 0.25rem;
+      list-style: none;
+      max-block-size: 50vh;
+      overflow: auto;
+    }
+    dialog li {
+      display: flex;
+      gap: 0.75rem;
+      padding: 0.5rem 0.75rem;
+      font-size: 0.875rem;
+      cursor: pointer;
+    }
+    dialog small {
+      margin-inline-start: auto;
+      color: var(--muted);
+      font: 0.6875rem/1.9 var(--mono);
+      white-space: nowrap;
+    }
+    [aria-selected='true'] {
+      background: var(--accent);
+      color: var(--paper);
+    }
+    [aria-selected='true'] small {
+      color: inherit;
+    }
+
+    /* one pane to a screen: the outline, or the file open */
+    @media (width < 50rem) {
+      body.ready {
+        grid-template-columns: minmax(0, 1fr);
+      }
+      body.ready main {
+        inline-size: auto;
+        max-inline-size: none;
+        resize: none;
+        border: 0;
+      }
+      body:not(.viewing) aside,
+      body.viewing main {
+        display: none;
+      }
+    }
+
+    /* -- local -- */
+  </style>
+
+  <!-- -- content -- -->
+  <main>
+    <div class="landing">
+      <h1>path</h1>
+      <p>
+        learning paths, each opened beside its books and lectures. this page
+        reads the <code>path.md</code> in every folder beside it, and the files
+        they name, where they are: from the server that sent it or, opened as a
+        file, from the folder you choose, the one it sits in.
+      </p>
+      <p><button hidden>choose folder</button> <output></output></p>
+    </div>
+  </main>
+  <aside></aside>
+  <dialog>
+    <input placeholder="find an entry or a file" autocomplete="off" />
+    <ol role="listbox"></ol>
+  </dialog>
+
+  <!-- an epub's own styles sit in a lower layer, so these win without
+     !important -->
+  <template id="book">
+    <style>
+      :host {
+        display: block;
+        padding: 3rem max(1.5rem, 50% - 20rem) 6rem;
+        font: 1.125rem/1.7 var(--serif);
+      }
+      * {
+        font-family: inherit;
+        color: inherit;
+        background-color: transparent;
+      }
+      :is(code, pre, kbd, samp, tt) {
+        font-family: var(--mono);
+      }
+      a {
+        color: var(--accent);
+      }
+      :is(img, svg) {
+        max-inline-size: 100%;
+        block-size: auto;
+      }
+      section {
+        content-visibility: auto;
+        contain-intrinsic-size: auto 100dvh;
+      }
+      section + section {
+        margin-block-start: 4rem;
+      }
+    </style>
+  </template>
+
+  <script type="module">
+    // -- engine --
+    const el = (tag, props) =>
+      Object.assign(document.createElement(tag), props);
+    const esc = s => s.replace(/[&<>"]/g, c => `&#${c.charCodeAt()};`);
+    // check wants a typed in-page link to name an id in this file, and these
+    // name paths: so none is typed, each is made here
+    const hash = path => esc(`#${path}`);
+    const main = document.querySelector('main');
+    const aside = document.querySelector('aside');
+    const output = main.querySelector('output');
+    let library,
+      subjects = [],
+      focused;
+
+    // path.md may climb out of its folder: cs/../math/dm is math/dm
+    function clean(path) {
+      const parts = [];
+      for (const p of path.split('/'))
+        if (p === '..') parts.pop();
+        else if (p && p !== '.') parts.push(p);
+      return parts.join('/');
+    }
+    const join = (dir, name) => clean(`${dir}/${name}`);
+    const parent = path => path.split('/').slice(0, -1).join('/');
+    const basename = path => path.split('/').at(-1);
+    const ext = path => path.match(/\.(\w+)$/)?.[1].toLowerCase();
+
+    // keyed by a path from the root, so a key names one file however the
+    // outline is drawn. a titled entry ticks by its title instead: the tick
+    // outlives an edit to path.md that keeps the title
+    const stored = name =>
+      new Set(JSON.parse(localStorage.getItem(name)) ?? []);
+    let done = stored('pathreader:done'),
+      unfolded = stored('pathreader:open');
+    const keep = () => {
+      localStorage.setItem('pathreader:done', JSON.stringify([...done]));
+      localStorage.setItem('pathreader:open', JSON.stringify([...unfolded]));
+    };
+    const at = path => localStorage.getItem(`pathreader:at:${path}`);
+
+    // a root chosen above the last: what was kept under the last moves under
+    // the new, math's calc/x to math/calc/x. a title is no path and stays; the
+    // last root was the whole page, so it stays unfolded
+    function rebase(prefix) {
+      const titles = new Set(entries().map(e => e.title));
+      done = new Set(
+        [...done].map(k => (titles.has(k) ? k : join(prefix, k))),
+      );
+      unfolded = new Set([
+        prefix,
+        ...[...unfolded].map(k => `${prefix}/${k}`),
+      ]);
+      keep();
+      for (const k of Object.keys(localStorage)) {
+        const path = k.match(/^pathreader:at:(.*)/)?.[1];
+        if (path === undefined) continue;
+        localStorage.setItem(
+          `pathreader:at:${prefix}/${path}`,
+          localStorage.getItem(k),
+        );
+        localStorage.removeItem(k);
+      }
+    }
+
+    // -- markdown --
+    // a path in backticks runs from its subject's folder
+    const inline = (s, dir = '') =>
+      s
+        .split(/`([^`]+)`/)
+        .map((t, i) =>
+          i % 2
+            ? `<a href="${hash(join(dir, t))}"><code>${esc(t)}</code></a>`
+            : esc(t)
+                .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.+?)\*/g, '<em>$1</em>')
+                .replace(/\b'\b/g, '’'),
+        )
+        .join('');
+
+    function parse(md, dir) {
+      const [head, ...stages] = md.split(/^(?=## )/m);
+      const title = head.match(/^# (.*)/m)?.[1] ?? dir;
+      return {
+        kind: 'subject',
+        path: dir,
+        html: `<span class="text">${inline(title, dir)}</span>`,
+        note: head
+          .split('\n')
+          .filter(l => l.trim() && !/^#|^-{3,}$/.test(l))
+          .map(l => `<p>${inline(l, dir)}</p>`)
+          .join(''),
+        kids: stages.map(stage => {
+          const [, heading, body] = stage.match(/^## (.*)\n?([^]*)/);
+          const html = inline(heading, dir);
+          return {
+            kind: 'stage',
+            html: `<span class="text">${html}</span>`,
+            key: `${dir}/stage:${html}`,
+            kids: items(body, dir),
+          };
+        }),
+      };
+    }
+
+    // a block, indented or a table, is laid out by its spaces, so it is kept
+    // as written. a break, ---, is dropped: the headings already part the
+    // stages
+    function items(body, dir) {
+      const kids = [];
+      let group = '';
+      const prose = html => kids.push({ kind: 'prose', html, group });
+      for (const chunk of body.match(/(?:^(?: {4}|\|).*\n?)+|^.*\S.*$/gm) ??
+        []) {
+        const [, n, item] = chunk.match(/^(?:(\d+)\.|-) (.*)/) ?? [];
+        if (/^\*\*[^*]+\*\*$/.test(chunk))
+          group = inline(chunk.slice(2, -2), dir);
+        else if (item) kids.push({ ...entry(item, dir), n: n ?? '', group });
+        else if (/^( {4}|\|)/.test(chunk))
+          prose(`<pre class="text">${inline(chunk.trimEnd(), dir)}</pre>`);
+        else if (!/^-{3,}$/.test(chunk))
+          prose(`<p class="text">${inline(chunk, dir)}</p>`);
+      }
+      return kids;
+    }
+
+    // cs/path.md's entries are bare paths: such an entry shows its paths as
+    // its text
+    function entry(item, dir) {
+      const [, lead, rest] = item.match(/^((?:`[^`]+`(?:, )?)*)(?: — )?(.*)/);
+      const title = rest.match(/^\*\*(.+?)\*\*/)?.[1];
+      const note = title
+        ? inline(
+            rest.slice(title.length + 4).replace(/^\s*(?:—\s*)?/, ''),
+            dir,
+          )
+        : '';
+      const first = item.match(/`([^`]+)`/)?.[1];
+      const says = title
+        ? `<strong>${inline(title, dir)}</strong>` +
+          (note && `<span class="note">${note}</span>`)
+        : inline(rest, dir);
+      const where = lead && `<p class="where">${inline(lead, dir)}</p>`;
+      return {
+        kind: title || first ? 'entry' : 'prose',
+        name: title ?? (first && join(dir, first)),
+        title,
+        note,
+        html: says
+          ? `${where}<p class="text">${says}</p>`
+          : `<p class="text">${inline(lead, dir)}</p>`,
+      };
+    }
+
+    // -- tree --
+    // one kind of node for the whole tree: { html, n, name, path, group, kids
+    // }. kids is absent on a leaf, null on a folder not read yet, a list once
+    // read. a node is drawn once, as a list item holding its row and a list of
+    // its kids: folding hides that list, so nothing is drawn again
+    const tick = ({ name, n = '' }) =>
+      name
+        ? `<label class="tick"><input type="checkbox" name="${esc(name)}"` +
+          ` title="done"${done.has(name) ? ' checked' : ''}>${n}</label>`
+        : '';
+    // a stage has no path, so it carries its own key
+    const key = node => node.key ?? node.path;
+    function draw(node, depth) {
+      const li = el('li', {
+        className: node.kind,
+        role: 'treeitem',
+        ariaLevel: depth + 1,
+        node,
+      });
+      node.li = li;
+      li.innerHTML =
+        `<div class="row"><span class="twisty"></span>` +
+        `${tick(node)}${node.html}</div>`;
+      if (node.kids !== undefined)
+        li.ariaExpanded = !!node.kids && unfolded.has(key(node));
+      if (node.kids) li.append(branch(node.kids, depth + 1));
+      return li;
+    }
+    function branch(kids, depth) {
+      const ul = el('ul', { role: 'group' });
+      ul.style.setProperty('--depth', depth);
+      let group = '';
+      for (const kid of kids) {
+        if (kid.group && kid.group !== group)
+          ul.append(
+            el('li', {
+              className: 'group',
+              role: 'none',
+              innerHTML: kid.group,
+            }),
+          );
+        group = kid.group ?? '';
+        ul.append(draw(kid, depth));
+      }
+      return ul;
+    }
+    const entries = () => subjects.flatMap(s => s.kids).flatMap(s => s.kids);
+
+    function file(path, folder) {
+      const left = at(path);
+      return {
+        kind: 'file',
+        path,
+        name: folder ? undefined : path,
+        kids: folder ? null : undefined,
+        html:
+          `<a class="text" href="${hash(path)}">${esc(basename(path))}` +
+          `${folder ? '/' : ''}</a><small>${left ? clock(left) : ''}</small>`,
+      };
+    }
+
+    // read once, however many ask: a route and a key can unfold one folder
+    // together
+    async function fold(node, open) {
+      if (node.kids === undefined) return;
+      if (open && node.kids === null)
+        await (node.reading ??= contents(node.path).then(list => {
+          node.kids = list.map(e =>
+            file(join(node.path, e.name), e.kind === 'directory'),
+          );
+          node.li.append(branch(node.kids, +node.li.ariaLevel));
+        }));
+      node.li.ariaExpanded = open;
+      unfolded[open ? 'add' : 'delete'](key(node));
+      keep();
+    }
+
+    const count = li => [
+      li.querySelectorAll('.entry > .row :checked').length,
+      li.querySelectorAll('.entry > .row input').length,
+    ];
+    function tally() {
+      for (const n of subjects.flatMap(s => [s, ...s.kids])) {
+        const [ticked, all] = count(n.li);
+        n.li.firstChild.dataset.count = all ? `${ticked}/${all}` : '';
+      }
+    }
+
+    // -- library --
+    // the page asks the library three things: what is at a path, what a folder
+    // holds, and a url for a file. opened as a file, the library is a folder
+    // chosen in the browser's picker; served over http, it is the server
+    async function read(url, init) {
+      const res = await fetch(url, init);
+      if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+      return res;
+    }
+
+    function disk(root) {
+      const handle = async path => {
+        let h = root;
+        for (const name of path.split('/').filter(Boolean))
+          h = await h
+            .getDirectoryHandle(name)
+            .catch(() => h.getFileHandle(name));
+        return h;
+      };
+      return {
+        name: root.name,
+        async stat(path) {
+          const h = await handle(path);
+          return h.kind === 'directory'
+            ? { kind: 'directory' }
+            : { kind: 'file', size: (await h.getFile()).size };
+        },
+        list: async path => Array.fromAsync((await handle(path)).values()),
+        // a blob url refers to the file, not a copy of its bytes: none is
+        // worth revoking
+        url: async path =>
+          URL.createObjectURL(await (await handle(path)).getFile()),
+      };
+    }
+
+    // quark -l lists a folder as one link per entry, a folder's ending in a
+    // slash
+    function web(base) {
+      const href = path =>
+        new URL(path.split('/').map(encodeURIComponent).join('/'), base).href;
+      return {
+        name: decodeURIComponent(base.pathname.split('/').at(-2)) || base.host,
+        async stat(path) {
+          const res = await read(href(path), { method: 'HEAD' });
+          // a folder asked for without its slash is redirected to it
+          return res.url.endsWith('/')
+            ? { kind: 'directory' }
+            : { kind: 'file', size: +res.headers.get('content-length') };
+        },
+        async list(path) {
+          const index = await (
+            await read(href(path ? `${path}/` : ''))
+          ).text();
+          const links = new DOMParser()
+            .parseFromString(index, 'text/html')
+            .querySelectorAll('a:not([href=".."])');
+          return [...links]
+            .map(a => a.getAttribute('href'))
+            .map(name =>
+              name.endsWith('/')
+                ? { name: name.slice(0, -1), kind: 'directory' }
+                : { name, kind: 'file' },
+            );
+        },
+        url: async path => href(path),
+      };
+    }
+
+    const collate = new Intl.Collator(undefined, { numeric: true }).compare;
+    const contents = async dir =>
+      (await library.list(dir))
+        .filter(e => !e.name.startsWith('.'))
+        .sort((a, b) => collate(a.name, b.name));
+
+    // several entries can name one folder, each for one book in it: a folder
+    // named with a title leads to the one file there whose name holds every
+    // word of the title
+    const words = s =>
+      new Set(
+        s
+          .normalize('NFD')
+          .toLowerCase()
+          .replace(/\p{M}|['’]/gu, '')
+          .match(/[a-z0-9]{2,}/g),
+      );
+    async function pick(dir, title) {
+      const want = words(title);
+      const [only, ...more] = (await library.list(dir)).filter(({ name }) =>
+        want.isSubsetOf(words(name)),
+      );
+      return more.length ? undefined : only?.name;
+    }
+
+    // an entry is what its first path is: a file of some type, a folder, or
+    // nothing yet, to acquire
+    async function mark(a) {
+      let path = clean(decodeURIComponent(a.hash.slice(1)));
+      let stat = await library.stat(path).catch(() => null);
+      const node = a.closest('.entry')?.node;
+      const first = node && a === node.li.querySelector('a');
+      const inner =
+        first &&
+        stat?.kind === 'directory' &&
+        node.title &&
+        (await pick(path, node.title).catch(() => undefined));
+      if (inner) {
+        path = join(path, inner);
+        stat = await library.stat(path);
+        a.hash = path;
+      }
+      const absent = !stat
+        ? 'not on disk'
+        : stat.size === 0
+          ? 'empty file'
+          : '';
+      a.title = absent || path;
+      if (absent) a.dataset.absent = '';
+      if (!first) return;
+      node.path = path;
+      node.li.firstChild.dataset.type = absent
+        ? 'acquire'
+        : stat.kind === 'directory'
+          ? 'folder'
+          : (ext(path) ?? 'file');
+      if (stat?.kind === 'directory') {
+        node.kids = null;
+        node.li.ariaExpanded = false;
+      }
+    }
+
+    // -- viewer --
+    const msg = s => el('p', { className: 'msg', textContent: s });
+    const clock = s =>
+      `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+    const media = tag => (src, path) => {
+      const place = `pathreader:at:${path}`;
+      const player = el(tag, {
+        src,
+        controls: true,
+        autoplay: true,
+        currentTime: localStorage.getItem(place) ?? 0,
+      });
+      player.ontimeupdate = () =>
+        localStorage.setItem(place, player.currentTime);
+      player.onended = () => localStorage.removeItem(place);
+      return player;
+    };
+    const video = media('video'),
+      audio = media('audio');
+    const image = (src, path) => el('img', { src, alt: path });
+    const text = async src =>
+      el('pre', { textContent: await (await read(src)).text() });
+    const viewers = {
+      pdf: src => el('iframe', { src }),
+      djvu,
+      epub,
+      mp4: video,
+      mkv: video,
+      webm: video,
+      mp3: audio,
+      m4a: audio,
+      ogg: audio,
+      png: image,
+      jpg: image,
+      jpeg: image,
+      gif: image,
+      webp: image,
+      svg: image,
+      txt: text,
+      md: text,
+    };
+
+    async function show(path, size) {
+      if (!size) return msg('this file is empty');
+      const viewer = viewers[ext(path)];
+      return viewer
+        ? viewer(await library.url(path), path)
+        : msg(`no viewer for ${basename(path)}`);
+    }
+
+    // a folder is taken up where it was left: the file left part way, or the
+    // first
+    async function card(path) {
+      const node = owner(path),
+        own = node?.path === path;
+      const files = (await contents(path))
+        .filter(e => e.kind !== 'directory')
+        .map(e => join(path, e.name));
+      const next = files.find(at) ?? files[0],
+        left = next && at(next);
+      const link = next
+        ? `<a class="go" href="${hash(next)}">` +
+          `${left ? 'resume' : 'start'} ${esc(basename(next))}` +
+          `${left ? ` · ${clock(left)}` : ''}</a>`
+        : '';
+      const title =
+        own && node.title ? inline(node.title) : esc(basename(path));
+      return el('div', {
+        className: 'card',
+        innerHTML:
+          `<p class="kicker">${files.length} files</p><h1>${title}</h1>` +
+          (own && node.note ? `<p class="sub">${node.note}</p>` : '') +
+          `<p class="meta">${esc(path)}/</p>${link}`,
+      });
+    }
+
+    function summary(s) {
+      const [ticked, all] = count(s.li);
+      return el('section', {
+        className: 'card',
+        innerHTML:
+          `<p class="kicker">${esc(s.path)}/path.md</p>` +
+          `<h1><a href="${hash(s.path)}">${s.html}</a></h1>` +
+          `<div class="sub">${s.note}</div>` +
+          `<p class="meta">${ticked} of ${all} ticked</p><div class="bar">` +
+          `<i style="inline-size: ${all && (100 * ticked) / all}%"></i></div>`,
+      });
+    }
+
+    async function view(p, stat) {
+      if (!stat) return msg('nothing is at this path');
+      if (stat.kind === 'file') return show(p, stat.size);
+      const s = subjects.find(s => s.path === p);
+      return s ? summary(s) : card(p);
+    }
+
+    async function navbar(p) {
+      const parts = p.split('/');
+      const crumbs = [library.name, ...parts].map((name, i) =>
+        i < parts.length
+          ? `<a href="${hash(parts.slice(0, i).join('/'))}">${esc(name)}</a>`
+          : `<b>${esc(name)}</b>`,
+      );
+      const [prev, next] = await siblings(p).catch(() => []);
+      const near = (to, rel) =>
+        `<a rel="${rel}"${to ? ` href="${hash(to)}"` : ''}>${rel}</a>`;
+      return el('nav', {
+        innerHTML:
+          `<span>${crumbs.join(' / ')}</span>` +
+          near(prev, 'prev') +
+          near(next, 'next') +
+          `<a href="${hash('')}">close</a><button title="f">full</button>`,
+      });
+    }
+    async function siblings(p) {
+      const dir = parent(p),
+        names = (await contents(dir)).map(e => e.name);
+      const i = names.indexOf(basename(p));
+      return [names[i - 1], names[i + 1]].map(n => n && join(dir, n));
+    }
+
+    // -- route --
+    // any await can be overtaken by a newer hash, which then owns the aside
+    async function route() {
+      const was = location.hash,
+        p = clean(decodeURIComponent(was.slice(1)));
+      main.querySelector('[aria-current]')?.removeAttribute('aria-current');
+      const li = p ? await reveal(p).catch(() => undefined) : undefined;
+      if (was !== location.hash) return;
+      if (li) {
+        li.ariaCurrent = 'page';
+        focus(li.firstChild);
+      }
+      const stat = p ? await library.stat(p).catch(() => null) : null;
+      document.body.classList.toggle('viewing', stat?.kind === 'file');
+      if (!p) {
+        document.body.classList.remove('wide');
+        const all = el('div'),
+          name = `<span><b>${esc(library.name)}</b></span>`;
+        all.append(...subjects.map(summary));
+        return aside.replaceChildren(el('nav', { innerHTML: name }), all);
+      }
+      const nav = await navbar(p);
+      if (was !== location.hash) return;
+      aside.replaceChildren(nav, msg('opening…'));
+      const shown = await view(p, stat).catch(error =>
+        msg(`could not open this: ${error.message}`),
+      );
+      if (was === location.hash) aside.replaceChildren(nav, shown);
+    }
+
+    // two entries can hold one path, bio/srinivasa-ramanujan: the one in view
+    // is the one meant
+    function owner(p) {
+      const holds = [...subjects, ...entries()].filter(
+        n => n.path && (p === n.path || p.startsWith(`${n.path}/`)),
+      );
+      const deepest = Math.max(...holds.map(n => n.path.length));
+      const best = holds.filter(n => n.path.length === deepest);
+      return best.find(n => n.li.firstChild.checkVisibility()) ?? best[0];
+    }
+    async function uncover(li) {
+      for (
+        let up = li.parentElement.closest('li');
+        up;
+        up = up.parentElement.closest('li')
+      )
+        await fold(up.node, true);
+    }
+    async function reveal(p) {
+      let node = owner(p);
+      if (!node) return;
+      await uncover(node.li);
+      for (const name of p
+        .slice(node.path.length)
+        .split('/')
+        .filter(Boolean)) {
+        await fold(node, true);
+        const kid = node.kids?.find(k => k.path === join(node.path, name));
+        if (!kid) return node.li;
+        node = kid;
+      }
+      // a folder opened lists its files in the outline too
+      await fold(node, true);
+      return node.li;
+    }
+
+    // -- keys --
+    function focus(row) {
+      if (!row) return;
+      focused?.classList.remove('focus');
+      focused = row;
+      row.classList.add('focus');
+      row.scrollIntoView({ block: 'nearest' });
+    }
+    const rows = () =>
+      [...main.querySelectorAll('.row')].filter(r => r.checkVisibility());
+    function move(by) {
+      const all = rows();
+      focus(
+        all[Math.max(0, Math.min(all.length - 1, all.indexOf(focused) + by))],
+      );
+    }
+    const nodeof = row => row?.parentElement.node;
+    function activate(row) {
+      const node = nodeof(row);
+      if (node?.path) location.hash = node.path;
+      else if (node?.kids !== undefined)
+        fold(node, node.li.ariaExpanded !== 'true');
+    }
+    function right() {
+      const node = nodeof(focused);
+      if (node?.kids === undefined) return activate(focused);
+      if (node.li.ariaExpanded !== 'true') return fold(node, true);
+      move(1);
+    }
+    function left() {
+      const node = nodeof(focused);
+      if (node?.li.ariaExpanded === 'true') return fold(node, false);
+      focus(node?.li.parentElement.closest('li')?.firstChild);
+    }
+    async function jump(n) {
+      const here = nodeof(focused);
+      const within =
+        here && here.kind !== 'subject'
+          ? focused.closest('.subject').node.kids
+          : subjects;
+      const to = within[n - 1];
+      if (!to) return;
+      await fold(to, true);
+      focus(to.li.firstChild);
+    }
+    function narrow() {
+      for (const n of subjects.flatMap(s => [s, ...s.kids]))
+        if (!n.li.contains(focused)) fold(n, false);
+      focus(focused);
+    }
+    const widen = () => document.body.classList.toggle('wide');
+    const keys = {
+      ArrowDown: () => move(1),
+      j: () => move(1),
+      ArrowUp: () => move(-1),
+      k: () => move(-1),
+      ArrowRight: right,
+      l: right,
+      ArrowLeft: left,
+      h: left,
+      Enter: () => activate(focused),
+      x: () => focused?.querySelector('input')?.click(),
+      n: () => aside.querySelector('[rel=next][href]')?.click(),
+      p: () => aside.querySelector('[rel=prev][href]')?.click(),
+      '/': find,
+      z: narrow,
+      f: () => location.hash.length > 1 && widen(),
+      Escape: () =>
+        document.body.classList.contains('wide')
+          ? widen()
+          : (location.hash = ''),
+    };
+
+    // the tick and the links in a row keep their own click
+    main.addEventListener('click', e => {
+      const row = e.target.closest('.row');
+      if (!row) return;
+      focus(row);
+      if (!e.target.closest('label, a')) activate(row);
+    });
+    main.addEventListener('change', ({ target }) => {
+      done[target.checked ? 'add' : 'delete'](target.name);
+      keep();
+      tally();
+    });
+    aside.addEventListener(
+      'click',
+      e => e.target.closest('nav button') && widen(),
+    );
+
+    // -- find --
+    const dialog = document.querySelector('dialog');
+    const query = dialog.querySelector('input');
+    const results = dialog.querySelector('ol');
+    let hits = [],
+      hit = 0;
+    function find() {
+      query.value = '';
+      search();
+      dialog.showModal();
+    }
+    function search() {
+      const typed = query.value.toLowerCase().split(/\s+/).filter(Boolean);
+      const says = li => li.firstChild.textContent.toLowerCase();
+      hits = typed.length
+        ? [...main.querySelectorAll('.entry, .file')]
+            .filter(li => typed.every(w => says(li).includes(w)))
+            .slice(0, 12)
+        : [];
+      hit = 0;
+      paint();
+    }
+    const label = li =>
+      li.node.title ?? basename(li.node.path ?? li.node.name);
+    const stageof = li => li.closest('.stage').firstChild.textContent;
+    function paint() {
+      const option = (li, i) =>
+        `<li role="option" aria-selected="${i === hit}">` +
+        `<span>${esc(label(li))}</span>` +
+        `<small>${esc(stageof(li))}</small></li>`;
+      results.innerHTML = hits.map(option).join('');
+    }
+    async function go(li) {
+      dialog.close();
+      await uncover(li);
+      focus(li.firstChild);
+      if (li.node.path) location.hash = li.node.path;
+    }
+    query.oninput = search;
+    query.onkeydown = e => {
+      if (e.key === 'ArrowDown')
+        ((hit = Math.min(hits.length - 1, hit + 1)), paint());
+      else if (e.key === 'ArrowUp') ((hit = Math.max(0, hit - 1)), paint());
+      else if (e.key === 'Enter' && hits[hit]) go(hits[hit]);
+      else return;
+      e.preventDefault();
+    };
+    results.onclick = e => {
+      const i = [...results.children].indexOf(e.target.closest('li'));
+      if (hits[i]) go(hits[i]);
+    };
+
+    // -- epub --
+    // an epub is a zip of xhtml. the zip's central directory, at its end,
+    // locates every entry, and DecompressionStream inflates one when it is
+    // read
+    async function unzip(file) {
+      const buffer = await file.arrayBuffer(),
+        data = new DataView(buffer);
+      const u16 = i => data.getUint16(i, true),
+        u32 = i => data.getUint32(i, true);
+      const utf8 = new TextDecoder(),
+        index = new Map();
+      let end = buffer.byteLength - 22;
+      while (u32(end) !== 0x06054b50) end--;
+      for (
+        let i = u32(end + 16), n = u16(end + 10);
+        n--;
+        i += 46 + u16(i + 28) + u16(i + 30) + u16(i + 32)
+      ) {
+        const head = u32(i + 42);
+        const start = head + 30 + u16(head + 26) + u16(head + 28);
+        index.set(utf8.decode(new Uint8Array(buffer, i + 46, u16(i + 28))), {
+          start,
+          end: start + u32(i + 20),
+          deflated: u16(i + 10) === 8,
+        });
+      }
+      return async name => {
+        const member = index.get(name);
+        if (!member) return;
+        const bytes = file.slice(member.start, member.end);
+        return member.deflated
+          ? new Response(
+              bytes
+                .stream()
+                .pipeThrough(new DecompressionStream('deflate-raw')),
+            ).blob()
+          : bytes;
+      };
+    }
+
+    // one book is open at a time, so opening one lets go of the urls the last
+    // made
+    const bookurls = [];
+
+    // the package's manifest types every entry, and its spine orders the
+    // chapters
+    async function epub(src) {
+      bookurls.splice(0).forEach(u => URL.revokeObjectURL(u));
+      const zip = await unzip(await (await read(src)).blob());
+      const xml = async (path, type) =>
+        new DOMParser().parseFromString(await (await zip(path)).text(), type);
+      const url = (href, base) => new URL(href, `epub:/${base}`);
+      const resolve = (href, base) =>
+        decodeURIComponent(url(href, base).pathname.slice(1));
+      const opfpath = (await xml('META-INF/container.xml', 'text/xml'))
+        .querySelector('rootfile')
+        .getAttribute('full-path');
+      const opf = await xml(opfpath, 'text/xml');
+      const manifest = new Map(
+        [...opf.querySelectorAll('manifest > item')].map(item => [
+          item.id,
+          {
+            path: resolve(item.getAttribute('href'), opfpath),
+            type: item.getAttribute('media-type'),
+          },
+        ]),
+      );
+      const types = new Map([...manifest.values()].map(m => [m.path, m.type]));
+      // a blob out of the zip has no type, and an image or a font needs one
+      const urlof = async path => {
+        const blob = await zip(path);
+        if (!blob) return '';
+        const typed = blob.slice(0, blob.size, types.get(path));
+        bookurls.push(URL.createObjectURL(typed));
+        return bookurls.at(-1);
+      };
+      const style = async path => {
+        const css = await (await zip(path)).text();
+        const ref = /url\(\s*['"]?(.+?)['"]?\s*\)/g;
+        const urls = new Map(
+          await Promise.all(
+            [...css.matchAll(ref)].map(async ([, href]) => [
+              href,
+              await urlof(resolve(href, path)),
+            ]),
+          ),
+        );
+        const linked = css.replace(
+          ref,
+          (_, href) => `url("${urls.get(href)}")`,
+        );
+        return new CSSStyleSheet().replace(`@layer book { ${linked} }`);
+      };
+      const host = el('article');
+      const shadow = host.attachShadow({ mode: 'open' });
+      shadow.append(document.getElementById('book').content.cloneNode(true));
+      shadow.adoptedStyleSheets = await Promise.all(
+        [...types]
+          .filter(([, type]) => type === 'text/css')
+          .map(([path]) => style(path)),
+      );
+      for (const ref of opf.querySelectorAll('spine > itemref')) {
+        const { path } = manifest.get(ref.getAttribute('idref'));
+        const doc = await xml(path, 'application/xhtml+xml');
+        for (const e of doc.querySelectorAll('[src], image')) {
+          e.dataset.src = resolve(
+            e.getAttribute('src') ??
+              e.getAttribute('xlink:href') ??
+              e.getAttribute('href'),
+            path,
+          );
+          for (const name of ['src', 'href', 'xlink:href'])
+            e.removeAttribute(name);
+        }
+        // chapters share one root, so an id is made unique by its chapter
+        for (const e of doc.querySelectorAll('[id]')) e.id = `${path}#${e.id}`;
+        for (const a of doc.querySelectorAll('a[href]')) {
+          const to = url(a.getAttribute('href'), path);
+          if (to.protocol === 'epub:')
+            a.dataset.to = decodeURIComponent(to.pathname.slice(1) + to.hash);
+          else a.target = '_blank';
+        }
+        const section = el('section', { id: path });
+        section.append(...doc.body.childNodes);
+        // a book can hold thousands of images, so a chapter inflates its own
+        // only when the browser is about to paint it
+        const change = 'contentvisibilityautostatechange';
+        section.addEventListener(change, async function inflate({ skipped }) {
+          if (skipped) return;
+          section.removeEventListener(change, inflate);
+          for (const e of section.querySelectorAll('[data-src]'))
+            e.setAttribute(
+              e.localName === 'image' ? 'href' : 'src',
+              await urlof(e.dataset.src),
+            );
+        });
+        shadow.append(section);
+      }
+      // a link inside the book must not touch location.hash, which names what
+      // is open
+      shadow.addEventListener('click', e => {
+        const to = e.target.closest('a[data-to]')?.dataset.to;
+        if (!to) return;
+        e.preventDefault();
+        shadow.getElementById(to)?.scrollIntoView();
+      });
+      return host;
+    }
+
+    // -- djvu --
+    // no browser reads djvu. djvu.js does, in a sandboxed frame handed the
+    // bytes and nothing else
+    const djvujs = 'https://djvu.js.org/assets/dist';
+    async function djvu(src, path) {
+      const buffer = await (await read(src)).arrayBuffer();
+      const frame = el('iframe', {
+        sandbox: 'allow-scripts',
+        srcdoc: `<!doctype html>
+      <meta name="color-scheme" content="light dark">
+      <style>
+        html, body { block-size: 100%; margin: 0; font: 1rem system-ui; }
+      <\/style>
+      <script src="${djvujs}/djvu.js"><\/script>
+      <script src="${djvujs}/djvu_viewer.js"><\/script>
+      <script>
+        onmessage = ({ data }) => {
+          if (!self.DjVu)
+            return document.body.append('djvu.js did not load from ${djvujs}');
+          const viewer = new DjVu.Viewer();
+          viewer.render(document.body);
+          viewer.loadDocument(data.buffer, data.name, {
+            viewMode: 'continuous',
+            uiOptions: { hideOpenAndCloseButtons: true, hideSaveButton: true,
+                         hideFullPageSwitch: true },
+          });
+        };
+      <\/script>`,
+        onload: () =>
+          frame.contentWindow.postMessage(
+            { buffer, name: basename(path) },
+            '*',
+            [buffer],
+          ),
+      });
+      return frame;
+    }
+
+    // -- start --
+    async function load() {
+      const dirs = (await contents(''))
+        .filter(e => e.kind === 'directory')
+        .map(e => e.name);
+      const mds = await Promise.all(
+        dirs.map(d =>
+          library
+            .url(`${d}/path.md`)
+            .then(read)
+            .then(res => res.text())
+            .catch(() => null),
+        ),
+      );
+      subjects = dirs.flatMap((d, i) =>
+        mds[i] === null ? [] : [parse(mds[i], d)],
+      );
+      if (!subjects.length)
+        throw new Error(`no folder in ${library.name}/ holds a path.md`);
+    }
+
+    async function begin() {
+      const tree = branch(subjects, 0);
+      tree.role = 'tree';
+      const head = el('header', {
+        innerHTML: `<h1>${esc(library.name)}</h1>`,
+      });
+      main.replaceChildren(head, tree);
+      document.body.classList.add('ready');
+      // the keys work at once: looking up every link can take a while
+      focus(rows()[0]);
+      addEventListener('keydown', e => {
+        if (dialog.open || e.ctrlKey || e.metaKey || e.altKey) return;
+        const act =
+          keys[e.key] ??
+          (/^[1-9]$/.test(e.key) ? () => jump(+e.key) : undefined);
+        if (!act) return;
+        e.preventDefault();
+        act();
+      });
+      await Promise.all([...main.querySelectorAll('a')].map(mark));
+      // a folder left unfolded last time is read again
+      await Promise.all(
+        entries()
+          .filter(e => e.kids === null && unfolded.has(e.path))
+          .map(e => fold(e, true)),
+      );
+      tally();
+      addEventListener('hashchange', route);
+      route();
+    }
+
+    // opened as a file, the root is a folder chosen in the browser's picker.
+    // its handle outlives a reload only in indexeddb, and the browser may ask
+    // again before the folder can be read
+    async function choose() {
+      const request = r =>
+        new Promise((ok, fail) =>
+          Object.assign(r, {
+            onsuccess: () => ok(r.result),
+            onerror: () => fail(r.error),
+          }),
+        );
+      const db = await request(
+        Object.assign(indexedDB.open('pathreader'), {
+          onupgradeneeded: ({ target }) =>
+            target.result.createObjectStore('folders'),
+        }),
+      );
+      const folders = mode =>
+        db.transaction('folders', mode).objectStore('folders');
+      const last = await request(folders('readonly').get('root'));
+      const start = async dir => {
+        library = disk(dir);
+        await load();
+        const up = last && (await dir.resolve(last).catch(() => null));
+        if (up?.length) rebase(up.join('/'));
+        await request(folders('readwrite').put(dir, 'root'));
+        await begin();
+      };
+      const button = main.querySelector('button');
+      let saved = last;
+      if ((await saved?.queryPermission()) === 'granted') {
+        try {
+          return await start(saved);
+        } catch (error) {
+          output.value = error.message;
+          saved = null;
+        }
+      }
+      if (saved) button.textContent = `open ${saved.name}/`;
+      button.hidden = false;
+      button.onclick = async () => {
+        try {
+          await start(
+            (await saved?.requestPermission()) === 'granted'
+              ? saved
+              : await showDirectoryPicker({ id: 'path' }),
+          );
+        } catch (error) {
+          output.value = error.message;
+          saved = null;
+          button.textContent = 'choose folder';
+        }
+      };
+    }
+
+    if (location.protocol === 'file:') await choose();
+    else {
+      library = web(new URL('.', location.href));
+      await load().then(
+        begin,
+        error =>
+          (output.value = `could not read the library: ${error.message}`),
+      );
+    }
+  </script>
+</html>

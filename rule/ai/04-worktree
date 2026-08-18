@@ -1,0 +1,7 @@
+optional. use a worktree when the attempt is large, or may be refused
+whole. a small, verified fix goes straight into the tree.
+
+one attempt, held where you can drop it — `ai/brain`. refusal is rm,
+not unpicking edits from a tree you are still working in. if part of a
+change could be refused on its own, it was two attempts: give each its
+own worktree.

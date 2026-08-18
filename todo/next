@@ -1,0 +1,202 @@
+the prompt, the views and the click all say the pronoun now.
+this is where to pick it up.
+
+read `todo/idea` for the want, `todo/impl` for what was decided and what
+it did not take, `todo/frame` for the row a pronoun makes possible. they
+split at `todo/impl:/a shell of our own/` — the pronoun is impl, the
+screen is frame. `todo/memory` is m's own ranking, `todo/address` the
+decision that tmux hands over the word under the pointer, so the grid
+was never worth owning.
+
+the pronoun landed, docs with it, and the remap
+below is written. what is left is the open list at the foot, and
+`todo/frame` — the screen a row makes possible.
+
+landed
+
+fm opens on cur when argv is empty: a file is a row and not a place, so
+its directory is where fm stands and its name is what it lands on, which
+is the pos map's own answer for a directory seen before. it writes cur
+after every ls, temp then rename, and only while the pane has the eye —
+without that a background fm takes the shell's this on its next redraw,
+and a split resizes every pane, so every fm redraws. the eye is a key
+now: KFocus and KBlur are CSI I and O (`tty/term.go:/func csiKey/`),
+asked for by t.Focus() and lent to a child by Suspend, forwarded by
+`tmux/conf:/focus-events/`. the eye coming back re-says the row —
+another pane spoke while we were away. the log stays c's alone.
+
+rename, create and paste land on what they made, so cur follows for
+nothing; `fm/4-main/21-catch.go` answers whether there was an error,
+which is how a verb knows it made something. ed says the address on
+save, with the line, so e bare reopens where the work is. left click is
+p -c: the word becomes cur and nothing runs, and the click that says it
+is the same click that raises the pane.
+
+@cur is not set by fm or ed, only by c: the status line shows what was
+said out loud, not every row a cursor passes. one fork per keypress is
+the reason; if the status should follow the cursor, that is the cost to
+take on.
+
+fm's g and ; are finds now: they land the cursor and act on nothing, and
+x is free because enter already opens. a content hit keeps its line, so
+e opens there — `fm/cheatsheet:/f and s select/`, which is where the
+remap has since put both letters. it needed none of the order above:
+fm's cur is the row, and the row is what a find lands on.
+
+c and m are `sh/c` and `sh/m`. bare, c prints cur's path; with text it
+resolves p's way and stores the address, appending the log only when the
+address changes. m is here then the log newest first, so m 0 is cur
+whole and back is c `{m 1}. cur is $home/.config/sys/cur/@<window>, the
+log is one for the machine, and @cur is set beside it. both asks name
+the pane, so a background one writes its own window's cur and not the
+session's.
+
+o, e, p and a take their noun from c, and a verb hands the next one the
+address whole — `{m 0}, not the path — so p's line survives into e. e
+still takes +n from a caller that has one, until fm stops sending it. p
+lost the resolver and the -a absolutise, gained -c (select and stop, for
+a click not yet bound), and names the pane to c so a clicked word writes
+its own window and not the session's. a asks c for its directory. c tries
+the whole argument as a name before stripping it — a verb's argument is
+exact and may end in a bracket; only the screen's leavings need the
+strip.
+
+fzo, fze and fzs are gone. at a prompt it is o `{f | fzy}, and
+e `{s -n pat | fzy} in one shot: c takes rg's path:line:text whole and
+e reads the line back out of cur, so the split fzs did by hand — and
+fm's s still does in Go (`fm/3-actions/12-revealaddr.go`) — now lives
+in c alone. or keep the middle:
+c `{s -n pat | fzy}, then e, o, a and git add `{c} on the one find.
+quoting is not needed either way — `sh/c:/name=$"*/` joins its
+arguments back into the name a space broke.
+
+the remap, landed
+
+    6b       the rule, so it is not twelve taste calls: a letter that is
+             a shell verb means that verb in fm — unless the row already
+             does the verb's work. only c and p qualify: the cursor is
+             cur (`fm/4-main/27-say.go`), so c has nothing to
+             say out loud, and enter dispatches, so p has nothing to
+             plumb. f s m o have work in fm, so they cannot drift. only
+             lowercase can collide at all — C F M G V Y Z I N have no
+             twin on $PATH and never have to move.
+
+    key | was             | becomes
+    f   | lint check      | find by name       → cur
+    s   | shell (detach)  | find by content    → cur
+    m   | clone           | find by memory     → cur
+    o   | outline         | duplicate — o on cur, a pane beside you
+    ;   | find by content | shell here
+    b   | duplicate       | bookmark — say the row out loud
+    c   | copy            | copy, kept
+    x   | free            | cut
+    p   | paste           | paste, kept
+    =   | free            | clone
+    +   | free            | clone dir
+    g   | find by name    | first file — G is already last
+    l   | link            | link, unchanged
+    z   | zoxide          | zoxide, unchanged
+    t   | tag             | tag, unchanged
+    F   | format          | format, unchanged
+    free: C L M P S T Z
+
+             b is the hole the pronoun left. fm writes cur on every row
+             and never touches the log, so nothing you only browsed is
+             findable by m. b execs c on the row — the one thing that
+             appends — and after an s hit the row still carries its
+             line, so it remembers path:line the way ed's save does. b
+             puts in, m gets back. t is the other bookmark and keeps its
+             key: a tag is a place you can browse and it outlives
+             everything; b is an address that ages down the log.
+
+             f s and m are one action and not three: pick, fzy, split
+             path:line, reveal. s prompts for a pattern because rg needs
+             one; f and m do not, fzy filters the whole list. f yields a
+             path, s and m yield addresses and share the split.
+             `todo/memory:/by having been there/` is why m ranks beside
+             the other two.
+
+             check, outline and duplicate leave the keyboard as whole
+             words wanting a noun, and cur is the noun — so lint and
+             outline want `*=`{c $*}`, the fold o, e, p and a already
+             took, or they lose their noun the moment they lose their
+             key. check goes because it was never pressed: the linter
+             is folded into what already runs. format keeps F on the
+             same argument turned around — uppercase cannot collide, so
+             a key that is still pressed costs nothing to keep. link
+             keeps l for the same reason. Z goes with nothing in its
+             place: f and m find, z jumps, and goto was neither.
+
+             one relearning, not two: four letters change meaning
+             (f s m o), three abilities change key (shell, cut, clone),
+             one is new (b), two are dropped (goto, and check as a key).
+
+             what the writing turned up: Z took three files with it —
+             goto was complete's only caller, and complete was expand's
+             and commonprefix's, so fm loses path completion at a
+             prompt and nothing else. o on a file row is enter exactly:
+             both hand cur to o, and only a directory row tells them
+             apart — enter cds, o opens a pane beside. s and m share
+             one split (`fm/3-actions/12-revealaddr.go`) and f stays
+             out of it, because a bare path is free to carry a colon.
+             lint holds -f aside before it asks c, or the flag resolves
+             as text; outline turns a file into its directory, the turn
+             a already takes; check took no fold — its noun is a tree
+             and it defaults to the whole one.
+
+             the log fills faster than b alone. e, o and F from fm go
+             out through their scripts, and a script asks c, so a
+             verb's argument is a select there too
+             (`todo/idea:/a verb's argument is a select/`). b is for
+             the row you never handed to anything.
+
+    drift    what is left of it, and why each stays:
+             c p    fm means copy and paste, the prompt means cur and
+                    plumb. the exception above — neither verb has work
+                    in fm, so nothing is being said twice.
+             t      sh/t is unwritten, so it collides on paper only. the
+                    day the second noun lands, tag moves to T, free for
+                    it.
+             z      agrees today — zoxide's own shell function is z. if
+                    m ever absorbs it the letter frees and the question
+                    comes back.
+             ed     exempt by kind and not by letter: c change, p paste,
+                    s save, f find char, m match bracket, o open below,
+                    b word back. the rule is about a view whose nouns
+                    are files; ed's nouns are text, and its table is
+                    vi's, older than any of this.
+
+open
+
+    zoxide   z and m are the same idea — rank by having been there, m
+             over addresses and zoxide over directories. it stopped
+             blocking the remap when clone took = and +, so z keeps its
+             key until m has been lived with. if the log covers a
+             directory you only cd'd into, zoxide is m and z frees.
+
+    key :    reads as ex and README rules it out. unchosen.
+    title    ed's status line is at the foot, fm's header at the head.
+             with no frame title theirs is the only title there is, so
+             they should agree.
+    history  tty.ReadLine has none. a slice and two keys.
+    t        the second noun, deferred by `todo/idea:/two-noun verbs/`.
+             a second noun and not a plural one — that is many, below.
+
+    many     the plural noun is not cur, and it exists twice already:
+             fm's sel, the set the space bar fills, and clip, the list
+             copy and cut leave — `fm/4-main/20-targets.go` is the
+             fallback, selection else cursor. the finders are plural
+             too, and fzy is what makes them one, so git add
+             `{f '\.go$'} wants no pronoun at all.
+             cur stays singular, and not for want of mechanism: a file
+             holds lines and both shells splat a capture into argv, so
+             git add `{c} would survive three of them. it is that every
+             verb would then have to choose first, all or error — e on
+             three files, o on three extensions, a on whose directory —
+             and this would stop meaning this. the word for a set is
+             these, and the selection is already it.
+             the seam if it is ever wanted:
+             `fm/4-main/13-spawn.go:/m.cur()/` is why the selection
+             reaches the tree-writes and not the read verbs. targets()
+             is one line there — and then e holds three paths and ed
+             opens one, so the verb end owes the same answer.

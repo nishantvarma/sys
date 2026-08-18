@@ -1,0 +1,6 @@
+done is not done until the bench is swept.
+
+work ends with a pass that only removes: dead code, stale notes, scratch
+files, unused names. then polish what is left.
+
+the test: point at each piece and say why it is there. no answer, remove it.

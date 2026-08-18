@@ -1,0 +1,90 @@
+#!/bin/sh
+# ref [-x path]... [target]...
+#
+# resolve doc references to file:line. targets are files or dirs, default .
+# run from the tree root: a reference is a path from there, not from the leaf
+# holding it. two more bases, tried only when that path does not open: rule/,
+# because the rule tree cites its own siblings and is its own namespace, and
+# a leading tilde, which resolves from $HOME. -x skips only the backtick
+# grammar — examples are shapes, a tilde path is a claim anywhere.
+#
+#	stdout	path:line, one per reference. plumbable.
+#	stderr	src:line: broken: token
+#	exit	1 if any reference does not open
+
+set -u
+
+skip=
+while getopts x: opt
+do
+	case $opt in
+	x)	s=${OPTARG#./}
+		[ -e "$s" ] || ! [ -e "rule/$s" ] || s=rule/$s
+		skip="$skip $s" ;;
+	*)	echo 'usage: ref [-x path]... [target]...' >&2; exit 2 ;;
+	esac
+done
+shift $((OPTIND - 1))
+[ $# -eq 0 ] && set -- .
+
+syntax='`[a-z0-9][a-z0-9._-]*(/[a-z0-9._-]+)+(:/[^/`]+/)?`'
+home='~(/[a-zA-Z0-9._-]+)+'
+broken=$(mktemp)
+trap 'rm -f "$broken"' EXIT
+
+files=$(find -L "$@" -type f | sed 's|^\./||' | sort)
+[ -n "$files" ] || { echo "ref: no files in $*" >&2; exit 2; }
+
+echo "$files" | while read -r src
+do
+	grep -noE "$home" "$src" | while read -r hit
+	do
+		srcline=${hit%%:*}
+		token=${hit#*:}
+		token=${token%.}
+		path=$HOME${token#\~}
+		if [ -e "$path" ]
+		then
+			echo "$path:1"
+		else
+			echo "$src:$srcline: broken: $token" >&2
+			echo . >>"$broken"
+		fi
+	done
+
+	case " $skip " in *" $src "*) continue ;; esac
+
+	grep -noE "$syntax" "$src" | tr -d '`' | while read -r hit
+	do
+		srcline=${hit%%:*}
+		token=${hit#*:}
+		target=${token%%:/*}
+		pattern=
+		case $token in
+		*:/*)	pattern=${token#"$target":/}; pattern=${pattern%/} ;;
+		esac
+		[ -e "$target" ] || ! [ -e "rule/$target" ] || target=rule/$target
+
+		if [ ! -e "$target" ]
+		then
+			echo "$src:$srcline: broken: $token" >&2
+			echo . >>"$broken"
+		elif [ -z "$pattern" ]
+		then
+			echo "$target:1"
+		else
+			line=$(grep -n -m1 -F -- "$pattern" "$target" |
+				cut -d: -f1)
+			if [ -n "$line" ]
+			then
+				echo "$target:$line"
+			else
+				echo "$src:$srcline: broken: $token" >&2
+				echo . >>"$broken"
+			fi
+		fi
+	done
+done
+
+[ -s "$broken" ] && exit 1
+exit 0

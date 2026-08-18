@@ -1,0 +1,14 @@
+an outline is a tree. one idea per node, ordered top-down: what it is,
+what it promises, how it works, where it stands.
+
+on disk the tree is the outline. on a page — where `general/medium`
+picks one — every node folds, and the reader opens all, none, or where
+they are.
+
+the index is derived — ls on disk, a script on a page. never typed.
+
+the test: delete a node. any hand edit elsewhere means the outline was
+written, not derived.
+
+the page: `~/src/sys/medium/page.html`. built out in full:
+`~/work/ssv/integration/guide.html`

@@ -1,0 +1,89 @@
+#!/usr/bin/env bash
+
+# check [target]...
+#
+# every check the tree ships, one run: references open (general/reference),
+# lines fit (layout/vertical), prose is lowercase (general/naming/case), a
+# page holds together (general/addressability, layout/sections) and
+# carries a skeleton's style and engine (general/medium).
+# run from the tree root.
+#
+#	stdout	violations, path:line first. plumbable.
+#	exit	1 if dirty
+
+set -u
+
+[ $# -eq 0 ] && set -- .
+
+files=$(find -L "$@" -type f | sed 's|^\./||' | sort)
+[ -n "$files" ] || { echo "check: no files in $*" >&2; exit 2; }
+wide=$(echo "$files" | grep -v '\.\(html\|md\)$')
+# a leaf has no extension; a dotted name is code, except these two, and
+# so is a script: #! on its first line
+prose=$(awk 'FNR == 1 && !/^#!/ {print FILENAME} {nextfile}' \
+	$(echo "$files" | grep -v '\.[^/]*$') /dev/null)
+md=$(echo "$files" | grep '\.md$')
+html=$(echo "$files" | grep '\.html$')
+
+rc=0
+ref -x general/reference "$@" 2>&1 >/dev/null || rc=1
+awk 'length>79 {print FILENAME":"FNR; bad=1} END {exit bad}' $wide \
+	/dev/null || rc=1
+{
+	# a `code span` is spelling not ours to fix; MRs is a plural, not camel
+	awk '{s = $0; gsub(/`[^`]*`/, "", s); gsub(/[A-Z][A-Z]+s/, "", s)}
+	s ~ /[A-Z][a-z]/ {print FILENAME":"FNR":"$0}' $prose $md /dev/null
+	# style and script are code
+	awk '/<(style|script)/ {code=1}
+	!code {s = $0; gsub(/[A-Z][A-Z]+s/, "", s)}
+	!code && s ~ /[A-Z][a-z]/ {print FILENAME":"FNR":"$0}
+	/<\/(style|script)>/ {code=0}' $html /dev/null
+} | grep -v '~/' && rc=1
+awk -v want=' head tokens style local content engine' '
+function done(  k) {
+	for (k = 1; k <= n; k++)
+		if (!(ref[k] in id)) print f ":" at[k] ": no id: " ref[k]
+	if (marks && seq != want)
+		print f ":1: sections:" seq ", not" want
+}
+FNR == 1 { if (NR > 1) done(); f = FILENAME; n = marks = 0; seq = ""
+	delete id }
+{
+	s = $0
+	while (match(s, / id="[^"]*"/)) {
+		k = substr(s, RSTART + 5, RLENGTH - 6)
+		if (k in id) print f ":" FNR ": duplicate id: " k
+		id[k]; s = substr(s, RSTART + RLENGTH)
+	}
+	s = $0
+	while (match(s, /href="#[^"]+"/)) {
+		ref[++n] = substr(s, RSTART + 7, RLENGTH - 8); at[n] = FNR
+		s = substr(s, RSTART + RLENGTH)
+	}
+	s = $0
+	while (match(s, /-- [a-z]+ --/)) {
+		k = substr(s, RSTART + 3, RLENGTH - 6); marks++
+		if (index(want " ", " " k " ")) seq = seq " " k
+		s = substr(s, RSTART + RLENGTH)
+	}
+}
+END { if (NR) done() }' $html /dev/null | grep . && rc=1
+# a page's style and engine are a skeleton's, verbatim: copies drift unless
+# compared. what the page adds sits under local, outside the comparison.
+# skel copies them back in.
+medium=$(dirname "$(readlink -f "$0")")/../medium
+# prettier indents what sits inside style and script, marks included
+style='/^ *\/\* -- tokens -- \*\/$/,/^ *\/\* -- local -- \*\/$/'
+engine='/^ *\/\/ -- engine --$/,$'
+for f in $html; do
+	for part in style engine; do
+		p=$(sed -n "${!part}p" "$f")
+		[ -n "$p" ] || continue
+		for s in "$medium"/*.html; do
+			[ "$p" = "$(sed -n "${!part}p" "$s")" ] && continue 2
+		done
+		echo "$f:$(sed -n "${!part}{=;q}" "$f"): $part is no skeleton's"
+		rc=1
+	done
+done
+exit $rc
