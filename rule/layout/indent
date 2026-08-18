@@ -1,0 +1,10 @@
+indent asserts containment. peers are not contained.
+
+the test: strip the connector. what stands alone is a peer.
+
+  cmd --alpha \
+    --beta
+
+  cmd one \
+  && cmd two \
+  || cmd three

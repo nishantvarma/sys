@@ -1,0 +1,25 @@
+not a terminal.
+
+the want was never the grid — it was text that opens: file:line, url,
+hash. tmux already hands over the word under the pointer, so owning the
+grid buys none of it. mouse_word, copy_cursor_word, mouse_hyperlink,
+copy-pipe; run-shell expands #{...}.
+
+measured on next-3.8: word-separators splits on / : . — the word under
+ed/2-motion/04-fwd.go:12 comes back as `motion`. set it to " " and the
+whole address comes back. that one line is the enabler; without it the
+extent has to be recomputed from mouse_x against the pattern.
+
+the blocker is not the terminal. ed reads os.Args[1] and nothing else,
+so `e +12 foo.go` opens a file named +12 — and a search hit has carried
+that form all along, so the jump has never worked. four lines.
+
+deferred, named:
+  exec      the sibling verb — text that names an action, run it.
+  relative  a path is relative to the cwd that printed it, not the cwd
+            now. pane_current_path is right until a cd. acme solves it
+            by owning the window — the price of not writing one.
+  ed        third front end, text in a buffer. only if it earns it.
+
+what a terminal would still buy is an editable output window. that is a
+different want, and capture-pane -p | ed is the cheap half of it.

@@ -1,0 +1,4 @@
+fail where it breaks, not where it surfaces. catch to act, never to
+continue.
+
+the test: name what the handler does differently. no answer, let it raise.
