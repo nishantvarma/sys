@@ -1,0 +1,17 @@
+the program is a value, not a run. order in the text carries no meaning —
+reorder the clauses and the answer holds. sql, make, css, a spreadsheet.
+
+the test: swap the engine. another join planner, another scheduler,
+another reconciler — same text, same answer. if the answer moves, you
+wrote steps in nicer syntax.
+
+not "what, not how". every abstraction is what to its caller and how
+inside, so that reading never fails and never discriminates.
+
+pays in what you can do before running: inspect, diff, cache, validate,
+optimise. `programming/datanotcode` picks the layout, this is what the
+layout buys — one level up from
+`programming/encapsulation:/swap the representation/`.
+
+costs control flow you can read. against `general/explicit`: declare the
+data, spell the effects.

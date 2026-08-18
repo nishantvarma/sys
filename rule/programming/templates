@@ -1,0 +1,11 @@
+holes in a fixed shape. the shape is the fact, the fill is the call.
+
+logic in a template is logic you cannot test. a conditional says the shape
+is two shapes — write two.
+
+the test: render it with the data missing. what remains should still be a
+readable artifact of its kind — valid html, a legible letter, a file that
+compiles. if it is confetti, shape and fill are interleaved.
+
+the smallest `programming/dsls` — one production, no grammar. reach past it
+when the fills start needing each other.

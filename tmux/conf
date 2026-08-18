@@ -1,0 +1,107 @@
+# the tmux half of sys: the bindings that run sys's own scripts, kept
+# beside them so a trigger and its program cannot drift apart. the
+# prefix, the status line and the rest stay in your own tmux.conf,
+# which reaches this with
+#
+#	source-file ~/src/sys/tmux/conf
+
+# a path has to be one word for p to be handed a whole address. with
+# the default set, the word under ed/2-motion/04-fwd.go:12 is `motion`.
+set -g word-separators " "
+
+# a drag ends where tmux ends it — mouse-up, mode closed — and says its
+# selection on the way out. held open to be told p, a drag meant for
+# anything else had to be dismissed by hand.
+bind-key -T copy-mode-vi MouseDragEnd1Pane send-keys -X copy-pipe-and-cancel "p #{pane_id} -c -"
+
+# a view can only decline to speak if it knows nobody is looking: fm writes
+# cur on every row and must not do it from a background pane. tmux tells a
+# pane it gained or lost the eye only with this on.
+set -g focus-events on
+
+# left click is select and nothing else — p -c stops at cur. acme's three
+# buttons, and the two beside it were already here. the guard is
+# DoubleClick1Pane's: copy mode and a mouse-reading program keep theirs, and
+# the drag that selects text still runs after this.
+bind-key -n MouseDown1Pane {
+	select-pane -t =
+	if-shell -F "#{||:#{pane_in_mode},#{mouse_any_flag}}" {
+		send-keys -M
+	} {
+		set-option -pF @p "#{mouse_word}"
+		run-shell -b "p #{pane_id} -c"
+		send-keys -M
+	}
+}
+
+# open what the text names — sh/p. the word travels in a pane option,
+# never in the command, so screen text is never read as a shell one.
+bind-key -n MouseDown3Pane if-shell -F "#{mouse_any_flag}" "send-keys -M" {
+	set-option -pF @p "#{mouse_word}"
+	run-shell -b "p #{pane_id}"
+}
+bind-key -T copy-mode-vi p if-shell -F "#{selection_present}" {
+	send-keys -X copy-pipe-and-cancel "p #{pane_id} -"
+} {
+	set-option -pF @p "#{copy_cursor_word}"
+	run-shell -b "p #{pane_id}"
+}
+bind-key -T copy-mode-vi MouseDown3Pane if-shell -F "#{selection_present}" {
+	send-keys -X copy-pipe-and-cancel "p #{pane_id} -"
+} {
+	set-option -pF @p "#{mouse_word}"
+	run-shell -b "p #{pane_id}"
+}
+
+# a double-tap needs no second finger, so it's the touchpad's right click.
+# skips tmux's own select-word+delay (only there to make room for a
+# triple-click); mouse_word gets the word straight away, same as above.
+bind-key -n DoubleClick1Pane {
+	select-pane -t =
+	if-shell -F "#{||:#{pane_in_mode},#{mouse_any_flag}}" {
+		send-keys -M
+	} {
+		set-option -pF @p "#{mouse_word}"
+		run-shell -b "p #{pane_id}"
+		send-keys -M
+	}
+}
+
+# said from anywhere: the last word said is still in @p, so the verb needs
+# no mode, no prompt and no pane that is listening. displaces
+# previous-window, which Tab already covers.
+bind-key p run-shell -b "p #{pane_id}"
+bind-key a run-shell -b "p #{pane_id} -a"
+
+# the same word as an argument, not a destination: it lands at the prompt
+# of the marked pane, or the last one, and waits. no Enter is sent, so
+# screen text still becomes a command only when you say so.
+bind-key -n MouseDown2Pane if-shell -F "#{mouse_any_flag}" "send-keys -M" {
+	set-option -pF @p "#{mouse_word}"
+	run-shell -b "p #{pane_id} -a"
+}
+bind-key -T copy-mode-vi a if-shell -F "#{selection_present}" {
+	send-keys -X copy-pipe-and-cancel "p #{pane_id} -a -"
+} {
+	set-option -pF @p "#{copy_cursor_word}"
+	run-shell -b "p #{pane_id} -a"
+}
+bind-key -T copy-mode-vi MouseDown2Pane if-shell -F "#{selection_present}" {
+	send-keys -X copy-pipe-and-cancel "p #{pane_id} -a -"
+} {
+	set-option -pF @p "#{mouse_word}"
+	run-shell -b "p #{pane_id} -a"
+}
+
+# the pointer follows the pane — sh/warp. tmux cannot move it, so X does,
+# and never when the pointer is already in that pane: the click that
+# selected one must not be dragged off the word under it.
+set -g main-pane-width 50%
+set-hook -g after-split-window {
+	select-layout main-vertical
+	run-shell -b warp
+}
+set-hook -g after-select-pane "run-shell -b warp"
+set-hook -g after-kill-pane "select-layout main-vertical"
+set-hook -g pane-exited "select-layout main-vertical"
+bind-key Enter swap-pane -d -t '{top-left}'

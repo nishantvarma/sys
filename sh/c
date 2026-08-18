@@ -1,0 +1,94 @@
+#!/usr/bin/env -S 9 rc
+
+# c is the pronoun: bare it prints cur, with text it sets cur to the
+# address that text starts with. one cur per tmux window — the pane is
+# too small a unit, fm in one and the shell in another have to mean the
+# same this, and the machine is too big. an untargeted tmux answers
+# about the session's current window and not the pane asking, so both
+# asks name the pane.
+#
+# -v is the verb the log keeps beside the address, so a line of it is the
+# command that made it and m's list is sentences. it defaults to c: a
+# caller that names no verb was selecting, which is what a click and a
+# bookmark do.
+
+ifs='
+'
+
+verb=c
+if (~ $1 -v) { verb=$2; shift 2 }
+
+dir=$home/.config/sys
+id=none
+if (! ~ $#TMUX_PANE 0) {
+	id=`{tmux display -t $TMUX_PANE -p '#{window_id}' >[2]/dev/null}
+	if (~ $#id 0) id=none
+}
+cur=$dir/cur/$"id
+
+if (~ $#* 0) {
+	here=`{cat $cur >[2]/dev/null}
+	if (~ $#here 0) { pwd; exit }
+	echo $"here | sed 's,:[0-9]*$,,'
+	exit
+}
+
+# a path is relative to the directory that printed it; the repo root is
+# the second guess. a diff's a/ b/ prefix is neither.
+fn path {
+	file=()
+	if (test -e $1) file=$1
+	if not {
+		root=`{git rev-parse --show-toplevel >[2]/dev/null}
+		if (! ~ $#root 0 && test -e $"root/$1) file=$"root/$1
+	}
+	if (~ $#file 0 && ~ $1 [ab]/*) {
+		t=`{echo $1 | sed 's,^..,,'}
+		path $"t
+	}
+}
+
+# what is already a file is not text. a verb's argument is a name, exact
+# and free to end in a bracket; only the screen's leavings need the strip,
+# and stripping a name first would lose the file it already is.
+name=$"*
+line=()
+path $"name
+if (~ $#file 0) {
+	text=`{echo $"* | sed 's,^[^/~._a-zA-Z0-9]*,,; s,[^/~_a-zA-Z0-9]*$,,'}
+	if (~ $#text 0) exit
+	name=`{echo $"text | sed 's,:.*,,; s,^~/,'$"home'/,'}
+	line=`{echo $"text | sed -n 's,^[^:]*:,,p' | sed 's,[^0-9].*,,'}
+	path $"name
+}
+
+# a reading that is no file is still a reading: nothing reads c's
+# status, so the word comes back raw and e makes a file of it.
+if (~ $#file 0) { echo $"name; exit }
+
+file=`{cleanname -d `{pwd} $"file}
+addr=$"file
+if (! ~ $#line 0) addr=$"file^:^$"line
+
+# temp then rename: between a truncate and a write a reader gets an
+# empty address, and an empty address is a verb with no noun.
+mkdir -p $dir/cur
+echo $addr > $cur^.^$pid
+mv $cur^.^$pid $cur
+# one line per place, carrying the last verb that touched it. the verb
+# that ran is the one to keep — o hands a text file to e, p hands the
+# word to o — so the same address rewrites rather than appends, and one
+# back stays one place back. the line it rewrites is wherever the address
+# already sits, not only the last: m says an old line again, and a place
+# said twice would be two lines to walk past and pick between.
+if (test -f $dir/log) {
+	awk -v addr=$"addr '{
+		l = $0
+		sub(/^[^ ]* /, "", l)
+		if (l != addr) print
+	}' $dir/log > $dir/log^.^$pid
+	mv $dir/log^.^$pid $dir/log
+}
+echo $verb $addr >> $dir/log
+if (! ~ $#TMUX_PANE 0) tmux set -w -t $TMUX_PANE @cur $"addr >[2]/dev/null
+echo $"file

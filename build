@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+
+cd "$(dirname "$0")"
+
+# ed keeps its text in ed/1-buffer and nowhere else: every layer above asks
+# through rows/line/lineLen/mapLine and never names lines itself. tangle
+# stitches ed into one package, so nothing in Go holds that line — this does.
+# ed/N-*/ is the layers, however deep; the tangled ed/main.go is not one.
+shopt -s globstar nullglob
+stray=$(grep -n '\.lines' ed/[0-9]-*/**/*.go | grep -v '^ed/1-buffer/')
+if [ -n "$stray" ]; then
+	echo "build: ed/1-buffer's lines reached from outside it:" >&2
+	echo "$stray" >&2
+	exit 1
+fi
+
+mkdir -p bin
+cp sh/* bin/
+[ -x bin/tangle ] || go build -o bin/tangle tangle/main.go
+t=(tangle fm ed)
+[ $# -gt 0 ] && t=("$@")
+for x in "${t[@]}"; do
+	(cd "$x" && ../bin/tangle && go build -o "../bin/$x" main.go)
+done

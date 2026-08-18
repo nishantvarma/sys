@@ -1,0 +1,96 @@
+assume a file-based system: everything worked on lives in one tree —
+code, notes, rules, state.
+
+acting is select, then verb. the verbs close into a square:
+
+            | read   | write
+    content | o      | e
+    tree    | ls f s | cp mv rm mkdir
+
+one verb stands apart: run. to the machine it is the only one — the
+machine never sees, finds, or edits; it runs a program that does. a
+program is a file, so run turns a noun of the tree into a verb over
+it — the verbs live in the tree too, and changing one is the same
+square applied to it.
+
+every verb needs its noun, the selected thing — and each tool keeps
+its own, a private "here": the shell its cwd, fm its cursor, ed its
+file and line, the ai whatever was pasted at it last. four heres,
+none shared: every crossing between tools re-establishes place by
+hand — retype, paste, walk again — and a key acts on a here that
+scripts, history, and the other tools cannot see.
+
+so the tree is shared but "this" is not. the system has proper nouns —
+paths — and no pronoun.
+
+the fix: give it one. cur, a file holding one address; c, the word that
+says it — alone: print, with text: set to the address it starts with.
+verbs default their noun to it, and a bare destination lands beside
+the noun. cur follows what the verb made — mv the new address, cp
+the copy, mkdir the new directory; rm, making nothing, retreats to
+the parent. views read and write it instead of owning their own.
+
+cwd is not it: per-process and dead with its shell, a container never
+a thing, blind to a line. cd is stance; c is selection.
+
+    you    keys    fm    ed    ai  speakers — anything that says a word
+      \     |      |     |    /
+          verbs                    the square, plus the pronoun
+            |
+      tree  +  cur                 data: every file. state: one file, here
+            |
+         screen                    every line an address
+            |
+         dispatch                  p — a shown address said back: retype,
+                                   click, key
+
+    c rule/general/canonical   this.
+    c `{f | fzy}               by name, then this.
+    c `{s -n canonical | fzy}  by content, then this.
+    c `{m canonical}           by having been there, then this.
+    fm's cursor, ed's save     a view, saying it by moving
+    a click                    the screen, saying it back
+                  |
+                  v
+                 cur
+                  |
+    o                          open it
+    e                          edit it
+    mv core                    rename it
+    p                          dispatch it
+    git add `{c}               anyone's — and that is the point
+
+a find makes a noun and nothing else, so f at a prompt and f in a view
+are one word and no verb is glued to either.
+
+a verb's argument is a select — o path is c path, then o. one form, not
+two, and the prefix is where the word was missing.
+
+bin, re-read: p is dispatch as a word — handed shown text, it lands
+it: file to o, file:line to e, url to the browser, commit to git
+show. fze fzo fzs are the pronoun's absence paid in scripts —
+o `{f | fzy} says fzo in parts, the middle kept in cur, not lost in
+a variable — they retire. v stays, the tree over time in one letter.
+
+cur is one address, now. every address over time is m, cur's log —
+alone: all of it, with n: n back. back becomes a phrase, c `{m 1},
+not a feature a view owns. moving writes cur, nothing reads it until
+a verb does. selecting is not touching; select then verb is. so this
+first — after it m's writer is one, before it three and all thrown
+away.
+
+two hands, one pronoun — a second speaker can move this mid-verb. so
+a verb resolves cur once, at its start: heard, the pronoun decays to
+a proper noun and the sentence keeps it. the displaced find their old
+this in m.
+
+two-noun verbs — mv cp diff — still type their second noun. the day
+that hurts, that: a second file beside cur, t its word, c's grammar.
+mv alone is mv `{c} `{t}.
+
+three diffs to what exists: fm reads c at start and on focus,
+writes it on every move; ed writes file:line on save; left click is c
+on the word under the pointer. the fourth here costs nothing: the ai
+is a speaker, not a view — the paste was its here because there was
+nothing to ask, and now it asks c. kill every view and the words still
+work; bring one back and it stands where you were.

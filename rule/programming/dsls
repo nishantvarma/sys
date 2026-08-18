@@ -1,0 +1,14 @@
+the notation is the deliverable. when the data grows a grammar, name it a
+language and give it one — parser, printer, errors that cite a line.
+
+`programming/encapsulation` generalises on the second instance; a grammar
+waits for the third. an abstraction is a refactor; a language is a product,
+and someone has to be taught it. the first two notations are configuration.
+
+the test: read it aloud to someone who knows the domain and not the code.
+their corrections are bugs. if you must explain the syntax first, it is an
+api wearing punctuation.
+
+closed under composition or it is not a language — every form takes and
+returns the same kind, so nesting needs no special case. that closure is
+what buys `programming/declarative`.

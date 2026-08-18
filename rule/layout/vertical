@@ -1,0 +1,3 @@
+79 (except html, markdown)
+
+  awk 'length>79 {print FILENAME":"FNR}' $(find . -type f)

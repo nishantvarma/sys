@@ -1,0 +1,14 @@
+#!/usr/bin/env -S 9 rc
+
+ifs='
+'
+*=`{c -v outline $*}
+if (~ $#* 0) exit
+
+# cur is usually a file, and a file's outline is its directory's — the
+# same turn a takes.
+if (! test -d $1) {
+	if (! test -e $1) exit # a word c could not resolve
+	*=`{dirname $1}
+}
+tree --gitignore $1 | less

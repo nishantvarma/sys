@@ -1,0 +1,124 @@
+fm — cheatsheet
+
+One pane, one directory. The cursor is remembered per directory by the
+name under it, so coming back lands on that file, and a rebuild — a
+hidden toggle, a file made or gone — keeps it. Everything else is one
+of four sources — the selection, the file under the cursor, the clip,
+or cur, the row as the shell beside you reads it — and every key takes
+exactly one of them.
+
+move
+  h            up a directory
+  enter        into it, or open the file — right does both too
+  j k          step (arrows too)
+  g G          first file, last file
+  pgup pgdn    page
+  z            zoxide query
+  '            mark here
+  tab          swap the mark and here; unmarked, the last directory
+  t            tag this directory
+  `            the tagged ones
+  ~            home
+
+Tags are symlinks under ~/.config/fm/tagged. Browsing there, whatever a
+key spawns runs in the link's target, not in the tag directory — so ;,
+v and the finders on a tag land in the project it points at.
+
+find
+  /      search names, substring, case-insensitive
+  n N    next, prev — wraps
+  f      by name, fuzzy, over the tree
+  s      by content, fuzzy
+  m      by memory — what was said out loud, newest first, done again
+  .      show hidden, . and .. among them
+
+f and s select and act on nothing: they put the cursor on what you
+picked, and the verb is the next key — enter, e, o, y. A content hit
+keeps its line, so e opens there.
+
+m acts. A log line is a verb and then an address — the command that made
+it — so picking one says it again: m runs the verb on the address, from
+where fm already stands. The address is whole, so the verb carries its
+own place and the pane does not follow it; the pick is the act, not the
+trip. Only a c line moves the cursor — c was a select, and a select done
+again is the landing — so pick one of those when going there was the
+point. Only c writes that log, so m finds what was said out loud, and b
+is how a row you merely browsed gets in.
+
+. and .. are entries in the directory like the rest — ls skipped the
+two by their leading dot, and the hidden file is that accident. Under
+the cursor they make a directory a target like any other: y its path,
+c or x it whole, * or = it. On .. enter is h; on . it stays. d refuses
+both, as rm(1) does. A first visit lands past them.
+
+act
+  space    select
+  c x      copy, cut — both fill the clip and clear the selection
+  p        paste the clip here, asking a name on a clash
+  l        symlink the clip here
+  u        drop the clip
+  d        delete, after a y
+  r        rename
+  i I      new file, new directory
+  b        bookmark — say the row out loud, into the log m walks
+  *        toggle +x
+  y Y      yank the path, yank the contents
+  = +      clone under ~/Unsynced and go there; + for a dir's contents
+
+  selection    c x d
+  cursor       enter e o b r y * = + F
+  the clip     p l
+
+The header carries all three — [n] selected, cp:n or cut:n pending,
+mark:name. A cd clears the selection. Nothing clears the clip but u, a
+link, or a cut that finished moving.
+
+the pronoun
+  fm with no argument opens on cur: the directory it names, landed on
+  its own name. From then on the row under the cursor is cur, so o, e,
+  p and a at the prompt beside you mean this file without being told
+  which — and `{c} hands it to anything else. A file made, renamed or
+  pasted is landed on, so cur follows what a verb made.
+
+  Only the pane you are looking at says it. A background fm — scrolled,
+  or woken by a resize — would take the shell's this, so it keeps quiet
+  until the pane has the eye and says its row when it gets it back. The
+  log m walks is c's alone: what was said out loud, not every j.
+
+the shell — both directions
+  o     from a prompt: open the directory you are in, in a pane
+        beside you
+  ;     from fm: a shell in a pane beside you, in the directory fm
+        is in
+
+q closes the pane and the shell keeps the line you were typing. fm does
+not move the shell or type at it.
+
+o is the same word on both sides: the command with no argument takes
+the directory you are in, and the key hands it the row — a directory
+row is another fm in a pane beside you, a file row its app.
+
+tools — every one a script in sh/, replaceable
+  e      edit (e)
+  o      open the row in a pane beside you (o)
+  w      wipe, at home (w)
+  F      format (lint -f)
+  f s m  the finders (f, s, m — each piped through fzy)
+  b      say the row out loud (c)
+  v      version control (v)
+  V      gitk
+  a      a claude session here (a)
+
+a, o and ; open a pane and fm keeps running; b runs and only flashes.
+The rest borrow the screen until they exit; F and w hold it after, so
+what they printed survives the redraw.
+
+file
+  q    quit
+  ?    help, generated from the key table
+
+What a key runs is a name, never a path — bin/ is on $PATH, so any of
+them is replaced by writing your own and rebuilding nothing.
+
+change it: keys and help are one table,
+fm/4-main/11-bind.go — edit, ./build fm.

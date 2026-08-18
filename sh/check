@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+
+# check [target]...
+#
+# every check the tree ships, one run: references open (general/reference),
+# lines fit (layout/vertical), prose is lowercase (general/naming/case).
+# run from the tree root.
+#
+#	stdout	violations, path:line first. plumbable.
+#	exit	1 if dirty
+
+set -u
+
+[ $# -eq 0 ] && set -- .
+
+files=$(find -L "$@" -type f | sed 's|^\./||' | sort)
+[ -n "$files" ] || { echo "check: no files in $*" >&2; exit 2; }
+
+rc=0
+ref -x general/reference "$@" 2>&1 >/dev/null || rc=1
+awk 'length>79 {print FILENAME":"FNR; bad=1} END {exit bad}' $files || rc=1
+grep -n '[A-Z][a-z]' $files /dev/null | grep -v '~/' && rc=1
+exit $rc

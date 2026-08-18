@@ -1,0 +1,43 @@
+#!/usr/bin/env -S 9 rc
+
+ifs='
+'
+
+cd $home
+
+rm -f .lesshst .local/share/recently-used.xbel .local/share/xorg/*
+rm -f .viminfo .xsession-errors
+sudo apt-get -y autoremove >/dev/null >[2=1]
+sudo apt-get clean
+echo -n | xclip -sel clip >[2]/dev/null
+echo -n | xclip -sel pri >[2]/dev/null
+
+for (d in focus guidelines tagged today) {
+	rm -rf Unsynced/$d
+	rsync -am Data/$d Unsynced
+}
+
+step -ab recent
+for (d in Downloads Pictures scratch Videos)
+	fd . --color never --changed-within '60 days' $d
+
+# the log outlives what it names, and m must not curate it: position is
+# m's meaning, 0 here and 1 back. so the wipe curates. what is gone goes,
+# and a place is its newest mention, under its newest verb, rather than
+# every visit to it.
+step -ab places
+log=.config/sys/log
+if (test -s $log) {
+	keep=()
+	newest='{k=$0; sub(/^[^ ]* /,"",k); sub(/:[0-9]*$/,"",k)} !seen[k]++'
+	for (l in `{tac $log | awk $newest}) {
+		p=`{echo $"l | sed 's,^[^ ]* ,,; s,:[0-9]*$,,'}
+		if (test -e $"p) keep=($"l $keep)
+	}
+	{ for (l in $keep) echo $"l } > $log^.^$pid
+	mv $log^.^$pid $log
+}
+m
+
+step -ab dotfiles
+cd dotfiles && git status --porcelain

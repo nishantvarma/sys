@@ -1,0 +1,7 @@
+measure before optimizing. the bottleneck is never where you remember
+it; profile, then cut where the time is.
+
+the test: name the number that moved. no number, and the code was
+rearranged, not sped up.
+
+`general/loop` is this clock turned on you.

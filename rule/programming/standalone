@@ -1,0 +1,23 @@
+build it where you can run it. the unit is what you can check out alone,
+start and exercise — not what the host lets you edit in place.
+
+the test: run it with the host gone. if it needs the host to boot, you
+wrote a patch wearing a module's name.
+
+what makes it liftable is what it does not reach for — no import upward,
+no global the host set, no clock or socket it opened itself. hand those
+in. `programming/commandquery:/call it twice/` is the same discipline one
+call down.
+
+it buys the loop, `general/loop:/edit to seen/`. a unit that starts in a
+second gets edited a hundred times a day; one that needs the host's boot
+gets edited when you must.
+
+costs a seam, and a seam is a moving part. against
+`general/simple:/one mechanism/`: pay it where you expect change, the
+same place `programming/encapsulation` puts its barrier. one host, one
+call site, no second reader — integrate and stop. pluggable on the
+second, like every other generalisation here.
+
+standalone is the property. `programming/simulator` is how you hold it
+before the host exists.

@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+
+cd "$(dirname "$0")"
+find . -name '*.go' ! -name '@main.go' ! -name '[0-9]*' -exec gofmt -w {} +
+over=$(find . -name '*.go' ! -name main.go | while read -r f; do
+	expand -t8 "$f" | awk -v f="$f" 'length > 79 {print f ":" FNR}'
+done)
+[ -z "$over" ] || { echo "$over"; exit 1; }

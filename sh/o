@@ -1,0 +1,33 @@
+#!/usr/bin/env -S 9 rc
+
+ifs='
+'
+*=`{c -v o $*}
+if (~ $#* 0) exit
+
+file=`{file $1 >[2]/dev/null}
+mime=`{file -m $1 >[2]/dev/null}
+
+if (~ $1 *.djvu) spawn zathura $1
+if not if (~ $1 *.chm) spawn xchm $1
+if not if (~ $1 *.epub) spawn foliate $1
+if not if (~ $1 *.gz) spawn -t tar -xf $1
+if not if (~ $1 *.html) spawn microsoft-edge $1
+if not if (~ $1 *.jpeg) spawn page $1
+if not if (~ $1 *.jpg) spawn page $1
+if not if (~ $1 *.m4a) spawn mpv $1
+if not if (~ $1 *.mkv) spawn mpv $1
+if not if (~ $1 *.mobi) spawn foliate $1
+if not if (~ $1 *.mp3) { mocp -S >[2]/dev/null; mocp -l $1 }
+if not if (~ $1 *.mp4) spawn mpv $1
+if not if (~ $1 *.pdf) spawn zathura $1
+if not if (~ $1 *.png) spawn page $1
+if not if (~ $1 *.ps) spawn zathura $1
+if not if (~ $1 *.tar) spawn -t tar -xf $1
+if not if (~ $1 *.tgz) spawn -t tar -xf $1
+if not if (~ $1 *.url) spawn microsoft-edge `{cat $1}
+if not if (~ $1 *.webm) spawn mpv $1
+if not if (~ $1 *.xz) spawn -t tar -xf $1
+if not if (~ $file *directory*) spawn -t fm `{readlink -f $1}
+if not if (test -x $1) spawn -t `{readlink -f $1}
+if not if (~ $mime *text*) e `{m 0}
