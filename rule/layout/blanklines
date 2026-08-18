@@ -1,0 +1,4 @@
+blank lines assert separation. their count signals the strength of the
+break — match it to the structural level. in code, 1 line max. in end-user
+content, 1 between all blocks; hierarchy is carried by heading markers, not
+blank count.

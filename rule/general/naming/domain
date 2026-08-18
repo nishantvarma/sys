@@ -1,0 +1,5 @@
+name the thing, not the mechanism. a name carrying the mechanism dies
+with it — users outlives userlist.
+
+the test: swap the implementation. if the name has to change, it named
+the wrong half.

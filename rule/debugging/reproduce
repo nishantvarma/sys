@@ -1,0 +1,5 @@
+reproduce before instrumenting. a bug you cannot trigger on demand is a
+theory, and every fix for it is unfalsifiable.
+
+`programming/simulator:/the real inputs/` makes the same demand of code
+that does not exist yet — the world on tap, not the bug.

@@ -1,0 +1,12 @@
+a call changes the world or answers about it, never both. asking must be
+free to repeat.
+
+the test: call it twice. if the second answer differs, it was a command
+wearing a query's name — pop, next, getandclear.
+
+commands return nothing worth reading. that is what makes a query safe to
+log, cache, retry, reorder — and so what makes `programming/declarative`
+possible at all.
+
+names carry it: get/find/is answer, set/add/apply change.
+`programming/selfexplaining`.

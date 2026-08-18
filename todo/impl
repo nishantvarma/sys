@@ -1,0 +1,70 @@
+the pronoun, landed. what was settled while writing it, and what it
+did not take. the code is what to write, in what order, what it cost.
+
+decided, so it is not decided twice
+
+one cur per tmux window — $home/.config/sys/cur/@3 — and one m for the
+machine. it is per workspace; memory is one.
+
+the pane is too small a unit: fm in one and the shell in another could
+tell each other nothing, which is the problem this started from. the
+machine is too big: two projects trade this between them. the window is
+already the unit and the layout says so — spawn splits into the current
+one, the shell holds its left, and everything beside it was spawned from
+there. outside tmux the id is none and nothing else changes.
+
+the id costs c one fork, $TMUX_PANE names a pane and not its window. fm
+asks once at startup. dead windows leave a stale file of one line each;
+not worth collecting.
+
+ask with -t $TMUX_PANE or do not ask. an untargeted tmux display answers
+about the session's current window, not the pane running the command,
+and a detached or background pane then reads and writes another window's
+this. it looks right until there are two windows.
+`sh/p:/pane=(-t $TMUX_PANE)/` already does it that way; the same goes
+for set -w @cur, which lands on the wrong window unqualified.
+
+cur unset is the cwd, resolved once inside c, so o with no argument
+stays what the readme says it is.
+
+m is what was said, not every twitch: c appends, a view writing cur does
+not. fm writes on every j, and at one line per keypress back is
+unusable. still one writer.
+
+cur is written temp then renamed. between truncate and write a reader
+gets an empty address, and an empty address is a verb with no noun.
+
+c prints its reading always, sets cur only when that reading exists;
+nothing reads its status. so e newfile falls back to the raw word and
+still makes a file, and ed's save is what lands it in cur — the same
+rule as mv and mkdir, cur follows what the verb made.
+
+c prints a path, never an address. `{c} is how every tool not ours gets
+the pronoun — git add `{c}, wc -l `{c} — and it has to be a filename
+each of them will take. git add foo.go:12 is not one. the line stays in
+cur for the two verbs that read it, and the address whole is m 0, which
+is cur already and so costs no word.
+
+not taken
+
+cp mv rm mkdir — bin/ is on $PATH, so those four names
+shadow coreutils for every script, Makefile and habit on the machine,
+and the wrappers would have to be flag-transparent to survive it. o e f
+s v p shadow nothing; these four shadow everything. the cell is not
+empty, though — fm is the tree-write verbs already (c C p l d r i I) and
+it knows what it made, so cur follows there and not at a prompt. the day
+that hurts: wrappers that exec /bin/x "$@" and then c the last argument,
+rm the parent (`todo/idea:/rm, making nothing/`).
+
+ls — same shadow, same answer. fm is ls.
+
+a shell of our own. it is not a shell that is missing, it is a mode: fm
+is normal mode already, and a line at the bottom of a bare terminal is
+insert mode. what made those two programs was two heres; with one they
+are two modes of one sentence, and e typed is e pressed. the rest of it
+— the row, the bar, the discarding, the modes — is frame and not
+pronoun: todo/frame.
+
+t — the second noun, deferred by `todo/idea:/two-noun verbs/`, still
+deferred. when it lands
+it is c's grammar again: a second file, and mv alone is mv `{c} `{t}.

@@ -1,0 +1,139 @@
+the tree read whole, and run: vet and gofmt clean, the tangled mains
+fresh, the .lines guard holding. what was broken and is fixed, then
+what has drifted, then the shape; the four questions this file held are
+at the foot, with what has since answered them.
+
+fixed
+
+copy then paste in the same directory emptied the file: the copy opened
+dst with O_TRUNC before reading src, and on one inode the read found
+nothing. `fm/1-fs/12-copyfile.go:/SameFile/` refuses it now, as the
+tree copy always did at `fm/1-fs/13-copytree.go:/under(dst, src)/`, and
+as cp(1) does. the way in stays: `fm/3-actions/16-paste.go:/name == ""/`
+turns an empty answer at the clash prompt into the same name, which now
+fails loudly on the same file and still replaces a different one.
+whether enter should replace at all is open, below.
+
+cur was keyed by window_index, per session and renumbering, so two
+sessions with a window 1 shared a pronoun and move-window orphaned the
+file. `sh/c:/window_id/`, `sh/m:/window_id/` and
+`fm/4-main/26-pane.go:/window_id/` ask for the id — unique per server,
+stable, and wearing its own @, so the file is cur/@0 as
+`todo/impl:/one cur per tmux window/` always said. the stale @1 and @2
+of the old key are not worth collecting.
+
+ref and check did not run under this $PATH: plan9 grep is first and
+`sh/ref:/grep -noE/` is not its grammar, so ref found no reference,
+nothing was broken, and `sh/check:/ref -x/` recorded a pass. both pin
+/usr/bin ahead now — the shebang pins the interpreter, this pins the
+tools, the same class as env -S 9 rc one level down. -x never skipped
+either: it compared the name given against the path as found, so
+`ref -x general/reference` from the root matched nothing;
+`sh/ref:/s=rule/` resolves it the way a reference is.
+
+v: Y was a force push, where `sh/confirm` and every other prompt here
+read it as yes. `sh/v:/--force/` takes f now.
+
+ed: ctrl-c in insert mode armed the discard and nothing disarmed it —
+the disarm lived in normal mode only — so a ctrl-c minutes later
+dropped the buffer silently. `ed/3-mode/08-insertmode/04-key.go` disarms
+on any key now. the count replay had the same hole, 2q was arm then
+discard: `ed/3-mode/06-normalmode/04-key.go:/e.mode.key(e, k)/` disarms
+before each replayed key, so a replay is never a second press and 3q
+asks once, as q does.
+
+fmt failed its own rule at `tty/screen.go:/wraps a paste/` and
+`fm/3-actions/11-fzmemory.go:/there is nothing to run/`. wrapped.
+
+drift
+
+the readme's non-goals leave out motion counts;
+`ed/cheatsheet:/leading count/` and normalmode have them.
+
+`tmux/cheatsheet:/search the pane backward/` describes a branch `sh/p`
+does not have; p ends at the git check.
+
+the readme's dependency table says it lists what is spawned, and omits
+what o and p spawn: microsoft-edge, zathura, mpv, mocp, foliate, xchm.
+page is the only opener named.
+
+the shape
+
+the rule tree is the thesis, and 54 of its 106 leaves are empty.
+`rule/general/reference:/unwritten, not absent/` allows it, and the
+name is the rule for terse or dry — not for pyramid, root, core,
+cloning, symmetry, or fourteen of the sixteen under learning. the
+readme sells rule as how the work is done; at half it is a table of
+contents. the leaves that work share one shape, a claim then the test,
+and the test line is all most of the empties need. otherwise
+`rule/general/terse:/delete the line/` applied to the tree: delete the
+leaf, and if the meaning survives it was noise.
+
+dry: one fact, three owners. where cur lives — `sh/c:/$"id/`,
+`sh/m:/$"id/`, `fm/4-main/01-cmds.go:/curRel/` with
+`fm/4-main/04-newfm.go:/curRel, id/`; how to find the window — the
+three window_id lines above, which is why the fix above was three
+edits. `design/plumbing:/one owner/` is the answer already written. fm
+forks c once at startup, `fm/4-main/25-here.go`; a c -w that prints
+this window's cur path lets fm and m ask instead of recompute. fm still
+writes the file itself, so the fork per keystroke stays avoided.
+
+o runs executables, and a double-tap reaches o. `sh/o:/test -x/` execs
+what passes, and `tmux/conf:/double-tap/` makes the touchpad's accident
+the same gesture as right-click: a tap on a word that names ./w runs
+sudo apt-get and rm -rf in a split. `todo/address:/the sibling verb/`
+defers exec; it is live already, folded into o by accident. a confirm
+on that branch, or keep it off the click path.
+
+the tree is invisible to go's tools. go build ./... and go vet ./...
+choke on the chunks — expected 'package' — and gopls with them. go vet
+main.go per directory works and is clean, and nothing says so: a line
+in the readme and a vet step in build keep the trade honest. beside it
+`tangle/5-splice/02-expand.go:/return m/` leaves an unresolved <<name>>
+in the output silently, so the failure surfaces as a gofmt warning and
+then a compile error three steps on. check is right there.
+
+ed protects the wrong file: `sh/c:/temp then rename/` for a one-line
+pronoun, `ed/1-buffer/08-save.go:/os.WriteFile/` truncating the work in
+place.
+
+small
+
+`sh/c:/awk -v addr/` is read-modify-write; two c in flight — a click
+and a save — lose a line. `todo/memory:/c becomes an append/` removes
+the race as a side effect.
+
+the count replay still reaches keys that prompt: 5/ asks five times,
+5? shows help five times. a rep bit on the binding would stop it at a
+key that prompts; not worth the field until it bites.
+
+`fm/4-main/05-run.go:/for !m.done/` reads and sorts the directory on
+every key, j included. it is what makes the cursor survive a rebuild
+for free; measure on a large directory before touching it.
+
+`tty/line.go:/t.Size()/` takes the height once, so a resize mid-prompt
+paints the prompt on the old row; the resize key falls through default.
+
+`sh/check:/set -- ./` defaults to the whole tree, which drags .git and
+bin through grep and flags every camel in go. its targets are rule and
+todo.
+
+`todo/wrapping` is empty; `todo/indexing` is one question.
+
+open
+
+commands that execute at dir-level vs cur-level
+  `fm/4-main/13-spawn.go:/m.cur()/` is the seam, per
+  `todo/next:/the seam if it is ever wanted/`.
+m as command history
+  `todo/memory` is the ranking; `sh/m` is the list today.
+a c line said again should bump the log, not just move the cursor
+  `todo/memory:/appending is the bump/` answers it.
+m should run the verb in the address's own directory, not fm's
+  `fm/3-actions/11-fzmemory.go:/m.spawn/` runs it in ctx today; the
+  address carries its own directory.
+enter at a clash prompt replaces
+  `fm/3-actions/16-paste.go:/name == ""/` reads the empty answer as the
+  default it shows, name [foo]. every other prompt here does the same,
+  so it is consistent; it is also the one place a default destroys.
+  overwrite as a typed name, empty as cancel, would make it an act.

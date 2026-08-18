@@ -1,0 +1,28 @@
+follow one run end to end. reading gives what the code could do, every
+branch live at once; a trace gives what it did.
+`debugging/bisection:/where the bug could live/` is that sentence aimed
+at a bug — this is it aimed at a system you do not know.
+
+the program is an answer key that never runs out. `learning/predict`
+needs something to check you, and everywhere else that is a book or a
+teacher — scarce, coarse, late. code answers at any point, to any
+depth, before you understand a line of it.
+
+so: predict before you step. name where it goes and with what, then
+step. stepping and watching is `learning/hindsight` at one frame per
+step — every value obvious the moment it is on screen, nothing stored.
+
+one trace is one path, and the happy path reads like the design. choose
+the second to disagree with the first — the error, the empty input, the
+call that hits the cache. traces that agree cost the same and teach
+nothing.
+
+pick the altitude: most steps in a deep stack are machinery, not the
+idea. trace where the names are domain names, `general/naming/domain`.
+it needs a start — `general/entrypoint` — and a run you can repeat,
+`debugging/reproduce:/on demand/`, or you get one pass and no second
+question.
+
+keep it as addresses in order, `general/addressability`. the chain lives
+in no single file, and every step either opens or fails loudly — which
+is more than prose about a system can promise.

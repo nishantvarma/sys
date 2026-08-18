@@ -1,0 +1,41 @@
+#!/usr/bin/env -S 9 rc
+
+ifs='
+'
+
+# the last word is the noun: e puts ed's +line between the verb and the
+# file, tar its -xf, so a fixed position names a flag.
+#
+# match the pid column, not any digit in the line, and poll instead
+# of a flat sleep — fm needn't wait for one, ed still gets enough.
+fn title {
+	win=() tries=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
+	while (~ $#win 0 && ! ~ $#tries 0) {
+		win=`{wmctrl -lp | awk -v pid=$1 '$3==pid{print $1; exit}'}
+		if (~ $#win 0) { sleep 0.1; tries=$tries(2-) }
+	}
+	shift
+	verb=st
+	if (! ~ $#* 0) { verb=$1; shift }
+	f=`{pwd}
+	if (! ~ $#* 0) f=$*($#*)
+	if (test -f $f) f=`{realpath $f}
+	if (! ~ $#win 0) wmctrl -ir $win -T $verb:$f
+}
+
+if (~ $#* 0) exit
+
+term=()
+if (~ $1 -t) {
+	shift
+	if (! ~ $#TMUX 0) {
+		dir=`{pwd}
+		tmux split-window -c $"dir $*
+		exit
+	}
+	term=st
+}
+
+$term $* </dev/null >/dev/null >[2=1] &
+title $apid $* </dev/null >/dev/null >[2=1] &
+status=0
