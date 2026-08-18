@@ -1,0 +1,19 @@
+#!/usr/bin/env -S 9 rc
+
+ifs='
+'
+if (~ $#EDITOR 0) EDITOR=ed
+
+# the flag stays ed's: a caller holding a line of its own keeps saying it,
+# and with none cur's line is the line — but only while cur is this file,
+# or a name that resolved to nothing would open at someone else's number.
+at=()
+if (~ $1 +*) { at=$1; shift }
+
+n=`{c -v e $*}
+if (~ $#n 0) exit
+if (~ $#at 0) {
+	a=`{m 0}
+	if (~ $"a $"n^:*) at='+'^`{echo $"a | sed 's,.*:,,'}
+}
+spawn -t $EDITOR $at $"n

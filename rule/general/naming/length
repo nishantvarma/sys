@@ -1,0 +1,6 @@
+length tracks distance from declaration to last use. n inside the loop
+that fills it, nbytes across the function, longer again where it
+crosses a file.
+
+that is why domain code reads verbose — the distances are bigger, not
+the rule different.

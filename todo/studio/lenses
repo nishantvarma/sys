@@ -1,0 +1,221 @@
+#!/usr/bin/env python3
+"""the studio's canonical page, filled from a live folder: one def of one python
+file, seen through five lenses. the template is the page itself, so the page
+this writes is a template again.
+
+    todo/studio/lenses TEMPLATE FOLDER FILE DEF [BEFORE] > TEMPLATE
+
+    FOLDER  the folder shown, its files the tree
+    FILE    the python file in it, DEF a top-level def of FILE
+    BEFORE  an older FILE: the diff lens is DEF then and now
+
+lens     made from
+source   the def's lines, as written
+outline  the def and its neighbours, one row each (ast)
+graph    who calls it, whom it calls, in FILE only (ast)
+run      page/run.mjs on the page FILE makes, run now
+diff     DEF in BEFORE against DEF in FILE
+"""
+import ast
+import difflib
+import html
+import os
+import re
+import subprocess
+import sys
+import tempfile
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+PAGE = os.path.join(HERE, "..", "..", "medium", "page")  # py, run.mjs
+KEYWORDS = "def class if elif else for while return in and or not is try except finally with raise yield import from"
+CODE = re.compile(
+    r"""(?P<str>f?r?b?"(?:[^"\\]|\\.)*"|f?r?b?'(?:[^'\\]|\\.)*')|(?P<com>#.*$)|\b(?P<kw>%s)\b"""
+    % KEYWORDS.replace(" ", "|")
+)
+
+
+def esc(text):
+    return html.escape(text, quote=False)
+
+
+def defs_of(path):
+    """(lines, {name: node}) for the top-level defs of a python file."""
+    text = open(path).read()
+    tree = ast.parse(text)
+    return text.splitlines(), {n.name: n for n in tree.body if isinstance(n, ast.FunctionDef)}
+
+
+def calls(node, names):
+    """the names in `names` that node calls by name."""
+    return sorted({c.func.id for c in ast.walk(node)
+                   if isinstance(c, ast.Call) and isinstance(c.func, ast.Name) and c.func.id in names})
+
+
+def signature(node):
+    return "(" + ", ".join(a.arg for a in node.args.args) + ")"
+
+
+def size(node):
+    return node.end_lineno - node.lineno + 1
+
+
+def code_line(n, text, quiet):
+    """one numbered source line: strings and comments quiet, keywords bold."""
+    if quiet:
+        body = f'<span class="q">{esc(text)}</span>'
+    else:
+        def mark(m):
+            kind = m.lastgroup
+            klass = {"str": "q", "com": "c", "kw": "k"}[kind]
+            return f'<span class="{klass}">{esc(m.group())}</span>'
+        pieces, at = [], 0
+        for m in CODE.finditer(text):
+            pieces += [esc(text[at:m.start()]), mark(m)]
+            at = m.end()
+        body = "".join(pieces) + esc(text[at:])
+    return f'        <div><span class="n">{n}</span><span>{body}</span></div>'
+
+
+def source_lens(path, lines, node):
+    doc = node.body[0] if ast.get_docstring(node) else None
+    quiet = range(doc.lineno, doc.end_lineno + 1) if doc else ()
+    rows = "\n".join(code_line(i, lines[i - 1], i in quiet) for i in range(node.lineno, node.end_lineno + 1))
+    return (f'      <p class="made">as written · {path}:{node.lineno}..{node.end_lineno} · made by: nothing, it is the file</p>\n'
+            f'      <div class="src">\n{rows}\n      </div>')
+
+
+def neighbours(name, nodes):
+    """(callers, callees) of name among nodes."""
+    out = {n: calls(node, nodes) for n, node in nodes.items()}
+    return [n for n in nodes if name in out[n] and n != name], [n for n in out[name] if n != name], out
+
+
+def outline_lens(name, nodes):
+    callers, callees, _ = neighbours(name, nodes)
+    shown = sorted({name, *callers, *callees}, key=lambda n: nodes[n].lineno)
+    rows = []
+    for n in shown:
+        edge = f"{size(nodes[n])} ← {len(callers)} → {len(callees)}" if n == name else str(size(nodes[n]))
+        rows.append(f'        <div class="row{" cur" if n == name else ""}"><span><span class="kw">def</span> '
+                    f'<b>{n}</b>{esc(signature(nodes[n]))}</span><span class="edge">{edge}</span></div>')
+    more = len(nodes) - len(shown)
+    return ('      <p class="made">one row per def · made by: page/py (ast) · the edge is size, callers, callees</p>\n'
+            '      <div class="box">\n' + "\n".join(rows) + "\n      </div>\n"
+            f'      <p class="made">{more} more defs in the file, not shown: they do not touch {name}.</p>')
+
+
+def graph_lens(name, nodes):
+    callers, callees, out = neighbours(name, nodes)
+    rows = max(len(callers), len(callees), 1)
+    height, mid = 60 + rows * 40, 40 + rows * 20
+    box = lambda x, y, w, text, klass="": (f'<rect{klass} x="{x}" y="{y}" width="{w}" height="26" rx="3"/>'
+                                           f'<text x="{x + 10}" y="{y + 17}">{text}</text>')
+    ys = lambda k: [mid - 13 + (i - (k - 1) / 2) * 40 for i in range(k)]
+    parts = [f'<text class="label" x="20" y="16">callers ({len(callers)})</text>',
+             '<text class="label" x="300" y="16">this</text>',
+             f'<text class="label" x="560" y="16">callees ({len(callees)})</text>',
+             box(300, mid - 13, 190, name, ' class="here"')]
+    for n, y in zip(callers, ys(len(callers))):
+        parts += [box(20, y, 190, n), f'<path d="M210,{y + 13} C255,{y + 13} 255,{mid} 300,{mid}"/>']
+    for n, y in zip(callees, ys(len(callees))):
+        parts += [box(560, y, 180, n), f'<path d="M490,{mid} C525,{mid} 525,{y + 13} 560,{y + 13}"/>']
+    back = [n for n in callees if name in out[n]]
+    note = (f'{" and ".join(back)} call{"" if len(back) > 1 else "s"} {name} again: a cycle, {name} → {back[0]} → {name}.'
+            if back else "no cycle through it.")
+    return ('      <p class="made">who calls whom · made by: ast, one file · callers left, callees right</p>\n'
+            '      <div class="box">\n'
+            f'        <svg class="graph" width="760" height="{height}" viewBox="0 0 760 {height}">\n          '
+            + "\n          ".join(parts) + "\n        </svg>\n      </div>\n"
+            f'      <p class="made">{note} in this file only.</p>')
+
+
+def run_lens(path):
+    """page/run.mjs on the page `path` makes: the checks that failed, else the first few ok."""
+    with tempfile.NamedTemporaryFile("w", suffix=".html", delete=False) as page:
+        page.write(subprocess.run([sys.executable, os.path.join(PAGE, "py"), path], capture_output=True, text=True, check=True).stdout)
+    out = subprocess.run(["node", os.path.join(PAGE, "run.mjs"), page.name], capture_output=True, text=True).stdout.splitlines()
+    os.unlink(page.name)
+    checks = [l for l in out if l.startswith(("ok", "FAIL"))]
+    failed = [l for l in checks if l.startswith("FAIL")]
+    shown = failed or checks[:4]
+    rows = "\n".join(f'        <div><span class="{"bad" if l.startswith("FAIL") else "ok"}">{"✗" if l.startswith("FAIL") else "✓"}</span>'
+                     f" {esc(l.split(None, 1)[1])}</div>" for l in shown)
+    summary = f"{len(checks) - len(failed)} ok, {len(failed)} failed"
+    return (f'      <p class="made">what happened when it ran · made by: node run.mjs on the page {os.path.basename(path)} made · run now</p>\n'
+            f'      <div class="box trace">\n{rows}\n        <div class="step">… {summary}</div>\n      </div>'), len(checks), len(failed)
+
+
+def diff_lens(path, name, before, now_lines, node):
+    old_lines, old = defs_of(before)
+    old_def = old[name]
+    delta = list(difflib.unified_diff(old_lines[old_def.lineno - 1:old_def.end_lineno],
+                                      now_lines[node.lineno - 1:node.end_lineno], lineterm="", n=1))[2:]
+    rows = "\n".join(f'        <div class="{ {"+": "add", "-": "del", "@": "at"}.get(l[:1], "") }">{esc(l)}</div>'.replace(' class=""', "")
+                     for l in delta)
+    return (f'      <p class="made">what changed · made by: difflib, {os.path.basename(before)} against {os.path.basename(path)} · real</p>\n'
+            f'      <div class="box diff">\n{rows}\n      </div>\n'
+            f'      <p class="made">the hunk sits on {name}: the graph says who is reached, the run says it still passes.</p>'), \
+        sum(l[:1] == "+" for l in delta), sum(l[:1] == "-" for l in delta)
+
+
+def side_panes(folder, current):
+    names = sorted(f for f in os.listdir(folder) if os.path.isfile(os.path.join(folder, f)))
+    names.sort(key=lambda f: f != "README")
+    tree = [f'      <div class="dir">{esc(os.path.basename(folder.rstrip("/")))}/</div>']
+    thumbs = []
+    for f in names:
+        cur = " cur" if f == current else ""
+        tree.append(f'      <div{" class=cur" if cur else ""}>{esc(f)}</div>'.replace("class=cur", 'class="cur"'))
+        head = [l.strip()[:22] for l in open(os.path.join(folder, f), errors="replace").read().splitlines() if l.strip()][:4]
+        thumbs.append(f'      <div class="thumb{cur}"><b>{esc(f)}</b>{"<br>".join(esc(l) for l in head)}</div>')
+    return ('    <div class="tree">\n' + "\n".join(tree) + '\n    </div>\n    <div class="thumbs">\n' + "\n".join(thumbs) + "\n    </div>")
+
+
+def terminal_pane(folder, file, checks, failed):
+    """the commands that made the lenses, as typed in the folder."""
+    where = os.path.basename(folder.rstrip("/"))
+    stem = file.rsplit(".", 1)[0]
+    return (f'''<pre><span class="prompt">{where} %</span> ./{file} {file} > {stem}.html
+<span class="prompt">{where} %</span> node run.mjs {stem}.html
+<span class="{"fail" if failed else "pass"}">{checks - failed} ok, {failed} failed</span>                 <span class="note">→ the run lens</span>
+<span class="prompt">{where} %</span> v diff                <span class="note"># the diff lens</span>
+<span class="prompt">{where} %</span> <span class="cursor"></span></pre>''')
+
+
+def main(template, folder, file, name, before=None):
+    path = os.path.join(folder, file)
+    lines, nodes = defs_of(path)
+    node = nodes[name]
+    page = open(template).read()
+
+    def section(id_, body):
+        nonlocal page
+        pat = re.compile(r'(    <section class="lens(?: on)?" id="%s">\n).*?(    </section>)' % id_, re.S)
+        assert pat.search(page), id_
+        page = pat.sub(lambda m: m.group(1) + body + "\n" + m.group(2), page, 1)
+
+    section("source", source_lens(path, lines, node))
+    section("outline", outline_lens(name, nodes))
+    section("graph", graph_lens(name, nodes))
+    run, checks, failed = run_lens(path)
+    section("run", run)
+    added = removed = 0
+    if before:
+        diff, added, removed = diff_lens(path, name, before, lines, node)
+        section("diff", diff)
+    where = f"{os.path.basename(folder.rstrip('/'))} / {file} : {name}"
+    page = re.sub(r"(<header class=\"bar\">\n  <b>studio</b> <span>).*?(</span>)", lambda m: m.group(1) + where + m.group(2), page, 1)
+    page = re.sub(r"one thing, <b>.*?</b>", f"one thing, <b>{name}</b>", page, 1)
+    page = re.sub(r"<small class=\"bad\">.*?</small>", f'<small class="{"bad" if failed else "ok"}">{failed} failed</small>', page, 1)
+    page = re.sub(r"(data-lens=\"diff\">diff<small>).*?(</small>)", rf"\g<1>+{added} −{removed}\g<2>", page, 1)
+    page = re.sub(r'    <div class="tree">.*?\n    </div>\n    <div class="thumbs">.*?\n    </div>', lambda m: side_panes(folder, file), page, 1, re.S)
+    page = re.sub(r"<pre>.*?</pre>", lambda m: terminal_pane(folder, file, checks, failed), page, 1, re.S)
+    page = re.sub(r"<span>\S+ · tmux, under ttyd</span>", f"<span>{os.path.basename(folder.rstrip('/'))} · tmux, under ttyd</span>", page, 1)
+    sys.stdout.write(page)
+    print(f"{checks} checks, {failed} failed", file=sys.stderr)
+
+
+if __name__ == "__main__":
+    if len(sys.argv) not in (5, 6):
+        sys.exit(__doc__)
+    main(*sys.argv[1:])

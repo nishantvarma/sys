@@ -1,0 +1,59 @@
+renderer: a function from one file to nodes. The general idea behind shelf,
+page and diff; python's page is the case that made it plain.
+
+  file --renderer--> nodes --> engine
+                     details#id > summary(heading, edge...) + body
+
+  The node is the contract (medium/page.html, checked by medium/page/run.mjs).
+  The engine is keys, folds, find, address. It does not know the kind. A
+  renderer fills heading, edge and body and nothing else.
+
+Where a renderer runs is a detail, not a design:
+
+  kind        renderer            runs        why there
+  .md  .js    shelf outline       the page    text only; sections() / defs()
+  .diff       shelf outline       the page    text only
+  .py         page/py             terminal    needs ast; the page cannot
+  diff.md     page/diff           terminal    needs ast and two trees
+  a new kind  a new renderer      either      text -> page; parse -> terminal
+
+Rule: a kind that needs a parser gets a generator and its own page; a kind that
+is only text stays in the shelf's outline. The kind picks the renderer by file
+extension, so a new kind never changes the shelf or the engine.
+
+Two views of every file: rendered and source
+  The renderer's page is the rendered view; the file as it is on disk is the
+  source view. A key flips between them on the same place, and the node's id
+  is what keeps the place (rendered Field.broken_constraint <-> its line range
+  in the source, 206..225).
+
+    rendered   renderer(file) -> nodes        what it means, folded
+    source     the file, line numbers        what it says, whole
+       flip    same id, same cursor
+
+  Source is never lost: the rendered body already holds the code as written
+  (todo/studio/refactor, "body"), so rendered is a view over source, not a copy
+  of it. A kind with no renderer shows source only. That is what the shelf does
+  today for any file it does not know.
+  Open: where the flip key lives (the shelf's keys, page.html's engine, or
+  both); and whether a source view needs ids at all, or only line ranges.
+
+What it buys
+- one checker for all: node medium/page/run.mjs on any page a renderer made
+- a better renderer replaces a worse one without touching the rest (the
+  shelf's plain python rows, then page/py's ast; the node does not change)
+- the same renderer feeds a page, a terminal pane or an app: the app case in
+  todo/studio/studio changes who runs it, not what it makes
+
+Open
+- stale: a made page goes out of date when its file changes. Who runs the
+  renderer is v diff's question too: you now, a watcher later
+- the shelf opening a .py: link to the made page, or load its nodes in place.
+  Start with the link; embed if the keys are missed
+- python is drawn twice now that page/py exists: the shelf's plain rows (step
+  3's def-line heading) and the made page. The rows are the quick outline; they
+  grow no rail
+
+Where it came from: todo/studio/refactor (the outline's steps), page/diff, and
+the call that the rail needs the ast: a lexer in the browser could only
+approximate it.

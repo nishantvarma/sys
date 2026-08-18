@@ -1,0 +1,9 @@
+ideas are files
+execution is a directory
+resume from state
+
+why: `general/addressability:/cannot be addressed cannot be composed/`.
+chat scrollback names no place, so it cannot be diffed, grepped, or
+partly kept. a directory can, with the tools already on the machine —
+no accept/reject protocol to invent. `ai/04-worktree` holds one attempt
+this way.

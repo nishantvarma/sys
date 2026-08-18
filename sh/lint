@@ -1,0 +1,18 @@
+#!/usr/bin/env -S 9 rc
+
+ifs='
+'
+# -f is lint's, not a noun: held aside, or c would resolve it as text.
+flag=()
+if (~ $1 -f) { flag=$1; shift }
+*=`{c -v lint $*}
+if (~ $#* 0) exit
+
+if (~ $flag -f) {
+	ruff format $*
+	ruff check --fix --select I,F,E,W $*
+}
+if not {
+	ruff format --diff $*
+	ruff check --select I,F,E,W $*
+}

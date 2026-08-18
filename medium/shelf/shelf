@@ -1,0 +1,23 @@
+#!/usr/bin/env sh
+# shelf [dir] [port]: dir as a shelf at localhost:port/shelf.html.
+# dir is the tablet's Data if there is one, else the current folder;
+# port is 8080. the page is the source beside this folder, else dir's
+# own, which pull brings to the tablet. pdf goes as application/pdf,
+# which chrome shows; quark's application/x-pdf it downloads
+here=$(dirname "$(readlink -f "$0")")
+dir=$HOME/storage/shared/Data
+[ -d "$dir" ] || dir=$PWD
+dir=${1:-$dir}
+[ -d "$dir" ] || { echo "shelf: not a folder: $dir" >&2; exit 1; }
+page=$here/../shelf.html
+[ -f "$page" ] || page=$dir/shelf.html
+# shellcheck disable=SC2016 # the script is js, not sh
+exec node -e '
+const [dir, port, page, here] = process.argv.slice(1);
+// a path, not a url: a #, a % or a tab in it stays itself
+const { pathToFileURL } = require("node:url");
+import(pathToFileURL(`${here}/quark.mjs`).href).then(({ quark, types }) => {
+  quark(dir, page, { ...types, pdf: "application/pdf" })
+    .listen(+port, "127.0.0.1", () =>
+      console.log(`http://localhost:${port}/shelf.html  ${dir}`));
+});' -- "$dir" "${2:-8080}" "$page" "$here"

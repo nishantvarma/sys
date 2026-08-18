@@ -1,0 +1,1 @@
+var ref = regexp.MustCompile(`(\\?)<<([^<>]+)>>`)

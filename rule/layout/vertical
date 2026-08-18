@@ -1,0 +1,3 @@
+79 columns. a project's own width wins.
+
+html and markdown are exempt; the program fenced in them is not.

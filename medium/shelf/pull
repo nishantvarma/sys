@@ -1,0 +1,12 @@
+#!/usr/bin/env sh
+# the tablet's copy of what $HOME/keep names, from the laptop. one way: nothing
+# here reaches the laptop. android's shared storage refuses modes and times,
+# so only bytes are copied, and a file is skipped when its size matches. the
+# scripts come first: a kept path the laptop lacks ends the books' rsync with
+# 23, and set -e would stop a script that came after it
+set -e
+laptop=tnishant@192.168.29.13
+p=$laptop:src/sys/medium/shelf
+rsync -a $p/quark.mjs $p/shelf $HOME/
+rsync -r --inplace --no-perms --omit-dir-times --size-only \
+	--files-from=$HOME/keep $laptop:Data/ $HOME/storage/shared/Data/

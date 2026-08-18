@@ -1,0 +1,3 @@
+claude drives via tmux
+ask for the configure values in `ai/skills/manual`, run per
+`ai/skills/run`, report per `ai/skills/report`

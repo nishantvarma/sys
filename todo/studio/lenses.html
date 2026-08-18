@@ -1,0 +1,348 @@
+<!doctype html>
+<!--
+  lenses.html: the canonical page. Copy it as the template for a studio view.
+
+  one thing        page / py : node                         the id every lens shares
+  main pane        five lenses on it                        the shelf reads
+  bottom pane      the terminal                             the terminal acts, writes a file
+
+  regions          header.bar  nav.side  main.view  section.term
+  a lens           section.lens#<name>, one tab a[data-lens="<name>"] for each
+  keys             m next lens   1..5 a lens   t terminal    address: #<lens>
+  filler           every lens is real, made by todo/studio/lenses from a folder,
+                   a file and a def: the source, the calls, the run, the diff
+  to make a view   todo/studio/lenses fills it from a folder; or replace the filler
+                   by hand, keeping the regions, the ids and the keys
+-->
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>lenses</title>
+<link rel="icon" href="data:,">
+<style>
+  /* tokens */
+  :root {
+    --bg: #fbfbf9;  --ink: #1c1c1a;  --dim: #6b6b66;  --faint: #a8a8a2;
+    --rule: #e4e4de;  --panel: #f1f1ec;  --sel: #dfe6fb;
+    --accent: #2563eb;  --bad: #b42318;  --ok: #1a7f37;
+    --term-bg: #ffffff;  --term-ink: #1c1c1a;  --term-dim: #6b6b66;  --term-warn: #9a6700;
+    --mono: ui-monospace, 'JetBrains Mono', Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #141413;  --ink: #e8e8e3;  --dim: #9a9a93;  --faint: #5c5c57;
+      --rule: #2a2a27;  --panel: #1d1d1b;  --sel: #26335a;
+      --accent: #7aa7ff;  --bad: #ff8a80;  --ok: #56d364;
+      --term-bg: #1b1b19;  --term-ink: #e8e8e3;  --term-dim: #9a9a93;  --term-warn: #e3b341;
+    }
+  }
+
+  /* page: bar, then side and view side by side, then the terminal */
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; display: flex; flex-direction: column;
+    background: var(--bg); color: var(--ink); font: 14px/1.5 system-ui, sans-serif;
+  }
+  .frame { flex: 1; min-height: 0; display: grid; grid-template-columns: 230px minmax(0, 1fr); }
+  .frame > * { min-height: 0; overflow: auto; }
+  kbd {
+    padding: 0 .3rem; background: var(--panel); color: var(--ink);
+    border: 1px solid var(--rule); border-bottom-width: 2px; border-radius: 3px; font: 11px var(--mono);
+  }
+  code, .mono { font-family: var(--mono); }
+  .dim { color: var(--faint); }
+  .ok  { color: var(--ok); }
+  .bad { color: var(--bad); }
+
+  /* header.bar */
+  .bar {
+    display: flex; flex-wrap: wrap; gap: .75rem; align-items: center; padding: .4rem .9rem;
+    border-bottom: 1px solid var(--rule); color: var(--dim); font: 12px var(--mono);
+  }
+  .bar b { color: var(--ink); }
+  .bar .grow { flex: 1; }
+
+  /* nav.side: the folder, as tree or thumbs */
+  .side { padding: .5rem 0; border-right: 1px solid var(--rule); font-size: 13px; }
+  .side .how { display: flex; gap: .6rem; margin: .2rem .9rem .3rem; color: var(--faint); font: 11px var(--mono); }
+  .side .how a { color: var(--dim); cursor: pointer; }
+  .side .how a.on { color: var(--accent); font-weight: 700; }
+  .tree div { padding: .1rem .9rem .1rem 1.7rem; color: var(--dim); white-space: nowrap; }
+  .tree .dir { padding-left: .9rem; color: var(--ink); font-weight: 600; }
+  .tree .cur, .thumb.cur { border-color: var(--accent); }
+  .tree .cur { background: var(--sel); color: var(--ink); box-shadow: inset 3px 0 var(--accent); }
+  .thumbs { display: none; grid-template-columns: 1fr 1fr; gap: .5rem; padding: .3rem .7rem; }
+  .thumb {
+    height: 74px; padding: .3rem; overflow: hidden; background: var(--panel); color: var(--faint);
+    border: 1px solid var(--rule); border-radius: 4px; font: 10px/1.2 var(--mono);
+  }
+  .thumb b { display: block; margin-bottom: .2rem; color: var(--ink); font-size: 11px; }
+  .side[data-how="thumbs"] .tree   { display: none; }
+  .side[data-how="thumbs"] .thumbs { display: grid; }
+
+  /* main.view: the id, the tabs, one lens */
+  .view { padding: .7rem 1.1rem 3rem; min-width: 0; }
+  .id { margin: 0 0 .5rem; font: 13px var(--mono); }
+  .id b { color: var(--accent); }
+  .tabs { display: flex; flex-wrap: wrap; gap: .2rem; margin-bottom: .8rem; border-bottom: 1px solid var(--rule); }
+  .tabs a {
+    position: relative; top: 1px; padding: .3rem .8rem; cursor: pointer; color: var(--dim);
+    border: 1px solid transparent; border-bottom: 0; border-radius: 4px 4px 0 0; font: 12px var(--mono);
+  }
+  .tabs a.on { background: var(--bg); color: var(--ink); border-color: var(--rule); font-weight: 700; }
+  .tabs small { margin-left: .3rem; color: var(--faint); font-weight: 400; }
+  .tabs i { margin-left: .4rem; color: var(--faint); font: normal 10px var(--mono); }
+  .lens { display: none; }
+  .lens.on { display: block; }
+  .made { margin: .2rem 0 .7rem; color: var(--dim); font: 12px var(--mono); }
+
+  /* lens: source */
+  .src { padding: .4rem 0; overflow: auto; border: 1px solid var(--rule); border-radius: 4px; font: 12px/1.55 var(--mono); }
+  .src div { display: flex; white-space: pre; }
+  .src .n { flex: none; width: 2.8rem; padding-right: .7rem; text-align: right; color: var(--faint); }
+  .src .k { font-weight: 700; }
+  .src .q { color: var(--faint); }
+  .src .c { color: var(--faint); font-style: italic; }
+
+  /* lens: outline */
+  .box { border: 1px solid var(--rule); border-radius: 4px; }
+  .row { display: flex; gap: .8rem; align-items: baseline; padding: .25rem .6rem; border-top: 1px solid var(--rule); font: 13px var(--mono); }
+  .row:first-child { border-top: 0; }
+  .row.cur { background: var(--sel); box-shadow: inset 3px 0 var(--accent); }
+  .row .kw { color: var(--faint); }
+  .row .edge { margin-left: auto; color: var(--dim); font-size: 11px; }
+
+  /* lens: graph */
+  .graph text { fill: var(--ink); font: 12px var(--mono); }
+  .graph .label { fill: var(--faint); font-size: 10px; }
+  .graph rect { fill: var(--bg); stroke: var(--rule); }
+  .graph rect.here { stroke: var(--accent); stroke-width: 2; }
+  .graph rect.none { stroke-dasharray: 3 3; }
+  .graph path { fill: none; stroke: var(--faint); stroke-width: 1.4; }
+
+  /* lens: run */
+  .trace div { display: flex; gap: .8rem; padding: .2rem .6rem; border-top: 1px solid var(--rule); font: 12px var(--mono); }
+  .trace div:first-child { border-top: 0; }
+  .trace .step { padding-left: 1.4rem; color: var(--faint); }
+  .trace .step.bad { color: var(--bad); }
+  .trace .time { margin-left: auto; color: var(--dim); }
+
+  /* lens: diff */
+  .diff { font: 12px/1.55 var(--mono); }
+  .diff div { padding: 0 .6rem; white-space: pre; }
+  .diff .at  { color: var(--faint); }
+  .diff .add { background: color-mix(in oklab, var(--ok) 16%, transparent); }
+  .diff .del { background: color-mix(in oklab, var(--bad) 16%, transparent); }
+
+  /* section.term: the verbs that act */
+  .term {
+    flex: none; height: 34vh; display: flex; flex-direction: column;
+    background: var(--term-bg); color: var(--term-ink); border-top: 1px solid var(--rule); font: 12px/1.5 var(--mono);
+  }
+  .term[hidden] { display: none; }
+  .term .tabbar { flex: none; display: flex; gap: 1rem; padding: .1rem .9rem; background: var(--panel); color: var(--dim); border-bottom: 1px solid var(--rule); font-size: 11px; }
+  .term .grow { flex: 1; }
+  .term pre { flex: 1; margin: 0; padding: .5rem .9rem; overflow: auto; white-space: pre-wrap; font: inherit; }
+  .term .prompt { color: var(--ok); }
+  .term .note   { color: var(--term-dim); }
+  .term .pass   { color: var(--ok); }
+  .term .fail   { color: var(--bad); }
+  .term .sum    { color: var(--term-warn); }
+  .term .cursor { display: inline-block; width: .55em; height: 1em; background: var(--term-ink); vertical-align: -.15em; }
+
+  @media (max-width: 760px) {
+    .frame { grid-template-columns: 1fr; }
+    .side { display: none; }
+  }
+</style>
+<body>
+
+<header class="bar">
+  <b>studio</b> <span>page / py : node</span>
+  <span class="grow"></span>
+  <span><kbd>m</kbd> next lens</span>
+  <span><kbd>1</kbd>..<kbd>5</kbd> a lens</span>
+  <span><kbd>t</kbd> terminal</span>
+</header>
+
+<div class="frame">
+
+  <nav class="side" data-how="tree">
+    <div class="how"><span>folder</span><a data-how="tree" class="on">tree</a><a data-how="thumbs">thumbs</a></div>
+    <div class="tree">
+      <div class="dir">page/</div>
+      <div>README</div>
+      <div>diff</div>
+      <div>diff.md</div>
+      <div class="cur">py</div>
+      <div>run.mjs</div>
+    </div>
+    <div class="thumbs">
+      <div class="thumb"><b>README</b>page: the studio's len<br>py        a python fil<br>diff      a diff: its <br>run.mjs   the check, f</div>
+      <div class="thumb"><b>diff</b>#!/usr/bin/env python3<br>"""a page of a change:<br>comes diff.html, whose<br>the code that changed,</div>
+      <div class="thumb"><b>diff.md</b># what changed, in a l<br>what the change is and<br>below is optional: a t<br>with ├ and └, a note a</div>
+      <div class="thumb cur"><b>py</b>#!/usr/bin/env python3<br>"""a page of a python <br>by python's own ast. a<br>def line, with the sky</div>
+      <div class="thumb"><b>run.mjs</b>// checks pages built <br>// box, keys, hash rev<br>// nodes, its &lt;details<br>// usage: node run.mjs</div>
+    </div>
+  </nav>
+
+  <main class="view">
+    <p class="id">one thing, <b>node</b>, five lenses. the id is the join.</p>
+
+    <div class="tabs">
+      <a data-lens="source" class="on">source<i>1</i></a>
+      <a data-lens="outline">outline<i>2</i></a>
+      <a data-lens="graph">graph<i>3</i></a>
+      <a data-lens="run">run<small class="ok">0 failed</small><i>4</i></a>
+      <a data-lens="diff">diff<small>+12 −11</small><i>5</i></a>
+    </div>
+
+    <section class="lens on" id="source">
+      <p class="made">as written · medium/page/py:311..328 · made by: nothing, it is the file</p>
+      <div class="src">
+        <div><span class="n">311</span><span><span class="k">def</span> node(d: Def, lines, marks) -&gt; str:</span></div>
+        <div><span class="n">312</span><span><span class="q">    """a node as page.html writes one: a class holding its own, open where</span></span></div>
+        <div><span class="n">313</span><span><span class="q">    it holds a class or a def; a def a row, its body its source. hovered,</span></span></div>
+        <div><span class="n">314</span><span><span class="q">    its signature as written."""</span></span></div>
+        <div><span class="n">315</span><span>    n = d.node</span></div>
+        <div><span class="n">316</span><span>    figures = <span class="q">f'&lt;span class="fig"&gt;{n.end_lineno - n.lineno + 1}&lt;/span&gt;'</span></span></div>
+        <div><span class="n">317</span><span>    <span class="k">if</span> isinstance(n, ast.ClassDef):</span></div>
+        <div><span class="n">318</span><span>        body = held(d.children, n, d.end, lines, marks)</span></div>
+        <div><span class="n">319</span><span>    <span class="k">else</span>:</span></div>
+        <div><span class="n">320</span><span>        figures = skyline(n, lines) + figures</span></div>
+        <div><span class="n">321</span><span>        body = source(n, lines, marks)</span></div>
+        <div><span class="n">322</span><span>    opened = <span class="q">" open"</span> <span class="k">if</span> d.children <span class="k">else</span> <span class="q">""</span></span></div>
+        <div><span class="n">323</span><span>    <span class="k">return</span> (</span></div>
+        <div><span class="n">324</span><span>        <span class="q">f'&lt;details id="{esc(d.id)}"{opened}&gt;\n'</span></span></div>
+        <div><span class="n">325</span><span>        <span class="q">f'&lt;summary title="{esc(hover(n, lines))}"&gt;'</span></span></div>
+        <div><span class="n">326</span><span>        <span class="q">f"{heading(n)}{figures}&lt;/summary&gt;\n"</span></span></div>
+        <div><span class="n">327</span><span>        <span class="q">f"&lt;div&gt;\n{body}\n&lt;/div&gt;\n&lt;/details&gt;"</span></span></div>
+        <div><span class="n">328</span><span>    )</span></div>
+      </div>
+    </section>
+
+    <section class="lens" id="outline">
+      <p class="made">one row per def · made by: page/py (ast) · the edge is size, callers, callees</p>
+      <div class="box">
+        <div class="row"><span><span class="kw">def</span> <b>held</b>(defs, owner, end, lines, marks)</span><span class="edge">20</span></div>
+        <div class="row cur"><span><span class="kw">def</span> <b>node</b>(d, lines, marks)</span><span class="edge">18 ← 1 → 6</span></div>
+        <div class="row"><span><span class="kw">def</span> <b>heading</b>(n)</span><span class="edge">22</span></div>
+        <div class="row"><span><span class="kw">def</span> <b>hover</b>(n, lines)</span><span class="edge">4</span></div>
+        <div class="row"><span><span class="kw">def</span> <b>skyline</b>(n, lines)</span><span class="edge">22</span></div>
+        <div class="row"><span><span class="kw">def</span> <b>source</b>(n, lines, marks)</span><span class="edge">4</span></div>
+        <div class="row"><span><span class="kw">def</span> <b>esc</b>(text)</span><span class="edge">2</span></div>
+      </div>
+      <p class="made">11 more defs in the file, not shown: they do not touch node.</p>
+    </section>
+
+    <section class="lens" id="graph">
+      <p class="made">who calls whom · made by: ast, one file · callers left, callees right</p>
+      <div class="box">
+        <svg class="graph" width="760" height="300" viewBox="0 0 760 300">
+          <text class="label" x="20" y="16">callers (1)</text>
+          <text class="label" x="300" y="16">this</text>
+          <text class="label" x="560" y="16">callees (6)</text>
+          <rect class="here" x="300" y="147" width="190" height="26" rx="3"/><text x="310" y="164">node</text>
+          <rect x="20" y="147.0" width="190" height="26" rx="3"/><text x="30" y="164.0">held</text>
+          <path d="M210,160.0 C255,160.0 255,160 300,160"/>
+          <rect x="560" y="47.0" width="180" height="26" rx="3"/><text x="570" y="64.0">esc</text>
+          <path d="M490,160 C525,160 525,60.0 560,60.0"/>
+          <rect x="560" y="87.0" width="180" height="26" rx="3"/><text x="570" y="104.0">heading</text>
+          <path d="M490,160 C525,160 525,100.0 560,100.0"/>
+          <rect x="560" y="127.0" width="180" height="26" rx="3"/><text x="570" y="144.0">held</text>
+          <path d="M490,160 C525,160 525,140.0 560,140.0"/>
+          <rect x="560" y="167.0" width="180" height="26" rx="3"/><text x="570" y="184.0">hover</text>
+          <path d="M490,160 C525,160 525,180.0 560,180.0"/>
+          <rect x="560" y="207.0" width="180" height="26" rx="3"/><text x="570" y="224.0">skyline</text>
+          <path d="M490,160 C525,160 525,220.0 560,220.0"/>
+          <rect x="560" y="247.0" width="180" height="26" rx="3"/><text x="570" y="264.0">source</text>
+          <path d="M490,160 C525,160 525,260.0 560,260.0"/>
+        </svg>
+      </div>
+      <p class="made">held calls node again: a cycle, node → held → node. in this file only.</p>
+    </section>
+
+    <section class="lens" id="run">
+      <p class="made">what happened when it ran · made by: node run.mjs on the page py made · run now</p>
+      <div class="box trace">
+        <div><span class="ok">✓</span> renders</div>
+        <div><span class="ok">✓</span> the page holds the nodes the file does, in order</div>
+        <div><span class="ok">✓</span> the page opens folded as the open attributes say</div>
+        <div><span class="ok">✓</span> the bar sits at the very top, before the title: an icon each for e, c and ?, named</div>
+        <div class="step">… 45 ok, 0 failed</div>
+      </div>
+    </section>
+
+    <section class="lens" id="diff">
+      <p class="made">what changed · made by: difflib, py.rail.bak against py · real</p>
+      <div class="box diff">
+        <div class="at">@@ -1,16 +1,17 @@</div>
+        <div> def node(d: Def, lines, marks) -&gt; str:</div>
+        <div class="del">-    """a node as page.html writes one: a class a card holding its own, open</div>
+        <div class="del">-    where it holds nodes; a def a row, its body its source. hovered, its</div>
+        <div class="del">-    signature as written and its docstring."""</div>
+        <div class="del">-    figures = f'&lt;span class="fig"&gt;{d.size}&lt;/span&gt;'</div>
+        <div class="del">-    if d.kind == "class":</div>
+        <div class="del">-        body = held(d.children, d.node, lines, marks)</div>
+        <div class="add">+    """a node as page.html writes one: a class holding its own, open where</div>
+        <div class="add">+    it holds a class or a def; a def a row, its body its source. hovered,</div>
+        <div class="add">+    its signature as written."""</div>
+        <div class="add">+    n = d.node</div>
+        <div class="add">+    figures = f'&lt;span class="fig"&gt;{n.end_lineno - n.lineno + 1}&lt;/span&gt;'</div>
+        <div class="add">+    if isinstance(n, ast.ClassDef):</div>
+        <div class="add">+        body = held(d.children, n, d.end, lines, marks)</div>
+        <div>     else:</div>
+        <div class="del">-        figures = skyline(d, lines) + figures</div>
+        <div class="del">-        body = source(d, lines, marks)</div>
+        <div class="del">-    opened = " open" if "&lt;details id=" in body else ""</div>
+        <div class="add">+        figures = skyline(n, lines) + figures</div>
+        <div class="add">+        body = source(n, lines, marks)</div>
+        <div class="add">+    opened = " open" if d.children else ""</div>
+        <div>     return (</div>
+        <div>         f'&lt;details id="{esc(d.id)}"{opened}&gt;\n'</div>
+        <div class="del">-        f'&lt;summary title="{esc(hover(d, lines))}"&gt;'</div>
+        <div class="del">-        f"{heading(d)}{figures}&lt;/summary&gt;\n"</div>
+        <div class="add">+        f'&lt;summary title="{esc(hover(n, lines))}"&gt;'</div>
+        <div class="add">+        f"{heading(n)}{figures}&lt;/summary&gt;\n"</div>
+        <div>         f"&lt;div&gt;\n{body}\n&lt;/div&gt;\n&lt;/details&gt;"</div>
+      </div>
+      <p class="made">the hunk sits on node: the graph says who is reached, the run says it still passes.</p>
+    </section>
+  </main>
+
+</div>
+
+<section class="term" id="term">
+  <div class="tabbar"><span>0:shell*</span><span>1:agent</span><span class="grow"></span><span>page · tmux, under ttyd</span></div>
+<pre><span class="prompt">page %</span> ./py py > py.html
+<span class="prompt">page %</span> node run.mjs py.html
+<span class="pass">45 ok, 0 failed</span>                 <span class="note">→ the run lens</span>
+<span class="prompt">page %</span> v diff                <span class="note"># the diff lens</span>
+<span class="prompt">page %</span> <span class="cursor"></span></pre>
+</section>
+
+<script>
+  const $$ = (q) => [...document.querySelectorAll(q)];
+  const tabs = $$('.tabs a'), lenses = $$('.lens'), side = document.querySelector('.side');
+
+  function show(name) {
+    tabs.forEach((t) => t.classList.toggle('on', t.dataset.lens === name));
+    lenses.forEach((l) => l.classList.toggle('on', l.id === name));
+    history.replaceState(null, '', '#' + name);
+  }
+  const current = () => tabs.findIndex((t) => t.classList.contains('on'));
+
+  tabs.forEach((t) => t.addEventListener('click', () => show(t.dataset.lens)));
+  $$('.how a').forEach((a) => a.addEventListener('click', () => {
+    side.dataset.how = a.dataset.how;
+    $$('.how a').forEach((b) => b.classList.toggle('on', b === a));
+  }));
+  addEventListener('keydown', (e) => {
+    if (e.key === 't') document.getElementById('term').toggleAttribute('hidden');
+    else if (e.key === 'm') show(tabs[(current() + 1) % tabs.length].dataset.lens);
+    else if (e.key >= '1' && e.key <= String(tabs.length)) show(tabs[e.key - 1].dataset.lens);
+  });
+  if (lenses.some((l) => l.id === location.hash.slice(1))) show(location.hash.slice(1));
+</script>
+</html>

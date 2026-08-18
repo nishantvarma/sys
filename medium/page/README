@@ -1,0 +1,10 @@
+page: the studio's lens makers. Each reads a file and writes a page of nodes.
+
+  py        a python file: its classes and defs, the source as written
+  diff      a diff: its files and hunks
+  run.mjs   the check, for any page made on page.html
+
+The node, from ../page.html: details#id > summary(heading, edge) + body.
+
+Check
+  node run.mjs file.html        every check ok

@@ -1,0 +1,41 @@
+principles: the studio, in five lines
+
+  Target: today only the shelf (reads) and page/py (a lens) exist. The studio
+  is what they are for; nothing named studio runs yet.
+
+  1  a thing is a file or a folder
+  2  a lens shows a thing          source, outline, graph, run, diff
+  3  an id joins the lenses
+  4  the shelf reads               list, show, flip, follow
+  5  the terminal acts, and writes a file a lens shows
+
+The case, carried through: medium/page/py, node
+  medium/page/ is the studio's own source: the renderers, their check, a
+  README. lenses.html draws it, made by todo/studio/lenses from the live
+  folder: five lenses on that one def, and the terminal below.
+
+  thing     page/py : node                             the id
+  source    node as written, lines 311..328            nothing makes it
+  outline   def node(d, lines, marks)  18, 1 in 6 out  page/py
+  graph     held -> node -> esc heading held hover skyline source
+            held calls node again: a tree, so a cycle  ast, one file
+  run       45 checks, 0 failed                        node run.mjs
+  diff      node before the refactor, +12 -11          difflib
+
+  folder    the same thing one level up: lens = tree | thumbs | changes
+
+A new idea fits if it is a lens on a thing, or a verb the terminal runs.
+If it is neither, it does not belong.
+
+Not built: follow (callers and callees at the edge), the graph, the run lens.
+First: follow. It needs no new picture; it is the join of diff and graph.
+Then: run, starting with tests, which already write a file.
+
+Open
+  - may the shelf start a run itself (a key), or does that stay in the
+    terminal? the rule so far is the terminal; a run key is the first place
+    it would bend.
+  - a trace needs something to run: a test, a script, a request.
+
+See renderer (file -> nodes), terminal (the pane), studio (the whole, and the
+page it grew from), refactor (the build order).

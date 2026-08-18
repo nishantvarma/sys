@@ -1,0 +1,68 @@
+The shelf only reads, on purpose. Working in it is todo/studio/terminal's line:
+the browser shows, the terminal does, and a page keeps no state. So acting is a
+terminal pane beside the shelf (t on a folder), not verbs in the page.
+Components stay files that work without any of this.
+
+Not taken, kept as a note: a server that speaks the file verbs (PUT, DELETE,
+MOVE, MKCOL) so the page could change state itself. It needs writes off unless
+asked (shelf -w), localhost only, and a header only the shelf sends, since any
+page you visit can reach localhost. It makes the page an app.
+
+Name: keep shelf for the page. If the whole ever needs one (shelf, fm, v), call
+the whole studio and leave the pieces alone. Not pi: it means the Raspberry Pi.
+
+The diff, built: v diff writes .git/changes.diff; the shelf's v opens the one
+nearest the row under the cursor, in the shelf's outline (file a heading, hunk
+a subheading), keys at once. Written change pages stay page/diff's.
+A page of its own, tried for diff, was retired: the outline was the component.
+Python's, page/py, is the case where the outline did not do: it needs the ast.
+Left open:
+- who runs v diff: you now; a watcher later (a separate process, a few lines)
+- the base is HEAD; v diff HEAD~1 is the same call
+- in a git worktree .git is a file, so nothing can be written there
+
+Components. The shelf already has the parts: outline, rows with fold and
+cursor, bar, tick, the keys. A page like diff.html must not grow its own;
+it uses these. Each page stays one standalone file, and carries its parts by
+assembly (as tangle stitches Go), not by a runtime library.
+First reuse, done: a .diff opens in the shelf's outline: file is a heading,
+hunk a subheading, so every key already works. No page of its own.
+
+devtools (office) and sys (personal) stay coherent by copy, not by link. today
+the office calls ~/src/sys/medium/page/diff by absolute path (integration/
+artifacts). When a design has settled, copy page.html, page/diff and
+page/run.mjs into devtools, one way, never edited there, and point it at them.
+
+If the shelf becomes an app. Python's page did not need one: page/py runs the
+ast in the terminal and writes a page (todo/studio/renderer), as page/diff
+does. So "one file, no library, no server" held; the parser moved out of the
+page, not into a server.
+
+  today   file.py --page/py (ast, terminal)--> file.html   shelf shows it
+  app     browser <--- server runs the renderer on request
+
+  what an app would add     a renderer run on open instead of by hand: no stale
+                            page; a stable id that survives a rename; calls and
+                            names across files (who uses this field, go to
+                            definition), which one file's ast cannot give
+  what it costs             a process, a port, a dependency, a build step
+  what it does not change   the node (details#id, heading, edge, body), the
+                            renderers, the checker: only who runs them
+
+Wait for an app only for what needs meaning across files: a call graph, "who
+uses this", go to definition. Those are a separate view
+(todo/studio/refactor, "not taken"), not the outline. Rail, strings, skyline,
+folds and ids are exact now.
+
+Trigger to revisit: the made page going stale enough to hurt (nobody runs
+page/py), or cross-file links wanted. A second language then needs its own
+renderer in its own parser (tree-sitter if one covers them), not a lexer in the
+page. A lexer in the page was planned and dropped: the ast does what it could
+only approximate.
+
+Renderers: todo/studio/renderer. A kind that needs a parser gets its own page
+(page/py, page/diff); text-only kinds stay in the outline above.
+
+Changed, 2026-10-28: the shelf is the studio. One name now for the page, the
+terminal pane and the folder's README (todo/studio/principles). The file shelf
+and its url stay as they are until the code moves; this note is the studio's.

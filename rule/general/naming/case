@@ -1,0 +1,12 @@
+Names are lowercase: code, files, keys. CAPS is shell folklore, not plan9.
+Prose is in sentence case. A capital opens a sentence or a heading, the
+rest is lowercase; no title case. CAPS mid-line for emphasis stays: that
+is stress, not a name. A leaf written lowercase is re-cased when it is
+next edited.
+
+The check, on leaves, markdown and a page's text, catches title case:
+three capitalized words in a row. A sentence left lowercase it cannot
+tell from one not yet re-cased. A `~/` line is spelling not ours to fix:
+
+  grep -nE '[A-Z][a-z]+ [A-Z][a-z]+ [A-Z][a-z]+' \
+    $(find . -type f ! -name '*.*') | grep -v '~/'

@@ -1,0 +1,106 @@
+the state is one selection, two ends. its shape is read off them and
+never stored, the way x reads it to decide whether to grow —
+`ed/5-editor/13-whole.go:/a.col == 0/`:
+
+	caret   the ends meet
+	lines   anchor at a line start, head on a line break
+	span    any other range
+
+every key is a transition from one shape to the next:
+
+	point   h l 0 $ g G :                 a caret at the target
+	carry   j k pgup pgdn                 the same, but lines move whole
+	aim     w b e m { } f t F T           a span, head to target
+	find    / n N *                       the match
+	shape   x %                           lines, or all; x grows lines
+	verb    the act and insert keys       by what became of the text
+	clear   space                         a caret
+	extend  v                             point, carry, aim, find move
+	                                      the head
+
+a change is a noun and a verb. vim types the two as one command — dw —
+so its . repeats both. ed selects first, so they come apart, and each
+half wants a memory of its own:
+
+	same verb, new noun    pick the noun, then .        n .
+	same noun, new verb    the verb leaves it selected  xx > y
+
+. is the first half, `ed/6-commands/64-repeat.go`. its change is the
+keys that took a snapshot, and only an edit takes one: R keeps the text
+it replaced without one, so . never repeats a read —
+`ed/1-buffer/09-reset.go:/takes no snapshot/`. the second half is the
+verb row, by what became of the text it was given:
+
+	removed    d D X J        a caret where it was
+	inserted   i a A o O c C  a caret on its last rune, so p p p
+	           p P            appends and typing runs on
+	kept       y r > <        the selection, on the same text
+
+u always kept it, handing back the range the edit took —
+`ed/5-editor/09-recall.go:/ready to retry/`. r > < dropped it for a
+caret at their start until `ed/5-editor/12-follow.go`, and on two lines
+a b that cost:
+
+	xx > .    \t\ta \tb      line 1 twice, line 2 once
+	xx > >    \t\ta \tb      the same, and no . in it
+	xx 3>     \t\t\ta \tb    a count replays >, so counts broke
+	                         here before . existed
+
+it is cur's rule one level down: rm, making nothing, retreats to the
+parent, as d leaves a caret where the text was —
+`todo/idea:/cur follows what the verb made/`. they part at inserts: cp
+moves cur to the copy, ed leaves a caret after what it put in.
+rejected, the insert selected: p over its own paste would replace it,
+and y p p p would be one paste.
+
+carry
+
+point is the row that drops a shape: x l trades the line for a caret.
+carry is the row that keeps one: on lines, j k and the page keys move
+the lines. it is a row, not a mode — nothing is stored, so nothing is
+left to unset — and with v on, j and k still grow. the choice is made
+in one place, `ed/6-commands/01-movehead.go:/whole/`.
+
+a carried block slides, one line a j: 1-4 becomes 2-5. a move keeps
+its own distance, a line for j and a page for pgdn, and the shape
+decides only whether the selection survives it. rejected, step: 1-4 to
+5-8, so j . walks blocks as n . walks matches. it ties j's distance to
+the block's height, and only slide can spell the other — 4j on four
+lines is a step, but nothing slides once j steps. at either edge of
+the buffer the block goes as far as it can, its height kept.
+
+reading the shape off the ends costs two things. a hop that ends on
+whole lines is lines: w on a one-word line takes the break, so j
+carries what it used to drop, as x already read it. and a blank line
+holds one state where there are two: its break is all the line is, so
+a caret there is the line. j moves it as a caret, since a caret walks
+through blank lines all the time, so a single line carried onto one
+lands as that caret and the next j walks it on. a stored shape would
+tell the two apart, and a stored shape is the mode carry is not.
+
+p replaces a selection, so x y j p now copies a line over the next one
+where it used to paste below it; x y j space p is the old meaning.
+
+the other pairs
+
+whole: every motion has its reverse, and i a, o O, p P, d c, D C, y p,
+> <, u U, s R pair off. count and . are one replay at two sizes, a key
+and a change. four gaps:
+
+	e      no backward twin
+	A      no I, on purpose: 0 i is two exact keys, and the line start
+	       is not `ed/cheatsheet:/one edge a selection gets wrong/`
+	enter  a blank line above, none below; o esc is the long way
+	:      the one point that ignores v: it lands a caret where g and
+	       G move the head, `ed/6-commands/57-gotoline.go:/e.place/`
+
+the file
+
+the buffer keeps one fact about the file: its sum as ed last read or
+wrote it — `ed/1-buffer/08-save.go:/sha256/`. s writes only over that
+file. text another writer put there stays until R has read it, and
+then u brings the buffer back over it, so an overwrite is R u s: what
+it replaces has been on screen. rejected, acme's second Put, s s: a
+confirm is one more state, and it writes over text no one has seen.
+the sum is of the bytes, not the time, so a rewrite with the same text
+is no change and two writes inside one clock tick are two.

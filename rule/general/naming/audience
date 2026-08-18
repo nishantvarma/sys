@@ -1,0 +1,9 @@
+personal or shared, not home or work. anything only i maintain is
+personal, including tooling that lives in a work repo.
+
+shared: the language convention wins. python gets snake_case.
+personal: plan9. lowercase runtogether — strcmp, nbytes, bufsize.
+
+one rule under both: length tracks distance — `general/naming/length`.
+it still names the thing — `general/naming/domain` — and the shape does
+not change: no CAPS, no camel, either dialect — `general/naming/case`.

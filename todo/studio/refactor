@@ -1,0 +1,207 @@
+refactor: the shelf's outlines onto page.html's node, python first
+
+For the model that builds it. Read "read", build in "order". Nothing here is
+in shelf.html yet; a working picture is, and it passes page.html's checker.
+
+want
+  One outline, many components. The outline is fixed: nodes, folds, keys, find,
+  address. What a node draws is a component's own. Python is the first
+  component, and the one that was too noisy: a ringed bullet per def, its
+  whole signature the heading, every row one weight.
+
+the node (page.html's, kept as is)
+
+    details#id                  id is the address, and what makes it a node
+      summary
+        heading                 first child: the text find and the box list
+        edge ...                the rest: figures, a glyph, a count
+      body                      a component: anything with no details#id in it
+
+  look comes from nesting alone: a node holding nodes is a card, one holding
+  none a row. Do not style it again. A component may keep its own markup in
+  body and in the edge; it may not put a details#id there, or the keys walk in.
+
+the case, carried through
+  work/ssv/poc/model.py. Field.broken_constraint:
+
+    heading   def broken_constraint(value)          faint def, bold name
+    edge      [skyline glyph]  29
+    body      206..225, the source as written, line numbers kept, a rail
+              beside it, strings faded
+
+read
+  ~/scratch/ideas.html                      the picture: a page.html page
+  ~/scratch/outline/gen_page.py             makes it from the ast (run it in
+                                            that folder:
+                                            python3 -I gen_page.py)
+  ~/scratch/outline/oracle.py               what the shelf must agree with, one
+                                            json line per def
+  ~/scratch/outline/tmpl_full.html          the page with every idea tried and
+                                            dropped (prior art, svg, libraries)
+  medium/page.html:/const nodes =/          the engine: details[id]
+  medium/page/run.mjs                       its checker, any page built on it
+  medium/shelf.html:/function outline\(kind\)/    the builder, every kind
+  medium/shelf.html:/function keyed\(view\)/      its keys
+  medium/shelf.html:/function defs\(lines, kind\)/ python's nodes, no ast
+  medium/shelf.html:/function sections\(lines, kind\)/ md, leaf and diff nodes
+  medium/shelf/run.mjs                      the shelf's own checker, keep green
+  todo/studio/studio                        the rules: one file, no library,
+                                            parts carried by assembly
+
+what the shelf does now
+  all kinds     outline(kind): codes[kind] ? defs() : sections(), then part()
+                makes details > summary(textContent title) > div of held items
+  keys          keyed(view): every details in the view, less hidden() ones
+                (page.html: only details[id] under main)
+  id            none. The hash is the file; a section has no address
+  heading       a string. python's is decorators + the whole signature, wrapped
+  edge          none
+  body          lines as <pre> text blocks. md is not rendered, it is text
+  look          .outline css: ring bullet, guide line, one summary style
+  python        indent scan: codes.py regexes, continued(), spoken() for string
+                state. No ast, and none is wanted: it is a browser file
+
+does markdown change the same way: yes
+  One function, part(), builds every kind, so the change is made once there.
+  The kinds differ only in what fills heading, edge and body:
+
+  kind     heading                          edge                 body
+  md       the heading text                 sub-sections, lines  lines, as now
+  py       @deco class N(b) / def n(params) glyph, size          source, marked
+  js, css  signature / selector             lines                lines
+  diff     path                             M  +n  -m            hunks
+  hunk     the @@ line                      lines                lines
+  leaf     the bare line                    lines                lines
+
+  Nothing in md needs a rail or a glyph. It takes the node, the id and the
+  edge, and keeps its body.
+
+decided
+  node       page.html's, frozen. The checker is the oracle.
+  python row the def line itself, no pill: `@property def parts()`,
+             `@dataclass class Field`, `class JivaRequest(Base)`. def is
+             faint and means a plain method; a class says class once, as a
+             card. self and cls dropped; a default over 10 chars is =...
+             Hover: the full signature and the docstring. The docstring line
+             is not a row. Kind is a word in the code, not a pill and not a
+             glyph column.
+  edge       skyline glyph (one bar per line, height the indent, 90x16) and the
+             size. Nothing else, no bars.
+  body       opens at the first statement. The def line and docstring are the
+             row and its hover, so nothing is said twice. Comments right above
+             the first statement stay.
+  rail       beside the body, aligned to the lines: a bar down each if / loop
+             / try / with from its head to its last line, a tick at each
+             elif / else / except / finally, an arc at a loop, a blue triangle
+             at return, a red cross at raise, a grey dash at break / continue.
+  strings    quiet: string literals faint, comments italic and faint. Keywords
+             if elif else for while try except finally with return raise break
+             continue yield bold and tinted.
+  folds      `. 14 fields name name ...` (an annotated name in a record's
+             class body) and `. 1 small name` (defs of 3 lines or less): a
+             group node, closed, its body plain lines, not nodes.
+             j/k skip them.
+  ids        qualified name: Field.broken_constraint
+
+not taken, and why
+  structogram, skeleton, exits table   hide code the reader wants whole
+  treemap, call graph, matrix, arcs,   a second structure beside the outline;
+  scatter, data cards, class cards     good as a separate view, not the outline
+  signature as heading                 the how fills the line, the what is lost
+  pill on every row, glyph column      noise; no mark is the default
+  d3, dagre, mermaid, graphviz         shelf is one file; none was needed
+  Prior art, for the record: Code::Blocks NassiShneiderman and create-struktex
+  draw structograms from c and java; CodeVisualizer and Function Graph Overview
+  draw a flowchart per function; none draws the code with a rail. Shneiderman's
+  1982 experiments found data structure info helped more than control flow.
+
+order
+  1  node contract, md only. ids on details; keyed() takes details[id]; heading
+     = first child; edge slot; body in a div; the page.html look from nesting.
+     Smallest step, every kind rides it. Shelf's checker stays green, and an
+     md file's keys behave as page/run.mjs says.
+  2  node shape {id, heading, edge[], body} in sections() and defs(); part()
+     builds from it. Diff takes its edge (M +n -m) here.
+  3  python heading: kind, name, params, from the signature lines defs()
+     already joins; drop self/cls, shorten defaults.
+  4  python edge: the skyline from indent per line.
+  5  python folds: record fields and small defs as group nodes.
+  6  python body: first statement, line numbers, quiet strings, then the rail.
+     4 to 6 moved to medium/page/py: a page of its own, made from the ast as
+     page/diff is. The shelf does not call it yet.
+  7  retire the ring and guide css for python.
+
+the rail without an ast (the hard part)
+  The picture used ast. The shelf has indent. A head is a line starting if,
+  elif, else, for, while, try, except, finally, with, async for / with, ending
+  in a colon at depth 0 (continued() already says a line continues). Its rail
+  runs to the last non-blank line before the next line at its indent or less;
+  elif, else, except, finally at the head's indent are ticks of that head's
+  rail, not new ones. return, raise, break, continue by first word. Strings:
+  one regex pass for ' " ''' """ with prefixes (f r b u, any case), tracking
+  a triple-quoted string across lines (spoken() does this for outline).
+  Compare it with oracle.py; any disagreement is a bug in one of them.
+
+check
+  1  node medium/page/run.mjs ~/scratch/ideas.html  45 ok (today)
+  2  node medium/shelf/run.mjs                      green before and after
+  3  for 5 real python files: python3 -I oracle.py f.py against the shelf's
+     rows: same ids, lines, sizes, params; rails equal, exits equal; fold
+     counts; strings. Write the page that loads the file and prints the same
+     json, so a diff is the test.
+  4  md: a file with a duplicate heading, a fenced block holding #, a setext
+     heading: ids unique, keys reach each.
+  5  by eye at 1100, 500 and in dark: the rail, the skyline, the quiet strings.
+
+calls made (were open)
+  address    #path:id  ->
+             shelf.html#work/ssv/poc/model.py:Field.broken_constraint
+             The id is the address, as in page.html (page.html#id); the file
+             goes before the colon because the shelf's hash is the file. An id
+             never starts with /, so path:/pattern/ stays the form for prose
+             and this one for the page: no clash. ids: python the qualified
+             name; md the slug path of its headings (design/architecture),
+             a duplicate gets -2. A pattern is not stable, an id is.
+  node rule  details[id] everywhere. The shelf drops "every details". A
+             component's own details has no id and is left alone.
+  hidden()   stays: it is the dot-folder filter,
+             medium/shelf.html:/const hidden =/
+  docstring  hover only, no mark. If a mark is ever wanted it is one more
+             edge figure, so no change to the node.
+  class body statements that are not defs: not shown. The outline is the
+             names a reader jumps to; the body of a def opens as source.
+  first step md, as in "order". Nothing else waits on it.
+
+not verified
+  The picture was made from one file, model.py, and python 3.12's tokenizer.
+  Never run: tabs, async def, match, nested defs, lambdas, backslash
+  continuation, a decorator over several lines, a multi-line condition. The
+  shelf side is read, not run: its hidden(), its checker's coverage. The
+  skyline on a phone, and the loop colour in dark mode (#b7791f, fixed).
+
+Dropped: page/pycheck, its whole-tree comparison with
+~/scratch/outline/oracle.py (the same ast twice; red on every file).
+page/py's check is page/diff's: node medium/page/run.mjs on the page it
+made. Fixtures for tabs, async def, match, nested defs and lambdas can
+come later, if a bug shows the want.
+
+Changed, 2026-10-28 (from reading request.html): a page hides nothing.
+  - no folds: "N fields" and "N small" are gone. A def of any size is a node,
+    so a 2-line __init__ opens; a class's fields show as source, not a count.
+  - body opens at the first line after the def line, docstring and all, as
+    written (numbered, strings quiet). The docstring is no longer hover only.
+  - the lines between a body's classes and defs (imports, constants, fields,
+    comments) show as source, in file order. A module's docstring is the lead,
+    kept as written (pre-wrap, mono).
+  - check: every non-blank line of a file is in its page but the module
+    docstring and the def lines; 3000 .py under ~/work, 0 missing
+    (~/scratch/lossless.py; broken once, it fails).
+  The decided list above (folds, body) is superseded by this.
+
+Changed, 2026-10-28: no rail. The bars, ticks, arcs, return/raise/jump marks
+  and the legend did not help reading; the code does. page/py keeps what text
+  says: bold control words (one style, no tints), quiet strings and comments,
+  line numbers, the skyline and size at the edge. The rail and the oracle's
+  rails and exits are not wanted: step 6's rail, and the AST-free rail
+  algorithm above, are dropped. A copy with the rail: ~/scratch/py.rail.bak
+  (page/py is untracked).

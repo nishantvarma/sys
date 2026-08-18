@@ -1,0 +1,108 @@
+One row at the bottom, and what it costs elsewhere. Not the pronoun
+— impl is that — but what having one makes possible: a verb can be
+said with no noun, so the place you say it needs no width.
+
+The row
+
+One fixed line at the foot of a bare terminal, nothing drawn on it.
+DECSTBM, ESC[1;h-1r, confines scrolling to the rows above, so the row is
+written once and never scrolls off. The input is the terminal's own
+cooked line, so backspace and the rest are not written a second time. No
+tmux, no raw mode, no new terminal.
+
+No bar
+
+A title row above it was drawn, then deleted. Only two things ever fill
+the middle — a view, or the last thing said — and both name themselves:
+ed puts the file in its status line, fm the path in its header, c echoes
+what it set. The bar repeated whichever was already on the screen.
+The cost is coming back cold: c, one word, and the answer lands in the
+space the discarded output left. That is the middle doing its work
+instead of a row of chrome doing it forever.
+
+A prompt is a question
+
+z: in fm says two things — this is input, and input of what. A bare
+glyph says only the first, and a fixed reserved row says that already.
+So the label is not a decorated cue, it is strictly more, and it wins
+wherever there is a question to ask: z:, mv:, touch:, name [x]:.
+This row has none. It takes any word, so it names nothing and shows
+nothing; the cursor on it is the whole signal — on the row, ready; above
+it, running.
+cue keeps its own place, which is neither: a question inside scrolling
+output, where position is ambiguous and a prose line and a question look
+the same. v asks after git status has printed. prompt, confirm and
+choice are right to use it.
+It comes back here if the row stops being fixed, or if the row ever has
+one kind of thing to ask for.
+
+Output is discarded
+
+fm already works this way — spawn suspends, the child runs, Resume
+clears, and the output is gone. Only a child that failed is held, by
+pause, and nothing has asked for it back.
+The rule underneath is addressability: output you cannot select from is
+noise. What matters is file:line, and the way to keep it is to select
+from it, not to scroll back to it — c `{s -n foo | fzy} consumes the
+result by making it this, and the bytes are worthless after.
+So the middle is not output, it is the view. And the record was never
+the screen: it is m, and git.
+Hold it on failure. An error that cannot be read is worse than noise.
+
+The prompt is a row, not a process
+
+One terminal, one keyboard: two programs cannot both read it. A row
+still painted while ed owns the screen wants a multiplexer, or one
+program owning everything — and `todo/address:/Not a terminal/` turned
+the second down.
+So the row is yielded, not owned. A key in fm and in ed hands the bottom
+line to tty.ReadLine, which fm's rename already uses
+(`fm/4-main/08-prompt.go`), runs the word on cur, and takes the row back.
+Same row, same key, same function, same meaning — the last of those only
+because they all act on one this.
+Not always visible; one key away, which is what the bar was worth.
+It brushes a non-goal: the readme rules out an ex line in ed. This is not
+ed's command language, it is the system's, reached from inside ed — but
+: is the key that reads as one, so another key keeps the difference
+legible.
+
+Modes
+
+The split exists already and it is not command against shell, it is keys
+against typed:
+
+    the noun | pressed | typed
+    cur      | fm: e   | the row: e
+    said     | —       | the shell: e foo.go
+
+The empty cell is why fm is keys: the screen is the listing, so there is
+nowhere to type an argument — and with a cur there is nothing to type. A
+command mode at the row is fm done twice.
+And shell contains command today — the row evals, and o is a program on
+$PATH that reads cur. There is no boundary to keep.
+If one is ever wanted it is a prefix, not a toggle. A toggle has to be
+shown, and the row that would show it was deleted for not earning
+itself. ! And the rest of the line is rc, as vi's :! And everywhere else
+this has been settled.
+
+tab
+
+The one thing that needs to know which half of the line it is in: verbs
+in command position, paths in argument position.
+`tty/line.go` takes the callback already; nothing passes one today.
+Nothing else here is worth a mode.
+
+To hand back
+
+History in tty.ReadLine — a slice and two keys. The rest is there: left,
+right, backspace, tab, paste, esc.
+ed's status line is at the foot (`ed/4-view/07-statusline.go`), fm's header
+at the head. With no frame title a viewer's own is the only title there
+is, so they should agree: ed's to row 1, text from row 2.
+
+Deferred
+
+One program owning the screen, ed and fm as views inside it. That is
+acme, and it is a window system. `todo/address:/Not a terminal/` said
+no to owning the grid
+and nothing since has moved the price.

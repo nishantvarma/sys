@@ -1,0 +1,26 @@
+#!/usr/bin/env -S 9 rc
+
+pane=()
+if (! ~ $#1 0) pane=(-t $1)
+
+f='#{pane_left} #{pane_top} #{pane_width} #{pane_height}'
+f=($f '#{client_width} #{client_height} #{window_height} #{status-position}')
+p=`{tmux display $pane -p $"f >[2]/dev/null}
+
+eval `{xdotool getactivewindow getwindowgeometry --shell}
+geom=($X $Y $WIDTH $HEIGHT)
+eval `{xdotool getmouselocation --shell}
+mouse=($X $Y)
+
+xy=`{echo $p $geom $mouse | awk 'NF == 14 {
+	pl=$1; pt=$2; pw=$3; ph=$4; cw=$5; ch=$6; wh=$7; sp=$8
+	gx=$9; gy=$10; gw=$11; gh=$12; mx=$13; my=$14
+
+	cellw = gw/cw; cellh = gh/ch
+	off = (sp == "top") ? ch - wh : 0
+	c = (mx-gx)/cellw; r = (my-gy)/cellh - off
+	if (c >= pl && c < pl+pw && r >= pt && r < pt+ph) exit
+	printf "%d %d\n", gx + (pl+1.5)*cellw, gy + (off+pt+1.5)*cellh
+}'}
+
+~ $#xy 0 || xdotool mousemove $xy

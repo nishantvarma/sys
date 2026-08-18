@@ -1,0 +1,6 @@
+halve what remains, keep the failing half. commits, inputs, config —
+anything ordered bisects; twenty questions cover a million causes.
+
+the trigger from `debugging/reproduce` is the oracle: no trigger, and
+every cut is a guess. reading finds where the bug could live; cutting
+finds where it does.

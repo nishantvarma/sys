@@ -1,0 +1,13 @@
+order is content. name it once where the group starts, never per item.
+
+  lookup     alphabetical. flags, keys, options — reader arrives with
+             the name already in hand.
+  workflow   sequence is the idea. internals, steps, stages.
+
+a group whose order you cannot name drifts on the next edit.
+
+alphabetical is regenerable: sort returns it unchanged, or it drifted.
+workflow is not — carry it visibly, numeric prefix (01-, 02-).
+
+a file's sections take the same rule as its lists.
+peers with no relation stay as written. not everything is ordered.

@@ -1,0 +1,434 @@
+#!/usr/bin/env python3
+"""a page of a python file: its classes and defs as page.html's nodes, read
+by python's own ast. a class holds its own; a def is a row headed by its
+def line, with the skyline of its lines and its size at its right edge, and
+its body is its source from its first line, docstring and all: numbered,
+strings and comments quiet, keywords dim, the control words bold.
+
+nothing is left out but the module's docstring, which is the lead, and the
+def lines, which head their nodes. the lines between a body's classes and
+defs are source: a lone line as it is, two or more one closed row, headed
+by its first line, its size at the edge. todo/studio/refactor decides each of
+these.
+
+an id is a qualified name, Field.broken_constraint, and a repeat gets -2.
+the lines above a def are before it, Field.before-broken_constraint; those
+after a body's last def are its end, Field.end; at the top, before-Field
+and end. no id holds a line number, so an added line moves no address.
+
+    medium/page/py file.py [page.html] > file.html
+
+page.html defaults to the medium's.
+
+check: node medium/page/run.mjs file.html, on the page it made
+"""
+
+import ast
+import html
+import io
+import keyword
+import re
+import sys
+import textwrap
+import tokenize
+from collections import defaultdict
+from dataclasses import dataclass, field
+from pathlib import Path
+
+# -- the code --
+
+DEFS = (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)
+
+
+@dataclass
+class Def:
+    """a class or a def, which the page draws as a node, and the ids the
+    page gives it and the lines beside it."""
+
+    node: ast.AST
+    id: str  # Field.broken_constraint
+    before: str  # the lines above it: Field.before-broken_constraint
+    children: list["Def"] = field(default_factory=list)  # a class's own
+    end: str = ""  # a class's lines after its last def: Field.end
+
+
+def outline(tree: ast.Module) -> tuple[list[Def], str]:
+    """the classes and defs of a module, each class holding its own, and
+    the id of the module's end. an id is the names down to it, and a
+    repeat gets -2 in the page's order; one set gives them all, so no page
+    holds an id twice."""
+    taken: set[str] = set()
+
+    def walk(owner, prefix: str) -> list[Def]:
+        out = []
+        for n in owner.body:
+            if not isinstance(n, DEFS):
+                continue
+            name = prefix + n.name
+            before = new_id(prefix + "before-" + n.name, taken)
+            d = Def(n, new_id(name, taken), before)
+            if isinstance(n, ast.ClassDef):
+                d.children = walk(n, name + ".")
+                d.end = new_id(name + ".end", taken)
+            out.append(d)
+        return out
+
+    defs = walk(tree, "")
+    return defs, new_id("end", taken)
+
+
+def new_id(name: str, taken: set[str]) -> str:
+    """name, or name-2, -3 after one already given."""
+    id, n = name, 2
+    while id in taken:
+        id, n = f"{name}-{n}", n + 1
+    taken.add(id)
+    return id
+
+
+def params(n) -> str:
+    """a def's params: self and cls let go, a default over 10 characters
+    =…, and * before keyword-only ones."""
+    a = n.args
+    positional = a.posonlyargs + a.args
+    defaults = [None] * (len(positional) - len(a.defaults)) + a.defaults
+
+    def given(d):
+        if d is None:
+            return ""
+        text = ast.unparse(d)
+        return "=" + (text if len(text) <= 10 else "…")
+
+    out = [
+        p.arg + given(d)
+        for p, d in zip(positional, defaults)
+        if p.arg not in ("self", "cls")
+    ]
+    if a.vararg:
+        out.append("*" + a.vararg.arg)
+    elif a.kwonlyargs:
+        out.append("*")
+    out += [p.arg + given(d) for p, d in zip(a.kwonlyargs, a.kw_defaults)]
+    if a.kwarg:
+        out.append("**" + a.kwarg.arg)
+    return ", ".join(out)
+
+
+def first_line(n) -> int:
+    """a class's or a def's first line: its first decorator's, or its own."""
+    return min([n.lineno] + [x.lineno for x in n.decorator_list])
+
+
+CONTROL = set(
+    "if elif else for while try except finally with return raise "
+    "break continue yield".split()
+)
+FSTRING_START = getattr(tokenize, "FSTRING_START", None)
+FSTRING_END = getattr(tokenize, "FSTRING_END", None)
+
+
+def marks_of(source: str):
+    """what the page marks, by line, as column spans: each string quiet, an
+    f-string whole with what its braces hold; each comment quiet; each
+    keyword dim, and bold where it is a control word."""
+    lines = source.split("\n")
+    marks = defaultdict(list)  # line: [(first column, end column, class)]
+    fstrings = []  # the f-strings open, by where each starts
+
+    def span(start, end, cls):
+        for n in range(start[0], end[0] + 1):
+            first = start[1] if n == start[0] else 0
+            last = end[1] if n == end[0] else len(lines[n - 1])
+            marks[n].append((first, last, cls))
+
+    for t in tokenize.generate_tokens(io.StringIO(source).readline):
+        if t.type == FSTRING_START:
+            fstrings.append(t.start)
+        if fstrings:
+            if t.type == FSTRING_END and len(fstrings) == 1:
+                span(fstrings[0], t.end, "s")
+            if t.type == FSTRING_END:
+                fstrings.pop()
+        elif t.type == tokenize.STRING:
+            span(t.start, t.end, "s")
+        elif t.type == tokenize.COMMENT:
+            span(t.start, t.end, "cm")
+        elif t.type == tokenize.NAME and keyword.iskeyword(t.string):
+            span(t.start, t.end, "k" if t.string in CONTROL else "kw")
+    return marks
+
+
+# -- the page --
+
+LOCAL = """
+    /* a node's heading is its def line: decorators and def faint, the name
+       bold */
+    :root {
+      --faint: color-mix(in oklab, var(--dim) 55%, var(--bg));
+    }
+    .sig {
+      font: 0.8125rem/1.5 var(--mono);
+    }
+    .sig b {
+      font-weight: 700;
+    }
+    .kwd {
+      color: var(--faint);
+      font-weight: 400;
+    }
+    /* the right edge: the skyline, a bar a line as high as its indent, and
+       the size */
+    .gl {
+      display: block;
+      align-self: center;
+    }
+    .gl rect {
+      fill: var(--accent);
+      opacity: 0.7;
+    }
+    .fig {
+      min-width: 2.2rem;
+      color: var(--dim);
+      font: 0.75rem var(--mono);
+      text-align: right;
+    }
+    /* the module's docstring, as written */
+    .lead .doc {
+      font: 0.8125rem/1.5 var(--mono);
+      white-space: pre-wrap;
+    }
+    /* the body: the source, numbered; on a phone it scrolls across */
+    .src {
+      overflow-x: auto;
+      padding: 0.15rem 0;
+      font: 12.5px/20px var(--mono);
+      white-space: pre;
+    }
+    .ln {
+      display: flex;
+      height: 20px;
+    }
+    .no {
+      flex: none;
+      width: 2.6rem;
+      padding-right: 0.75rem;
+      color: var(--faint);
+      text-align: right;
+      user-select: none;
+    }
+    /* strings and comments quiet, keywords dim, the control words bold */
+    .s,
+    .cm {
+      color: var(--faint);
+    }
+    .cm {
+      font-style: italic;
+    }
+    .kw {
+      color: var(--dim);
+    }
+    .k {
+      font-weight: 700;
+    }
+"""
+
+
+def page(path: Path, source: str, template: str) -> str:
+    """the template, with the file as main and the page's rules under
+    local: its name, its docstring as the lead, then what it holds."""
+    tree = ast.parse(source)
+    lines = source.split("\n")
+    defs, end = outline(tree)
+    nodes = held(defs, tree, end, lines, marks_of(source))
+    doc = ast.get_docstring(tree) or ""
+    lead = f'<div class="lead"><div class="doc">{esc(doc)}</div></div>'
+    main = (
+        f"<main>\n<h1>{esc(path.name)}</h1>\n"
+        f"{lead if doc else ''}\n{nodes}\n</main>"
+    )
+    out = template.replace(
+        "<title>title</title>", f"<title>{esc(path.name)}</title>"
+    )
+    out = out.replace("/* -- local -- */", "/* -- local -- */" + LOCAL)
+    return re.sub(r"<main>.*</main>", lambda _: main, out, flags=re.S)
+
+
+def held(defs: list[Def], owner, end: str, lines, marks) -> str:
+    """what a module or a class holds, in the file's order: its classes and
+    defs as nodes, and the lines between them as source. nothing is left
+    out but a module's docstring, which the lead holds, and the def lines."""
+    top = isinstance(owner, ast.Module)
+    lead = range(0)
+    if top and ast.get_docstring(owner):
+        lead = range(owner.body[0].lineno, owner.body[0].end_lineno + 1)
+
+    def run(first: int, last: int, id: str) -> str:
+        shown = [n for n in range(first, last + 1) if n not in lead]
+        return between(shown, id, lines, marks)
+
+    out, at = [], 1 if top else body_start(owner, lines)
+    for d in defs:
+        out.append(run(at, first_line(d.node) - 1, d.before))
+        out.append(node(d, lines, marks))
+        at = d.node.end_lineno + 1
+    out.append(run(at, len(lines) if top else owner.end_lineno, end))
+    return "\n".join(x for x in out if x)
+
+
+def body_start(n, lines) -> int:
+    """the first line of a def's or class's body: its first statement's, or
+    that of the comments right above it."""
+    start = n.body[0].lineno
+    while start - 1 > n.lineno and lines[start - 2].lstrip()[:1] in ("", "#"):
+        start -= 1
+    while not lines[start - 1].strip() and start < n.body[0].lineno:
+        start += 1
+    return start
+
+
+def between(numbers: list[int], id: str, lines, marks) -> str:
+    """lines between nodes as source, less the blank ones at either end: a
+    lone line as it is, two or more one closed row, its first line the
+    heading and its lines at the edge; "" when none is left."""
+    while numbers and not lines[numbers[0] - 1].strip():
+        numbers = numbers[1:]
+    while numbers and not lines[numbers[-1] - 1].strip():
+        numbers = numbers[:-1]
+    if not numbers:
+        return ""
+    code = block(numbers, lines, marks)
+    first, last = numbers[0], numbers[-1]
+    if first == last:
+        return code
+    return (
+        f'<details id="{esc(id)}"><summary>'
+        f'<span class="sig kwd">{esc(lines[first - 1].strip())}</span>'
+        f'<span class="fig">{last - first + 1}</span></summary>\n'
+        f"<div>\n{code}\n</div>\n</details>"
+    )
+
+
+def node(d: Def, lines, marks) -> str:
+    """a node as page.html writes one: a class holding its own, open where
+    it holds a class or a def; a def a row, its body its source. hovered,
+    its signature as written."""
+    n = d.node
+    figures = f'<span class="fig">{n.end_lineno - n.lineno + 1}</span>'
+    if isinstance(n, ast.ClassDef):
+        body = held(d.children, n, d.end, lines, marks)
+    else:
+        figures = skyline(n, lines) + figures
+        body = source(n, lines, marks)
+    opened = " open" if d.children else ""
+    return (
+        f'<details id="{esc(d.id)}"{opened}>\n'
+        f'<summary title="{esc(hover(n, lines))}">'
+        f"{heading(n)}{figures}</summary>\n"
+        f"<div>\n{body}\n</div>\n</details>"
+    )
+
+
+def heading(n) -> str:
+    """the def line: its decorators and def, or class, faint, the name bold,
+    then a def's params or a class's bases."""
+    decos = "".join(
+        f'<span class="kwd">@{esc(ast.unparse(x))} </span>'
+        for x in n.decorator_list
+    )
+    if isinstance(n, ast.ClassDef):
+        bases = [ast.unparse(b) for b in n.bases] + [
+            f"{k.arg}={ast.unparse(k.value)}"
+            if k.arg
+            else f"**{ast.unparse(k.value)}"
+            for k in n.keywords
+        ]
+        word, after = "class", f"({', '.join(bases)})" if bases else ""
+    else:
+        word = "async def" if isinstance(n, ast.AsyncFunctionDef) else "def"
+        after = f"({params(n)})"
+    return (
+        f'<span class="sig">{decos}<span class="kwd">{word} </span>'
+        f"<b>{esc(n.name)}</b>{esc(after)}</span>"
+    )
+
+
+def hover(n, lines) -> str:
+    """the decorators and the signature as written."""
+    last = max(n.body[0].lineno - 1, n.lineno)
+    return textwrap.dedent("\n".join(lines[first_line(n) - 1 : last])).strip()
+
+
+def skyline(n, lines) -> str:
+    """a bar a line of the def, as high as its indent past the def line's,
+    a level each 4 columns and a tab to the next stop of 8; 90 by 16."""
+    rows = [r.expandtabs(8) for r in lines[n.lineno - 1 : n.end_lineno]]
+    base = len(rows[0]) - len(rows[0].lstrip())
+    levels = [
+        min(5, max(0, (len(r) - len(r.lstrip()) - base) // 4))
+        if r.strip()
+        else 0
+        for r in rows
+    ]
+    w, h, m = 90, 16, len(levels)
+    bars = "".join(
+        f'<rect x="{i * w / m:.2f}" y="{h - v * 3}" '
+        f'width="{max(w / m, 0.6):.2f}" height="{v * 3}"/>'
+        for i, v in enumerate(levels)
+        if v
+    )
+    return (
+        f'<svg class="gl" viewBox="0 0 {w} {h}" width="{w}" height="{h}">'
+        f"{bars}</svg>"
+    )
+
+
+def source(n, lines, marks) -> str:
+    """a def's body: its source from its first line, the docstring too,
+    with the comments right above it."""
+    return block(range(body_start(n, lines), n.end_lineno + 1), lines, marks)
+
+
+def block(numbers, lines, marks) -> str:
+    """lines as source, numbered, less the indent they share."""
+    cut = min(
+        len(lines[n - 1]) - len(lines[n - 1].lstrip())
+        for n in numbers
+        if lines[n - 1].strip()
+    )
+    rows = "".join(row(n, lines[n - 1], marks[n], cut) for n in numbers)
+    return f'<div class="src">{rows}</div>'
+
+
+def row(n: int, line: str, spans, cut: int) -> str:
+    """a numbered line, less its block's indent, its spans marked."""
+    out, p = [], cut
+    for first, end, cls in sorted(spans):
+        first = max(first, p)
+        if end <= first:
+            continue
+        out.append(esc(line[p:first]))
+        out.append(f'<span class="{cls}">{esc(line[first:end])}</span>')
+        p = end
+    out.append(esc(line[p:]))
+    return (
+        f'<div class="ln"><span class="no">{n}</span>'
+        f"<span>{''.join(out)}</span></div>"
+    )
+
+
+def esc(text: str) -> str:
+    return html.escape(text)
+
+
+# -- the files --
+
+
+def main():
+    path = Path(sys.argv[1])
+    medium = Path(__file__).resolve().parent.parent
+    template = Path(sys.argv[2]) if len(sys.argv) > 2 else medium / "page.html"
+    sys.stdout.write(page(path, path.read_text(), template.read_text()))
+
+
+if __name__ == "__main__":
+    main()

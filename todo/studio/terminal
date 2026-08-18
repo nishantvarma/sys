@@ -1,0 +1,60 @@
+The want: the browser and an agent as the whole system to work in, with
+fewer clicks. An idea, not a plan; nothing here is built.
+
+The shape
+
+    quark  ──http──>  browser       shows: md, pdf, html, py outline
+    (≈ 9P)            (≈ rio/acme)
+    unix tools, tmux, fm, agent     do: edit, run
+
+Plan 9's shape kept: one plain way to serve files, one general viewer.
+The browser is heavy, but so is the kernel, and neither is ours to write.
+
+Two lines
+
+- The browser shows, the terminal does. Reading and moving around fit
+  the browser; editing and running fight it (ctrl-w closes the tab).
+- Files hold the state, the page holds none: path.md, done, fm's cur.
+  A page that keeps its own state has become an app.
+
+The terminal pane
+
+t on a folder: the right pane becomes a shell standing there, `tmux new
+-A` under ttyd, in an iframe. One more view, like pdf.js, not a new
+structure. fm, ed, c and tmux work in it as they are; nothing is
+rewritten as a page. ttyd is not installed. It listens on 127.0.0.1 with
+a token, for any page you visit can reach localhost; the tablet the same.
+
+The test, before any of it: for a week, note why you leave the browser.
+Mostly "run a command in this folder" and the pane earns its place;
+mostly editing and it does not.
+
+An agent
+
+A tool that does, so it sits with the terminal: in a tmux pane, writing
+files the page shows. That works today: one agent drives another's pane
+by tmux send-keys, the brief between them a file. The browser could add
+asking about the row under the cursor, the answer a file beside it.
+
+A bridge
+
+fm writes cur after every ls (`todo/next:/fm opens on cur/`). Shelf
+could follow it: fm acts, shelf shows where fm stands. A link, not a merge.
+
+The pane at the bottom, and full screen (an idea, nothing built)
+
+    +--------+-----------------------------------------+
+    | tree   | model.py, rendered                      |
+    | poc/   | def broken_constraint(value)        29  |
+    |        | 206  if self.choices and ...            |
+    +--------+-----------------------------------------+
+    | terminal  ~/work/ssv/poc                 [f] [x] |
+    | poc % pytest -q         | > fix model.py:214     |
+    | 1 failed, 22 passed     | wrote todo/next:/fix/  |
+    +--------------------------------------------------+
+
+    t  show or hide the pane        f  the pane takes the page
+    esc  back                       m  rendered / source
+
+  Bottom, not right: the rendered file keeps its width, and a shell wants to
+  be wide. Two panes inside, the shell and the agent, as tmux windows.

@@ -1,0 +1,3 @@
+names carry the signature. a comment restating it is noise.
+bash: local x=$1, not # X.
+comments say why. never what.
