@@ -1,0 +1,24 @@
+who reads, to do what, and how they read build the structure: the
+nodes, and their order.
+
+  purpose          mode             structure
+  decide to adopt  skim, once       what it is, what it promises, limits
+  get started      follow, doing    steps in run order, one working result
+  do a task        scan for a goal  one node per task, named by the goal
+  look up a thing  jump in, out     one node per thing, signature first
+  understand why   read slowly      the model first, then the cases
+  call a module    scan             public surface, what it promises
+  change a module  read, trace      core first, then internals
+  review a module  read once        top down, each step one level
+  debug a module   follow a run     entrypoint down, in execution order
+
+the medium sets the unit, the structure fills it — `general/medium`.
+a module's order: `programming/moduleorder`, `programming/methodorder`.
+
+name purpose and mode in a line at the top; a wrong guess then costs one
+line. where nothing names them: `general/outline`.
+
+the test: name the purpose, then a question its reader arrives with. the
+answer sits in one node. in two, the cut serves another purpose — a cut
+by when, once and always, splits whatever has both. a node serving two
+purposes, a quickstart that stops to explain why, is two documents.

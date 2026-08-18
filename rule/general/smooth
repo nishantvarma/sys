@@ -1,0 +1,7 @@
+every step one step. a body at one level, a call one level down; a thing
+keeps its name and its shape across a boundary. the reader never jumps.
+
+the test: read it top down once. each stop is a jump — a level skipped,
+a name changed, a shape rebuilt.
+
+`layout/order` picks the sequence; this is the size of each step.

@@ -1,0 +1,8 @@
+the tree answers to its own leaves. run every leaf's check on the tree
+itself — a clean run is the acceptance test. a failure means the rule is
+wrong or the tree breaks it; either way it names the edit.
+
+`general/reference:/checks this tree/` is the shape: the leaf ships the
+check that checks it. a rule the tree cannot run on itself is opinion.
+
+check: ~/src/sys/bin/check — every check the tree ships, one run.

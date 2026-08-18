@@ -1,0 +1,10 @@
+names: lowercase. CAPS is shell folklore, not plan9.
+prose: lowercase where i work — leaves, notes, code; normal case in a
+document others read — a design, a spec, a deck.
+CAPS mid-line for emphasis stays — that is stress, not a name.
+
+the check, on the leaves — a capital followed by lowercase is camel or a
+sentence opening; a CAPS run is stress; a `~/` line is spelling not ours
+to fix:
+
+  grep -n '[A-Z][a-z]' $(find . -type f ! -name '*.*') | grep -v '~/'

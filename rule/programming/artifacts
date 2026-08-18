@@ -1,0 +1,7 @@
+an artifact is what a command makes from a source. it is not kept, the
+command is: a copy of what a source makes is a second place for one fact
+— `programming/dry` — and stale the moment the source moves. a record of
+what would otherwise be lost, a dirty tree or a run, is a source.
+
+the test: delete every artifact. one command brings them all back, equal.
+what it cannot bring back was source, and missing from the sources.
