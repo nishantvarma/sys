@@ -1,0 +1,45 @@
+a reference is an address, not a name — `general/addressability`. inline
+at point of use: no footer list, no `[1]` marker. a marker is not an
+address, and the jump is its cost.
+
+form: backticked path from the tree root, optional `:/pattern/`.
+no leading ./, no extension, no bare name.
+
+  `general/terse`                a leaf
+  `general/terse:/the test/`     a place in one
+  `src/errors.py:/def resolve/`  code, from the repo root
+  https://9p.io/sys/doc          external, already self-addressing
+
+address by content, never by number. a tool emits file:line for output
+read once and discarded; a reference outlives the next edit, and a
+number does not — it drifts, then points elsewhere without saying so. a
+pattern that stops matching is loud, and it fails when the thing cited
+is gone. that is the failure you want.
+
+resolution is sam's: first match forward. a pattern need not be unique
+to be a function, only short and load-bearing — the words that are the
+point, not a line that churns.
+
+  grep -rnoE '`[a-z0-9][a-z0-9._-]*(/[a-z0-9._-]+)+(:/[^/`]+/)?`'
+
+the path separator is the discriminator. backticks also hold code —
+`sort`, `column -t` — and code carries none, so a reference is decidable
+from syntax alone, before any lookup: extract, then dereference. what
+does not open is broken, loudly.
+
+that is what the bare sibling name costs. `terse` from inside general
+resolves as purely, against the referring leaf's directory, but is one
+shape with `sort`: a typo reads as prose and validation dies. nor are
+bare names unique — `dry` is both `ai/skills/dry` and `programming/dry`.
+
+an empty target is fine — unwritten, not absent, and the gap stays
+visible. a pattern into one is not.
+
+a root-level leaf has no branch, so no address. nest it.
+
+this leaf shows the form, so its examples are shapes, not claims — the
+only leaf a validator skips.
+
+ref: ~/src/sys/bin/ref. `ref -x general/reference` checks this tree. run
+it before the doc is done — you are the one who moved the line it
+pointed at.

@@ -1,0 +1,5 @@
+fewer moving parts, not fewer words — that is `general/terse`. one mechanism
+doing one thing beats five composed correctly.
+
+a seam is a moving part, so this is the standing objection to pluggable
+anything. `programming/standalone:/costs a seam/` pays it or drops it.

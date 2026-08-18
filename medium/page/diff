@@ -1,0 +1,535 @@
+#!/usr/bin/env python3
+"""a page of a change: diff.md says why, two trees of files say what. out
+comes diff.html, whose nodes are diff.md's headings and whose leaves are
+the code that changed, old against new.
+
+    medium/page/diff diff.md [page.html] > diff.html
+
+page.html defaults to the medium's. medium/page/diff.md is a diff.md to
+copy and fill: a title, an intro with a map, the two trees, then nodes of
+prose and leaves, one change a leaf:
+
+    - old side → new side — a note
+
+a side is a file, a file and a symbol in it, or - for none. a symbol is a
+function, a class, an assignment, Class.member, or <head>: what comes
+before the first def, of a module or, as Class.<head>, of a class. paths
+run from the old and new trees, which run from diff.md.
+
+check: node medium/page/run.mjs diff.html, on the page it made
+"""
+
+import ast
+import difflib
+import html
+import re
+import sys
+from dataclasses import dataclass, field
+from pathlib import Path
+
+# -- the change --
+
+
+@dataclass
+class Leaf:
+    old: str  # "file symbol", "file", or "" for none
+    new: str
+    note: str
+    id: str
+    rows: list["Row"] = field(default_factory=list)  # old against new
+
+
+@dataclass
+class Text:
+    kind: str  # "p" a paragraph, "pre" kept as written, "map" a drawn tree
+    body: str
+
+
+@dataclass
+class Node:
+    heading: str
+    depth: int
+    id: str
+    open: bool = False
+    text: list[Text] = field(default_factory=list)
+    leaves: list[Leaf] = field(default_factory=list)
+    children: list["Node"] = field(default_factory=list)
+
+
+@dataclass
+class Change:
+    title: str = ""
+    intro: list[Text] = field(default_factory=list)
+    roots: dict[str, str] = field(default_factory=dict)  # old, new: the trees
+    nodes: list[Node] = field(default_factory=list)
+
+
+HEADING = re.compile(r"(#+) (.*)")
+ROOT = re.compile(r"(old|new): (.*)")
+
+
+def parse_change(source: str) -> Change:
+    """headings are nodes and - lines are leaves. the rest is text: lines run
+    into a paragraph until a blank line, and lines indented four spaces are a
+    block kept as written; a block drawn with ├ or └ is a map. a node or a
+    leaf takes its id as it is read, so ids are given in page order."""
+    change = Change()
+    stack: list[Node] = []  # the nodes a line is inside, outermost first
+    block: list[str] = []
+    kind = "p"
+    taken: set[str] = set()  # the ids given
+
+    def end_block():
+        nonlocal kind
+        if block:
+            body = (
+                " ".join(block) if kind == "p" else "\n".join(block).rstrip()
+            )
+            if kind == "pre" and re.search("[├└]", body):
+                kind = "map"
+            texts = stack[-1].text if stack else change.intro
+            texts.append(Text(kind, body))
+            block.clear()
+        kind = "p"
+
+    for raw in source.splitlines():
+        line = raw.strip()
+        if raw.startswith("    ") or (kind == "pre" and not line):
+            if kind == "p":
+                end_block()
+                kind = "pre"
+            block.append(raw[4:])
+            continue
+        heading = HEADING.match(line)
+        root = not stack and ROOT.match(line)
+        leaf = line.startswith("- ")
+        if kind == "pre" or not line or heading or root or leaf:
+            end_block()
+        if heading and len(heading[1]) == 1:
+            change.title = heading[2]
+        elif heading:
+            words, depth = heading[2], len(heading[1])
+            node = Node(words, depth, new_id(words, taken))
+            while stack and stack[-1].depth >= node.depth:
+                stack.pop()
+            if stack:
+                stack[-1].children.append(node)
+            else:
+                # the first node opens; folded, the rest are the outline
+                node.open = not change.nodes
+                change.nodes.append(node)
+            stack.append(node)
+        elif root:
+            change.roots[root[1]] = root[2]
+        elif leaf:
+            stack[-1].leaves.append(parse_leaf(line[2:], taken))
+        elif line:
+            block.append(line)
+    end_block()
+    return change
+
+
+def parse_leaf(line: str, taken: set[str]) -> Leaf:
+    """old → new — note, where a side of - is none. its id is its new
+    side's, or its old side's where the new is none."""
+    sides, _, note = line.partition(" — ")
+    old, _, new = sides.partition(" → ")
+    old, new = ("" if s.strip() == "-" else s.strip() for s in (old, new))
+    return Leaf(old, new, note.strip(), new_id(new or old, taken))
+
+
+def new_id(text: str, taken: set[str]) -> str:
+    """an id for text that taken does not hold, and now does: lowercase, a
+    - between words, and -2, -3 after one already given."""
+    base = re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-") or "node"
+    name, n = base, 2
+    while name in taken:
+        name, n = f"{base}-{n}", n + 1
+    taken.add(name)
+    return name
+
+
+def leaves(nodes: list[Node]):
+    """every leaf under the nodes, in page order."""
+    for node in nodes:
+        yield from node.leaves
+        yield from leaves(node.children)
+
+
+# -- the code a side names --
+
+
+def path_of(side: str) -> str:
+    return side.partition(" ")[0]
+
+
+def lines_of(side: str, root: Path) -> tuple[int, list[str]]:
+    """the lines a side names, under root, and the number of the first. a
+    side of none names none."""
+    if not side:
+        return 1, []
+    path, _, symbol = side.partition(" ")
+    source = (root / path).read_text()
+    lines = source.splitlines()
+    if not symbol:
+        return 1, lines
+    first, last = symbols(source)[symbol]
+    while last > first and not lines[last - 1].strip():
+        last -= 1
+    return first, lines[first - 1 : last]
+
+
+def symbols(source: str) -> dict[str, tuple[int, int]]:
+    """each top-level definition, and each member of a class, by name: its
+    first and last line, decorators included. <head> is what comes before a
+    module's first def or class, its imports; Class.<head> is a class's line
+    and docstring, up to its first method."""
+    defs = (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)
+
+    def name(n):
+        if isinstance(n, defs):
+            return n.name
+        if isinstance(n, ast.Assign) and isinstance(n.targets[0], ast.Name):
+            return n.targets[0].id
+        if isinstance(n, ast.AnnAssign) and isinstance(n.target, ast.Name):
+            return n.target.id
+        return None
+
+    def span(n):
+        decorators = getattr(n, "decorator_list", [])
+        return min([n.lineno] + [d.lineno for d in decorators]), n.end_lineno
+
+    def head(first, last, body):
+        firsts = [span(n)[0] for n in body if isinstance(n, defs)]
+        return first, firsts[0] - 1 if firsts else last
+
+    module = ast.parse(source)
+    spans = {"<head>": head(1, len(source.splitlines()), module.body)}
+    for n in module.body:
+        if key := name(n):
+            spans[key] = span(n)
+        if isinstance(n, ast.ClassDef):
+            spans[f"{n.name}.<head>"] = head(*span(n), n.body)
+            for m in n.body:
+                if key := name(m):
+                    spans[f"{n.name}.{key}"] = span(m)
+    return spans
+
+
+# -- the diff --
+
+
+@dataclass
+class Row:
+    kind: str  # " " same, "-" old only, "+" new only, "…" lines skipped
+    old: int | None
+    new: int | None
+    text: str
+
+
+def diff(old_first, old, new_first, new) -> list[Row]:
+    """the lines, old against new. a short pair shows whole; a long one keeps
+    three lines around each change."""
+    longest = max(len(old), len(new))
+    context = longest if longest <= 60 else 3
+    matcher = difflib.SequenceMatcher(None, old, new, autojunk=False)
+    out = []
+    for group in matcher.get_grouped_opcodes(context):
+        if out:
+            out.append(Row("…", None, None, ""))
+        for op, i1, i2, j1, j2 in group:
+            if op == "equal":
+                for i, j in zip(range(i1, i2), range(j1, j2)):
+                    out.append(Row(" ", old_first + i, new_first + j, old[i]))
+                continue
+            for i in range(i1, i2):
+                out.append(Row("-", old_first + i, None, old[i]))
+            for j in range(j1, j2):
+                out.append(Row("+", None, new_first + j, new[j]))
+    return out
+
+
+def changed(rows: list[Row]) -> bool:
+    return any(r.kind in "-+" for r in rows)
+
+
+ROW_CLASS = {
+    " ": "",
+    "-": ' class="del"',
+    "+": ' class="add"',
+    "…": ' class="gap"',
+}
+
+
+def table(rows: list[Row]) -> str:
+    """the rows as a table. a run of removed lines followed by as many added
+    ones pairs up, line by line, and marks what changed within each."""
+    texts = [html.escape(r.text) for r in rows]
+    kinds = "".join(r.kind for r in rows)
+    for run in re.finditer(r"(-+)(\++)", kinds):
+        minus, plus = range(*run.span(1)), range(*run.span(2))
+        if len(minus) == len(plus):
+            for a, b in zip(minus, plus):
+                texts[a], texts[b] = marked(rows[a].text, rows[b].text)
+    body = "\n".join(
+        f"<tr{ROW_CLASS[r.kind]}><td>{r.old or ''}</td><td>{r.new or ''}</td>"
+        f"<td>{'⋯' if r.kind == '…' else t}</td></tr>"
+        for r, t in zip(rows, texts)
+    )
+    return f'<div class="diff"><table>\n{body}\n</table></div>'
+
+
+def marked(a: str, b: str) -> tuple[str, str]:
+    """a changed line and its replacement, escaped, what differs in <mark>.
+    lines too unlike each other are left unmarked."""
+    matcher = difflib.SequenceMatcher(None, a, b, autojunk=False)
+    if matcher.ratio() < 0.5:
+        return html.escape(a), html.escape(b)
+    out_a, out_b = [], []
+    for op, i1, i2, j1, j2 in matcher.get_opcodes():
+        x, y = html.escape(a[i1:i2]), html.escape(b[j1:j2])
+        if op == "equal":
+            out_a.append(x)
+            out_b.append(y)
+            continue
+        if x:
+            out_a.append(f"<mark>{x}</mark>")
+        if y:
+            out_b.append(f"<mark>{y}</mark>")
+    return "".join(out_a), "".join(out_b)
+
+
+# -- the page --
+
+LOCAL = """
+    /* the why, quieter than the code */
+    details > div > p {
+      color: var(--dim);
+    }
+    /* the counts, and a leaf's state */
+    .stat {
+      color: var(--dim);
+      font: 0.75rem var(--mono);
+      white-space: nowrap;
+    }
+    .plus {
+      color: var(--plus);
+    }
+    .minus {
+      color: var(--minus);
+    }
+    .pill {
+      padding: 0 0.4375rem;
+      border: 1px solid currentColor;
+      border-radius: 9px;
+      font: 0.6875rem var(--mono);
+      white-space: nowrap;
+    }
+    .pill.new {
+      color: var(--plus);
+    }
+    .pill.removed {
+      color: var(--minus);
+    }
+    .pill.unchanged {
+      color: var(--dim);
+    }
+    /* the map: a file the change adds, and the notes */
+    pre.map b {
+      color: var(--accent);
+      font-weight: 600;
+    }
+    pre.map i {
+      color: var(--dim);
+      font-style: normal;
+    }
+    /* old against new */
+    .diff {
+      margin: 0 0 0.5rem;
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--panel);
+    }
+    .diff table {
+      width: 100%;
+      border-collapse: collapse;
+      font: 0.75rem/1.45 var(--mono);
+    }
+    .diff td {
+      padding: 0 0.75rem 0 0.5rem;
+      white-space: pre;
+    }
+    .diff td:not(:last-child) {
+      color: var(--dim);
+      text-align: right;
+      user-select: none;
+    }
+    .del {
+      background: light-dark(#fdecea, #2e1614);
+    }
+    .add {
+      background: light-dark(#e8f5ec, #14281c);
+    }
+    .del mark {
+      background: light-dark(#f5c3bf, #6a2722);
+      color: inherit;
+    }
+    .add mark {
+      background: light-dark(#b9e3c6, #22553a);
+      color: inherit;
+    }
+    .gap td {
+      color: var(--dim);
+    }
+"""
+
+
+def page(change: Change, added: set[str], template: str) -> str:
+    """the template, with the change as main and the diff's rules under local.
+    added names the files the change adds, which the map draws in blue."""
+    lead = "\n".join(text_html(text, added) for text in change.intro)
+    nodes = "\n".join(node_html(node, added) for node in change.nodes)
+    main = (
+        f"<main>\n<h1>{inline(change.title)}</h1>\n"
+        f'<div class="lead">\n{lead}\n</div>\n{nodes}\n</main>'
+    )
+    out = template.replace(
+        "<title>title</title>", f"<title>{html.escape(change.title)}</title>"
+    )
+    out = out.replace("/* -- local -- */", "/* -- local -- */" + LOCAL)
+    return re.sub(r"<main>.*</main>", lambda _: main, out, flags=re.S)
+
+
+def node_html(node: Node, added: set[str]) -> str:
+    """a node: its why, its leaves, its children, and their counts."""
+    body = [text_html(text, added) for text in node.text]
+    body += [leaf_html(leaf, node.depth + 1) for leaf in node.leaves]
+    body += [node_html(child, added) for child in node.children]
+    heading, figures = inline(node.heading), stat(leaves([node]))
+    return details(node.id, node.depth, heading, figures, body, node.open)
+
+
+def leaf_html(leaf: Leaf, depth: int) -> str:
+    """a leaf: its sides, its state and its counts, then the note and the
+    table, which code that did not change has none of."""
+    figures = pill(state(leaf)) + stat([leaf])
+    body = [f"<p>{inline(leaf.note)}</p>" if leaf.note else ""]
+    body += [table(leaf.rows) if changed(leaf.rows) else ""]
+    return details(leaf.id, depth, title(leaf), figures, body)
+
+
+def details(address, depth, heading, figures, body, opened=False) -> str:
+    """a node as page.html writes one: the heading and the figures at its
+    right edge, in a summary, then the body."""
+    h = f"h{min(depth, 6)}"
+    return (
+        f'<details id="{address}"{" open" if opened else ""}>\n'
+        f"<summary><{h}>{heading}</{h}>{figures}</summary>\n"
+        "<div>\n" + "\n".join(body) + "\n</div>\n</details>"
+    )
+
+
+def text_html(text: Text, added: set[str]) -> str:
+    if text.kind == "map":
+        return map_html(text.body, added)
+    if text.kind == "pre":
+        return f"<pre>{html.escape(text.body)}</pre>"
+    return f"<p>{inline(text.body)}</p>"
+
+
+MAP_LINE = re.compile(r"([\s│├└─]*)(.*?)(\s{2,}|$)(.*)")
+
+
+def map_html(body: str, added: set[str]) -> str:
+    """a map, as drawn. a name follows a branch, or starts a line; after two
+    spaces is its note, dimmed, and a line with neither is a note running
+    on. a file the change adds is in <b>."""
+    out = []
+    for line in body.splitlines():
+        lead, name, gap, note = MAP_LINE.match(line).groups()
+        if lead and not lead.endswith("── "):
+            name, gap, note = "", "", line[len(lead) :]
+        label = html.escape(name)
+        if name in added:
+            label = f"<b>{label}</b>"
+        note = f"<i>{html.escape(note)}</i>" if note else ""
+        out.append(f"{lead}{label}{gap}{note}")
+    return '<pre class="map">' + "\n".join(out) + "</pre>"
+
+
+def title(leaf: Leaf) -> str:
+    """old → new, or one name where the sides share it or one is none."""
+    sides = (short(s) for s in (leaf.old, leaf.new) if s)
+    return " → ".join(dict.fromkeys(sides))
+
+
+def short(side: str) -> str:
+    """a side as a title: the file's name, not its path, and the symbol."""
+    path, _, symbol = side.partition(" ")
+    name = " ".join(filter(None, [Path(path).name, symbol]))
+    return f"<code>{html.escape(name)}</code>"
+
+
+def state(leaf: Leaf) -> str:
+    """new, removed, unchanged or moved unchanged; nothing for a change."""
+    if not leaf.old:
+        return "new"
+    if not leaf.new:
+        return "removed"
+    if changed(leaf.rows):
+        return ""
+    if path_of(leaf.old) == path_of(leaf.new):
+        return "unchanged"
+    return "moved unchanged"
+
+
+def pill(word: str) -> str:
+    """a state as a pill, coloured by its last word; nothing for none."""
+    if not word:
+        return ""
+    return f'<span class="pill {word.split()[-1]}">{word}</span>'
+
+
+def stat(group) -> str:
+    """+n −m at the right edge: the lines a group of leaves adds and
+    removes; nothing for none."""
+    rows = [row for leaf in group for row in leaf.rows]
+    plus = sum(row.kind == "+" for row in rows)
+    minus = sum(row.kind == "-" for row in rows)
+    if not (plus or minus):
+        return ""
+    return (
+        f'<span class="stat"><span class="plus">+{plus}</span> '
+        f'<span class="minus">−{minus}</span></span>'
+    )
+
+
+def inline(prose: str) -> str:
+    """prose, escaped; `code` becomes <code>."""
+    return re.sub(r"`([^`]+)`", r"<code>\1</code>", html.escape(prose))
+
+
+# -- the files --
+
+
+def main():
+    path = Path(sys.argv[1])
+    medium = Path(__file__).resolve().parent.parent
+    template = Path(sys.argv[2]) if len(sys.argv) > 2 else medium / "page.html"
+    change = parse_change(path.read_text())
+    old = path.parent / change.roots["old"]
+    new = path.parent / change.roots["new"]
+    for leaf in leaves(change.nodes):
+        leaf.rows = diff(*lines_of(leaf.old, old), *lines_of(leaf.new, new))
+    # a file the change adds: on the new side, and not in the old tree
+    added = {
+        Path(path_of(leaf.new)).name
+        for leaf in leaves(change.nodes)
+        if leaf.new and not (old / path_of(leaf.new)).exists()
+    }
+    sys.stdout.write(page(change, added, template.read_text()))
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,549 @@
+<!doctype html>
+<!-- -- head -- -->
+<!-- a page. the data is main, in content: a title, a lead, then one
+     <details id> per node, nested for depth. a summary holds the node's
+     heading, then anything for the right edge: a count, a pill. edit that,
+     and add rules under local. edit nothing else.
+
+     add      copy a <details id> block. its id is its address: page.html#id
+     lead     <div class="lead"> before the first node: what the page says,
+              in one card
+     fold     the open attribute is where the page opens folded
+     look     from nesting alone: a top node is a card, a node holding
+              nodes a card inside it, a node holding none a row
+     outline  the page is its own index: folded, the headings are the
+              outline, and the box lists them. built from the nodes, never
+              typed: delete a node with nothing else
+     keys     ↑ ↓ j k move, → l unfold or step in, ← h fold or go up, enter
+              go to it, / t the box: the outline, type to find, o fold to
+              the outline, z fold the rest, e expand all, c collapse all,
+              ? the keys, esc close a box
+     map      grep -n -- '-- [a-z]* --' page.html
+     check    check page.html; node page/run.mjs [page]... -->
+<html lang="en">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>title</title>
+
+  <style>
+    /* -- tokens -- */
+    :root {
+      color-scheme: light dark;
+      --bg: light-dark(#f5f6f4, #111413);
+      --panel: light-dark(#ffffff, #181c1a);
+      --fg: light-dark(#1c211f, #e3e7e4);
+      --dim: light-dark(#68716d, #9aa39e);
+      --line: light-dark(#e5e8e4, #262b28);
+      --hit: light-dark(#fff4d6, #3a3218);
+      --accent: light-dark(#2463c7, #6aa2f2);
+      --plus: light-dark(#2e8653, #52b57c);
+      --minus: light-dark(#c4332a, #ee665b);
+      --sans: 'Ubuntu Sans', system-ui, 'Helvetica Neue', Arial, sans-serif;
+      --mono: 'Ubuntu Sans Mono', ui-monospace, Menlo, Consolas, monospace;
+    }
+
+    /* -- style -- */
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      max-width: 70rem;
+      margin: 0 auto;
+      padding: 1.75rem 1rem 5rem;
+      background: var(--bg);
+      color: var(--fg);
+      font: 0.875rem/1.55 var(--sans);
+    }
+    a {
+      color: var(--accent);
+    }
+    pre,
+    code {
+      font-family: var(--mono);
+      font-size: 0.9em;
+    }
+    pre {
+      margin: 0.5rem 0;
+      overflow-x: auto;
+      line-height: 1.5;
+    }
+    p {
+      max-width: 54rem;
+      margin: 0.375rem 0;
+    }
+    h1 {
+      margin: 0 0 0.75rem;
+      font-size: 1.0625rem;
+      line-height: 1.35;
+    }
+
+    /* the lead: what the page says, in one card, before the tree */
+    .lead {
+      padding: 0.875rem 1.125rem;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--panel);
+    }
+    .lead > p:first-child {
+      font-size: 0.9375rem;
+      font-weight: 500;
+    }
+
+    /* the bar: the folds of the whole page, kept in reach */
+    .bar {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      align-items: center;
+      margin: 1.25rem 0 0.625rem;
+      padding: 0.5rem 0;
+      background: var(--bg);
+    }
+    .bar button {
+      padding: 0.25rem 0.625rem;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--panel);
+      color: var(--fg);
+      font: 0.75rem var(--mono);
+      cursor: pointer;
+    }
+    .bar button:hover {
+      border-color: var(--dim);
+    }
+    .bar button:last-child {
+      margin-left: auto;
+      color: var(--dim);
+    }
+    /* a node jumped or moved to clears the bar */
+    [id],
+    summary {
+      scroll-margin-top: 3rem;
+    }
+
+    /* the tree: a summary is the heading, then figures at the right edge */
+    summary {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.625rem;
+      align-items: baseline;
+      cursor: pointer;
+    }
+    /* safari's marker is a box of its own, which flex keeps */
+    summary::-webkit-details-marker {
+      display: none;
+    }
+    summary::before {
+      flex: none;
+      width: 0.875rem;
+      color: var(--dim);
+      font-size: 0.6875rem;
+      content: '▸';
+    }
+    details[open] > summary::before {
+      content: '▾';
+    }
+    summary > :first-child {
+      flex: 1;
+      min-width: 15rem;
+      margin: 0;
+      font-size: inherit;
+      line-height: 1.4;
+      overflow-wrap: anywhere;
+    }
+    summary:hover > :first-child {
+      color: var(--accent);
+    }
+    .focus > summary {
+      border-radius: inherit;
+      background: var(--hit);
+      box-shadow: inset 2px 0 var(--accent);
+    }
+
+    /* a top node: a card */
+    main > details {
+      margin: 0 0 0.625rem;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--panel);
+    }
+    main > details > summary {
+      padding: 0.625rem 0.875rem;
+    }
+    main > details > summary > :first-child {
+      font-weight: 600;
+    }
+    main > details > div {
+      padding: 0 0.75rem 0.625rem 1.5rem;
+    }
+    main > details > div > p {
+      margin-left: 0.875rem;
+    }
+
+    /* a node holding nodes, inside another: a card on the page's ground */
+    details details:has(details) {
+      margin: 0.5rem 0;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--bg);
+    }
+    details details:has(details) > summary {
+      padding: 0.4375rem 0.75rem;
+    }
+    details details:has(details) > summary > :first-child {
+      font-weight: 500;
+    }
+    details details:has(details) > div {
+      padding: 0 0.75rem 0.5rem 1.5rem;
+    }
+
+    /* a node holding none: a row */
+    details details:not(:has(details)) {
+      border-top: 1px solid var(--line);
+    }
+    details > div > details:not(:has(details)):first-child {
+      border-top: 0;
+    }
+    details details:not(:has(details)) > summary {
+      padding: 0.3125rem 0.25rem;
+    }
+    details details:not(:has(details)) > summary > :first-child {
+      font-weight: 400;
+    }
+    details details:not(:has(details)) > div {
+      padding: 0 0 0.5rem 1.125rem;
+    }
+
+    /* the boxes: the outline, an input over a list; the keys, a dl */
+    dialog {
+      width: min(44rem, 100% - 2rem);
+      margin-top: 12vh;
+      padding: 0;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--panel);
+      color: var(--fg);
+      box-shadow: 0 12px 40px rgb(0 0 0 / 0.2);
+    }
+    /* the keys box has nothing to focus but itself */
+    dialog:focus {
+      outline: 0;
+    }
+    dialog::backdrop {
+      background: rgb(0 0 0 / 0.15);
+    }
+    dialog input {
+      width: 100%;
+      padding: 0.875rem 1rem;
+      border: 0;
+      border-bottom: 1px solid var(--line);
+      background: none;
+      color: inherit;
+      font: 1rem var(--sans);
+      outline: 0;
+    }
+    dialog ol {
+      max-height: 60vh;
+      margin: 0;
+      padding: 0.25rem;
+      overflow: auto;
+      list-style: none;
+    }
+    dialog li {
+      padding: 0.1875rem 0.75rem;
+      padding-left: calc(0.75rem + 1.25rem * var(--depth));
+      border-radius: 4px;
+      font-size: 0.8125rem;
+      line-height: 1.4;
+      cursor: pointer;
+    }
+    dialog li.top {
+      margin-top: 0.375rem;
+      font-weight: 600;
+    }
+    [aria-current='true'] {
+      box-shadow: inset 2px 0 var(--accent);
+    }
+    [aria-selected='true'] {
+      background: var(--accent);
+      color: var(--panel);
+    }
+    dialog dl {
+      display: grid;
+      grid-template-columns: max-content 1fr;
+      gap: 0.375rem 1rem;
+      margin: 0;
+      padding: 1rem 1.25rem;
+    }
+    dialog dd {
+      margin: 0;
+      color: var(--dim);
+    }
+    kbd {
+      font: 0.8125rem var(--mono);
+    }
+
+    @media print {
+      .bar,
+      summary::before {
+        display: none;
+      }
+    }
+
+    /* -- local -- */
+  </style>
+
+  <!-- -- content -- -->
+  <main>
+    <h1>title</h1>
+    <div class="lead">
+      <p>what this is, and who it is for.</p>
+    </div>
+
+    <details id="what" open>
+      <summary><h2>what it is</h2></summary>
+      <div>
+        <p>the idea, top-down.</p>
+
+        <details id="example" open>
+          <summary><h3>an example</h3></summary>
+          <div>
+            <pre>quoted from a run</pre>
+          </div>
+        </details>
+      </div>
+    </details>
+
+    <details id="state">
+      <summary><h2>where it stands</h2></summary>
+      <div>
+        <p>done, not done, open.</p>
+      </div>
+    </details>
+  </main>
+
+  <script type="module">
+    // -- engine --
+    const el = (tag, props) =>
+      Object.assign(document.createElement(tag), props);
+    // a box closes on esc, as a dialog does, and on a click outside it
+    const modal = innerHTML =>
+      document.body.appendChild(el('dialog', { closedBy: 'any', innerHTML }));
+    const toggle = dialog =>
+      dialog.open ? dialog.close() : dialog.showModal();
+    const main = document.querySelector('main');
+    const nodes = [...main.querySelectorAll('details[id]')];
+    const up = d => d.parentElement.closest('details[id]');
+    const heading = d => d.querySelector(':scope > summary > :first-child');
+    // in sight: no fold above it is closed
+    const shown = d => !d.parentElement.closest('details:not([open])');
+    let focused;
+
+    // the keys act on one node: put there by a click, a move or a hash, and
+    // taken along by a scroll that leaves it
+    function focus(d) {
+      if (!d) return;
+      focused?.classList.remove('focus');
+      focused = d;
+      d.classList.add('focus');
+    }
+    function show(d) {
+      focus(d);
+      d?.firstElementChild.scrollIntoView({ block: 'nearest' });
+    }
+    main.addEventListener('click', e => {
+      const d = e.target.closest('summary')?.parentElement;
+      if (nodes.includes(d)) focus(d);
+    });
+
+    // the node being read: the last summary above a line near the top. ask
+    // the folds, not the layout: firefox boxes a summary under a closed one
+    const above = d => d.firstElementChild.getBoundingClientRect().top < 90;
+    const reading = () => nodes.filter(shown).findLast(above) ?? nodes[0];
+    function inview(d) {
+      const r = d.firstElementChild.getBoundingClientRect();
+      return r.bottom > 0 && r.top < innerHeight;
+    }
+    addEventListener('scroll', () => {
+      if (!inview(focused)) focus(reading());
+    });
+
+    // -- hash --
+    // every fold around the target opens, a node's or not: a closed one
+    // hides it
+    function reveal(t) {
+      for (const d of document.querySelectorAll('details'))
+        if (d.contains(t)) d.open = true;
+    }
+    function follow() {
+      const t = document.getElementById(location.hash.slice(1));
+      if (!t) return;
+      reveal(t);
+      t.scrollIntoView();
+      focus(t.closest('details[id]'));
+    }
+    // the hash already shown fires no hashchange, so going there follows it
+    const go = d =>
+      location.hash === '#' + d.id ? follow() : (location.hash = d.id);
+    addEventListener('hashchange', follow);
+    // nor does a link to it, which the browser scrolls to: open the way first
+    document.addEventListener('click', e => {
+      const a = e.target.closest('a[href^="#"]');
+      if (a && !e.defaultPrevented)
+        reveal(document.getElementById(a.hash.slice(1)));
+    });
+
+    // -- folds --
+    // a fold of the whole page: open says which nodes stay open, and the
+    // keys go up to the nearest node still in sight
+    const fold = open => () => {
+      for (const d of nodes) d.open = open(d);
+      let d = focused;
+      while (!shown(d)) d = up(d);
+      show(d);
+    };
+    const all = fold(() => true);
+    const none = fold(() => false);
+    const outline = fold(d => d.matches(':has(details[id])'));
+    const rest = fold(
+      d => d.open && (d.contains(focused) || focused.contains(d)),
+    );
+    addEventListener('beforeprint', all);
+
+    // the bar sits between the lead and the first node
+    const bar = el('div', { className: 'bar' });
+    bar.append(
+      el('button', { textContent: 'outline', onclick: outline }),
+      el('button', { textContent: 'expand all', onclick: all }),
+      el('button', { textContent: 'collapse all', onclick: none }),
+      el('button', { textContent: '? keys', onclick: () => toggle(help) }),
+    );
+    nodes[0].before(bar);
+
+    // -- box --
+    // one box for where am i and where is it: empty, it is the whole outline
+    // with the node being read selected; typed, the headings that match. it
+    // only looks: the page's folds stay as they were until a pick. headings
+    // only: the browser's own find already reaches into closed folds
+    const box = modal(
+      '<input placeholder="the outline · type to find a heading"' +
+        ' autocomplete="off"><ol role="listbox"></ol>',
+    );
+    const query = box.querySelector('input');
+    const results = box.querySelector('ol');
+    const says = d => heading(d).textContent.toLowerCase();
+    const depth = d => (up(d) ? 1 + depth(up(d)) : 0);
+    let hits = [];
+    let hit = 0;
+
+    function find() {
+      query.value = '';
+      box.showModal();
+      search();
+      results.children[hit]?.scrollIntoView({ block: 'center' });
+    }
+    function search() {
+      const typed = query.value.toLowerCase().split(/\s+/).filter(Boolean);
+      hits = nodes.filter(d => typed.every(w => says(d).includes(w)));
+      hit = typed.length ? 0 : hits.indexOf(focused);
+      paint();
+    }
+    function select(by) {
+      hit = Math.max(0, Math.min(hits.length - 1, hit + by));
+      paint();
+    }
+    function paint() {
+      results.replaceChildren(
+        ...hits.map((d, i) =>
+          el('li', {
+            role: 'option',
+            ariaSelected: i === hit,
+            ariaCurrent: d === focused,
+            className: up(d) ? '' : 'top',
+            style: `--depth: ${depth(d)}`,
+            innerHTML: heading(d).innerHTML,
+          }),
+        ),
+      );
+      results.children[hit]?.scrollIntoView({ block: 'nearest' });
+    }
+    function pick(d) {
+      box.close();
+      go(d);
+    }
+    query.oninput = search;
+    query.onkeydown = e => {
+      if (e.key === 'ArrowDown') select(1);
+      else if (e.key === 'ArrowUp') select(-1);
+      else if (e.key === 'Enter' && hits[hit]) pick(hits[hit]);
+      else return;
+      e.preventDefault();
+    };
+    results.onclick = e => {
+      const i = [...results.children].indexOf(e.target.closest('li'));
+      if (hits[i]) pick(hits[i]);
+    };
+
+    // -- keys --
+    function move(by) {
+      const seen = nodes.filter(shown);
+      const i = seen.indexOf(focused) + by;
+      show(seen[Math.max(0, Math.min(seen.length - 1, i))]);
+    }
+    const right = () => (focused.open ? move(1) : (focused.open = true));
+    const left = () =>
+      focused.open ? (focused.open = false) : show(up(focused));
+
+    // one table: each key is bound from it, and ? lists it
+    const keys = [
+      ['j ↓', 'next heading', () => move(1)],
+      ['k ↑', 'previous heading', () => move(-1)],
+      ['l →', 'unfold, or step in', right],
+      ['h ←', 'fold, or go up', left],
+      ['enter', 'go to it: its address in the url', () => go(focused)],
+      ['/ t', 'the box: the outline, type to find, enter to go', find],
+      ['o', 'outline: every node that holds nodes, open', outline],
+      ['z', 'fold the rest', rest],
+      ['e', 'expand all', all],
+      ['c', 'collapse all', none],
+      ['?', 'these keys', () => toggle(help)],
+      ['esc', 'close a box'],
+    ];
+    const help = modal(
+      `<dl>${keys
+        .map(([names, what]) => `<dt><kbd>${names}</kbd></dt><dd>${what}</dd>`)
+        .join('')}</dl>`,
+    );
+    const bound = Object.fromEntries(
+      keys.flatMap(([names, , act]) => names.split(' ').map(k => [k, act])),
+    );
+    // e.key, as the table spells it
+    const spelt = {
+      ArrowDown: '↓',
+      ArrowUp: '↑',
+      ArrowRight: '→',
+      ArrowLeft: '←',
+      Enter: 'enter',
+    };
+
+    // a page's own key handler wins where it prevents the default. a field
+    // keeps its letters, and an open box its keys, but for ? closing its own
+    addEventListener('keydown', e => {
+      if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.target.closest('input, select, textarea')) return;
+      if (box.open || (help.open && e.key !== '?')) return;
+      const act = bound[spelt[e.key] ?? e.key];
+      if (!act) return;
+      e.preventDefault();
+      act();
+    });
+
+    // -- start --
+    // a page opened at a hash starts there, else at what is read
+    follow();
+    if (!focused) focus(reading());
+  </script>
+</html>

@@ -1,0 +1,74 @@
+tmux — cheatsheet
+
+The half of tmux that is sys's: three bindings that run sh/p, the two
+options that make them work, the layout every pane lands in, and the
+pointer that follows it. The prefix and the status line are your own
+tmux.conf. Nothing here is unbound, so every tmux default still works
+underneath.
+
+Only what tmux can see is here. p's input is a word on the screen, which
+no command can reach; the directory you are in is not, so opening it is
+o at the prompt and needs no key at all.
+
+the layer — unprefixed first, then the prefix and what takes it
+  left-click    say the word under the pointer and stop there — it
+                becomes cur, and nothing runs (p -c)
+  right-click   open what the word under the pointer names (p)
+  middle-click  send it to a prompt instead, as an argument (p -a)
+  `             your prefix; press it twice to type one
+  `p            in copy mode, the same for the cursor word; with a
+                selection, for the selection
+  `a            in copy mode, the same, sending instead of opening
+
+Nothing here names fm, so changing sh/o changes what right-click and `p
+open, as it changes o. fm's keys are in fm/cheatsheet.
+
+p asks the file system, then git, and never lets screen text become a
+command — the word travels in a pane option, not on a command line.
+
+  file:line     ed at that line
+  a path        o, which dispatches on the extension
+  a url         browser
+  a hash        git show
+  none of it    search the pane backward for the text
+
+p -c stops earlier than any of it: the word is resolved, said, and left
+in cur, and the verb is whatever you type next — o, e, git add `{c}. A
+left click is also what raises a pane, so every click says this; that is
+the price of select being a click, and m is the refund.
+
+p -a stops before that table and sends the path it resolved — absolute,
+so it survives the trip — to the prompt of the marked pane (select-pane
+-m), or the last one. No Enter, so the chord is: type wc -l, click the
+word, press Return.
+
+A path is one word only because word-separators is " ". With the
+default set, the word under ed/2-motion/04-fwd.go:12 comes back as
+`motion`, and the address is lost. That one line is the whole enabler.
+
+focus-events is the second option, and it is fm's: a view that writes
+cur has to know whether it is the pane being looked at, or a background
+one takes the pronoun from the shell on its next redraw. tmux forwards
+the terminal's focus in and out to the pane only with this on.
+
+A path is relative to the directory that printed it, which is the
+pane's own until someone cds — the reason p asks that pane, and the
+reason fm opens there.
+
+the layout — main-vertical, re-applied after every split
+  The shell is master and everything else stacks beside it, at
+  main-pane-width 50%. spawn asks for a pane and never says where one
+  goes, so there is no side to get wrong and nothing to keep in sync.
+  Your own splits land the same way, which is why ` % and ` " no
+  longer pick a side; ` { and ` } promote a stack pane to master.
+  The pointer follows the pane you land in, split or selected, so
+  the next right-click is already there. It never moves when it is
+  already in that pane, so a click is not dragged off the word.
+
+not here
+  b e k l m R Tab { }   yours: status, pane name, clear, floating
+                        pane, mouse, reload, last window, swap
+  everything else       tmux's own, none of it unbound. ` ? lists
+                        them all, ` / <key> explains one
+
+change it: tmux/conf — edit, then ` R.
