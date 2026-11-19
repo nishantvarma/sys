@@ -1,5 +1,15 @@
 principles: the studio, in five lines
 
+Built on sys, not beside it
+  The studio is ed, fm and the rest of sys, not a new program. ed edits a
+  thing, fm moves between things, tty is the terminal both stand on, and
+  tangle stitches a page from its parts. A lens is only what a browser
+  shows better than a terminal can.
+  A need goes into one of those first, as a few lines, and becomes a new
+  piece only when it fits none of them. The terminal pane runs fm and ed as
+  they are (terminal:/fm, ed, c and tmux/); the thing every lens is on is
+  fm's cur, which c names (README:/the word you are on/).
+
   Target: today only the shelf (reads) and page/py (a lens) exist. The studio
   is what they are for; nothing named studio runs yet.
 

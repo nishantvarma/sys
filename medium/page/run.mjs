@@ -97,7 +97,7 @@ for (const page of pages) {
     .map(m => m[1])
     .filter(a => / id="/.test(a));
   const ids = tags.map(a => a.match(/ id="([^"]*)"/)[1]);
-  const authored = tags.map(a => /\bopen\b/.test(a));
+  const authored = tags.map(a => /(^|\s)open(\s|$)/.test(a));
   check(
     json(await c.evaluate(`${nodes}.map(d => d.id)`)) === json(ids),
     'the page holds the nodes the file does, in order',
@@ -177,6 +177,33 @@ for (const page of pages) {
   );
   await press('k');
   check(await until(`${focused}.id === ${json(first)}`), 'k moves back');
+  // the trail: the title, then each node down to the one being read
+  check(
+    await until(`(t => t.startsWith(document.querySelector('h1').textContent)
+      && t.endsWith(${focused}.firstElementChild.firstElementChild.textContent))(
+      document.querySelector('.crumb').textContent)`),
+    'the bar holds the trail to the node being read',
+    await c.evaluate(`document.querySelector('.crumb').textContent`),
+  );
+  // tiles: one open is the page, the grid out of sight; esc comes back
+  if (await c.evaluate(`!!document.querySelector('main.tiles')`)) {
+    const seen = `[...document.querySelectorAll('main > .tile')]
+      .filter(t => t.getClientRects().length).length`;
+    await press('l');
+    check(await until(`${seen} === 1`), 'tiles: l goes in, the grid is out');
+    await press('Escape');
+    check(
+      await until(`${seen} === ${tops.length}`),
+      'tiles: esc comes back to the grid',
+    );
+    await press('l');
+    await press('j');
+    check(
+      await until(`${seen} === ${tops.length} && !${focused}.open`),
+      'tiles: j comes out and moves on',
+    );
+    await press('k');
+  }
   if (tops[1]) {
     await press('j');
     await press('h');
@@ -271,22 +298,22 @@ for (const page of pages) {
   const left = await c.evaluate(state);
   await press('t');
   check(
-    await until(`${box}.open && ${rows}.map(li => li.textContent).join('|')
+    await until(`${box}.open && ${rows}.map(li => li.firstElementChild.textContent).join('|')
       === ${nodes}.map(d => ${heading('d')}.textContent).join('|')`),
     't opens the box: every heading, in order',
   );
   check(
-    await c.evaluate(`${selected}?.textContent
+    await c.evaluate(`${selected}?.firstElementChild.textContent
       === ${heading(focused)}.textContent
       && ${selected}.ariaCurrent === 'true'`),
     'the box opens on the node being read',
   );
   const at = await c.evaluate(`${rows}.indexOf(${selected})`);
-  await press('ArrowDown');
+  await press('ArrowRight');
   check(
     await until(`${rows}.indexOf(${selected})
       === ${Math.min(at + 1, ids.length - 1)}`),
-    'and ↓ selects the next heading',
+    'and → selects the next heading',
   );
   await press('Escape');
   check(
@@ -311,7 +338,7 @@ for (const page of pages) {
   await c.send('Input.insertText', { text: says });
   check(
     await until(`${selected} === ${rows}[0]
-      && ${rows}.length && ${rows}.every(li => ${matches('li.textContent')})`),
+      && ${rows}.length && ${rows}.every(li => ${matches('li.firstElementChild.textContent')})`),
     'typed, the box lists the headings that match, the first selected',
     says,
   );
@@ -441,24 +468,25 @@ for (const page of pages) {
   const longer = await c.send('Page.addScriptToEvaluateOnNewDocument', {
     source: `document.addEventListener('readystatechange', () => {
       if (document.readyState === 'interactive')
-        for (let i = 0; i < 40; i++)
+        for (let i = 0; i < 160; i++)
           document.querySelector('main').insertAdjacentHTML('beforeend',
             '<details id="more' + i + '"><summary><h2>More ' + i +
             '</h2></summary><div><p>Text.</p></div></details>');
     });`,
   });
-  await c.send('Page.navigate', { url: `file://${page}#more30` });
-  await until(`${focused}?.id === 'more30'`);
+  await c.send('Page.navigate', { url: `file://${page}#more150` });
+  await until(`${focused}?.id === 'more150'`);
   await press('t');
   await until(`${box}.open`);
-  const sight = await c.evaluate(`(([ol, li]) => [${selected}.textContent,
+  const sight =
+    await c.evaluate(`(([ol, li]) => [${selected}.firstElementChild.textContent,
     Math.round(li.top - ol.top), Math.round(ol.bottom - li.bottom)])(
     [${box}.querySelector('ol'), ${selected}]
       .map(e => e.getBoundingClientRect()))`);
   await press('Escape');
   await c.send('Page.removeScriptToEvaluateOnNewDocument', longer);
   check(
-    sight[0] === 'More 30' && sight[1] >= 0 && Math.abs(sight[2]) <= 1,
+    sight[0] === 'More 150' && sight[1] >= 0 && Math.abs(sight[2]) <= 1,
     'the box opens on the node being read, scrolled into sight, no further',
     json(sight),
   );

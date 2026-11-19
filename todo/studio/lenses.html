@@ -3,14 +3,15 @@
   lenses.html: the canonical page. Copy it as the template for a studio view.
 
   one thing        page / py : node                         the id every lens shares
-  main pane        five lenses on it                        the shelf reads
+  main pane        six lenses on it                         the shelf reads
   bottom pane      the terminal                             the terminal acts, writes a file
 
   regions          header.bar  nav.side  main.view  section.term
   a lens           section.lens#<name>, one tab a[data-lens="<name>"] for each
-  keys             m next lens   1..5 a lens   t terminal    address: #<lens>
+  keys             m next lens   1..6 a lens   t terminal    address: #<lens>
   filler           every lens is real, made by todo/studio/lenses from a folder,
-                   a file and a def: the source, the calls, the run, the diff
+                   a file and a def: the source, the calls, the run, the diff.
+                   todo is by hand: one entry per state, each on node
   to make a view   todo/studio/lenses fills it from a folder; or replace the filler
                    by hand, keeping the regions, the ids and the keys
 -->
@@ -128,6 +129,16 @@
   .trace .step.bad { color: var(--bad); }
   .trace .time { margin-left: auto; color: var(--dim); }
 
+  /* lens: todo */
+  .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr)); gap: .6rem; }
+  .card { display: flex; flex-direction: column; gap: .4rem; height: 5.5rem; padding: .6rem .7rem; overflow: hidden; border: 1px solid var(--rule); border-top: 3px solid var(--tint, transparent); border-radius: 8px; background: var(--term-bg); font-size: 13px; }
+  .card .pill { align-self: flex-start; padding: 0 .45rem; border-radius: 99px; background: color-mix(in srgb, currentColor 12%, transparent); color: var(--tint, var(--dim)); font: 600 10px var(--mono); text-transform: uppercase; }
+  .card[data-state=now] { --tint: var(--accent); }
+  .card[data-state=open] { --tint: var(--term-warn); }
+  .card[data-state=done] { --tint: var(--ok); }
+  .card[data-state=fail] { --tint: var(--bad); }
+  .card[data-state=blocked] { --tint: var(--dim); }
+
   /* lens: diff */
   .diff { font: 12px/1.55 var(--mono); }
   .diff div { padding: 0 .6rem; white-space: pre; }
@@ -162,7 +173,7 @@
   <b>studio</b> <span>page / py : node</span>
   <span class="grow"></span>
   <span><kbd>m</kbd> next lens</span>
-  <span><kbd>1</kbd>..<kbd>5</kbd> a lens</span>
+  <span><kbd>1</kbd>..<kbd>6</kbd> a lens</span>
   <span><kbd>t</kbd> terminal</span>
 </header>
 
@@ -188,7 +199,7 @@
   </nav>
 
   <main class="view">
-    <p class="id">one thing, <b>node</b>, five lenses. the id is the join.</p>
+    <p class="id">one thing, <b>node</b>, six lenses. the id is the join.</p>
 
     <div class="tabs">
       <a data-lens="source" class="on">source<i>1</i></a>
@@ -196,6 +207,7 @@
       <a data-lens="graph">graph<i>3</i></a>
       <a data-lens="run">run<small class="ok">0 failed</small><i>4</i></a>
       <a data-lens="diff">diff<small>+12 −11</small><i>5</i></a>
+      <a data-lens="todo">todo<small>6</small><i>6</i></a>
     </div>
 
     <section class="lens on" id="source">
@@ -308,6 +320,19 @@
         <div>         f"&lt;div&gt;\n{body}\n&lt;/div&gt;\n&lt;/details&gt;"</div>
       </div>
       <p class="made">the hunk sits on node: the graph says who is reached, the run says it still passes.</p>
+    </section>
+
+    <section class="lens" id="todo">
+      <p class="made">what is to do on node · made by: page/todo, from a folder of notes · one tile per entry, by state</p>
+      <div class="tiles">
+        <div class="card" data-state="now"><b>node takes the ast node, not the Def</b><span class="pill">now</span></div>
+        <div class="card" data-state="open"><b>node → held → node: the shape, or a bug?</b><span class="pill">open</span></div>
+        <div class="card" data-state="fail"><b>hover with the docstring: too long for a title</b><span class="pill">fail</span></div>
+        <div class="card" data-state="blocked"><b>the graph across files, after page/list</b><span class="pill">blocked</span></div>
+        <div class="card" data-state="todo"><b>outline: the 11 defs not shown, folded</b><span class="pill">todo</span></div>
+        <div class="card" data-state="done"><b>node: one details#id per class and def</b><span class="pill">done</span></div>
+      </div>
+      <p class="made">now is the diff lens, fail is the docstring it took out of hover, blocked waits on the list.</p>
     </section>
   </main>
 

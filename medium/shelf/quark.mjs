@@ -24,10 +24,14 @@ const run = promisify(execFile);
 const du = (flag, dir) =>
   run('du', ['-D0ad2', flag, '--', dir], { maxBuffer: 1 << 26 })
     .catch(e => e)
-    .then(({ stdout = '' }) =>
-      new Map(
-        [...stdout.matchAll(/(\d+)\t([^\0]*)\0/g)].map(([, n, p]) => [p, +n]),
-      ),
+    .then(
+      ({ stdout = '' }) =>
+        new Map(
+          [...stdout.matchAll(/(\d+)\t([^\0]*)\0/g)].map(([, n, p]) => [
+            p,
+            +n,
+          ]),
+        ),
     );
 // each path's [bytes, entries], keyed from dir; the entries null where du
 // refuses --inodes

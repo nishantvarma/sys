@@ -61,7 +61,7 @@ page. A lexer in the page was planned and dropped: the ast does what it could
 only approximate.
 
 Renderers: todo/studio/renderer. A kind that needs a parser gets its own page
-(page/py, page/diff); text-only kinds stay in the outline above.
+(page/py, page/diff, page/todo); text-only kinds stay in the outline above.
 
 Changed, 2026-10-28: the shelf is the studio. One name now for the page, the
 terminal pane and the folder's README (todo/studio/principles). The file shelf

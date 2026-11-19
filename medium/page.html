@@ -11,17 +11,24 @@
      fold     the open attribute is where the page opens folded
      look     from nesting alone: a top node is a card, a node holding
               nodes a card inside it, a node holding none a row
+     tiles    <main class="tiles"> with each top node in a div.tile: a grid
+              of tiles, a node's data-state its tint. one open is the page,
+              the grid out of sight, esc or h comes back; two or more, as
+              e does, open in place. ↓ ↑ go by row, → ← along it
      outline  the page is its own index: folded, the headings are the
               outline, and the box lists them. built from the nodes, never
               typed: delete a node with nothing else
-     keys     ↑ ↓ j k move, → l unfold or step in, ← h fold or go up and
-              fold that, at the top the row before, enter go to it, / t
-              the box: the outline, type to find, o fold to the outline,
-              z fold the rest, e expand all, c collapse all, ? the keys,
-              esc close a box
+     keys     j k move, ↓ ↑ too, in a grid by row, and → ← along it; else
+              → l unfold or step in, ← h fold or go up and fold that, at
+              the top the row before. enter go to it, / t the box: cards,
+              type to find, arrows, o fold to the outline, z fold the
+              rest, e expand all, c collapse all, ? the keys, esc close a
+              box
      bar      at the very top, where it stays: a scroll moves only the text.
               e, c and ? as ghost icons, each named with its key in its
               title; ? shows each beside its key
+              the trail beside them: the title, then each node down to the
+              one being read, a link back out of each. built from the nodes
      map      grep -n -- '-- [a-z]* --' page.html
      check    check page.html; node page/run.mjs [page]... -->
 <html lang="en">
@@ -136,6 +143,29 @@
         color: var(--fg);
       }
     }
+    .crumb {
+      flex: 1;
+      min-width: 0;
+      margin: 0 0.5rem;
+      overflow: hidden;
+      color: var(--dim);
+      font-size: 0.8125rem;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .crumb a {
+      color: inherit;
+      text-decoration: none;
+    }
+    .crumb b {
+      color: var(--fg);
+      font-weight: 600;
+    }
+    @media (hover: hover) {
+      .crumb a:hover {
+        color: var(--fg);
+      }
+    }
     .bar button:last-child {
       margin-left: auto;
     }
@@ -174,20 +204,24 @@
       box-shadow: inset 2px 0 var(--accent);
     }
 
-    /* a top node: a card */
-    main > details {
+    /* a top node: a card, or in main.tiles a tile holding one */
+    main > details,
+    main > .tile > details {
       margin: 0 0 0.625rem;
       border: 1px solid var(--line);
       border-radius: 10px;
       background: var(--panel);
     }
-    main > details > summary {
+    main > details > summary,
+    main > .tile > details > summary {
       padding: 0.625rem 0.75rem;
     }
-    main > details > summary > :first-child {
+    main > details > summary > :first-child,
+    main > .tile > details > summary > :first-child {
       font-weight: 600;
     }
-    main > details > div {
+    main > details > div,
+    main > .tile > details > div {
       padding: 0 0.75rem 0.625rem 1.5rem;
     }
 
@@ -228,7 +262,7 @@
 
     /* the boxes: the outline, an input over a list; the keys, a dl */
     dialog {
-      width: min(44rem, 100% - 2rem);
+      width: min(62rem, 100% - 2rem);
       margin-top: 12vh;
       padding: 0;
       border: 1px solid var(--line);
@@ -254,24 +288,42 @@
       font: 1rem var(--sans);
       outline: 0;
     }
+    /* the box: a card for each node, in a grid */
     dialog ol {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
+      gap: 0.5rem;
       max-height: 60vh;
       margin: 0;
-      padding: 0.25rem;
+      padding: 0.5rem;
       overflow: auto;
       list-style: none;
     }
     dialog li {
-      padding: 0.1875rem 0.75rem;
-      padding-left: calc(0.75rem + 1.25rem * var(--depth));
-      border-radius: 4px;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      padding: 0.625rem 0.75rem;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--tint, var(--line));
+      border-radius: 8px;
       font-size: 0.8125rem;
       line-height: 1.4;
       cursor: pointer;
     }
-    dialog li.top {
-      margin-top: 0.375rem;
+    dialog li h2 {
+      margin: 0;
+      font-size: inherit;
       font-weight: 600;
+    }
+    dialog li .pill {
+      align-self: flex-start;
+    }
+    dialog li .lede {
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+      white-space: normal;
     }
     [aria-current='true'] {
       box-shadow: inset 2px 0 var(--accent);
@@ -279,6 +331,10 @@
     [aria-selected='true'] {
       background: var(--accent);
       color: var(--panel);
+    }
+    [aria-selected='true'] .pill,
+    [aria-selected='true'] .lede {
+      color: inherit;
     }
     dialog dl {
       display: grid;
@@ -307,6 +363,137 @@
       }
     }
 
+    /* -- state -- */
+    /* a node's state: data-state on its <details>, one of done now fail
+       open blocked, a tint, and a pill at its right edge */
+    :root {
+      --done: light-dark(#16a34a, #4cc97f);
+      --now: light-dark(#2563eb, #5b9bff);
+      --fail: light-dark(#e11d48, #ff6b78);
+      --open: light-dark(#f59e0b, #ffb534);
+      --blocked: light-dark(#9333ea, #b98cf5);
+    }
+    .pill {
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      align-self: center;
+      padding: 0.0625rem 0.5rem;
+      border-radius: 999px;
+      background: color-mix(in oklab, currentColor 12%, transparent);
+      color: var(--dim);
+      font: 600 0.6875rem var(--mono);
+    }
+    [data-state='done'] > summary > .pill {
+      color: var(--done);
+    }
+    [data-state='now'] > summary > .pill {
+      color: var(--now);
+    }
+    [data-state='fail'] > summary > .pill {
+      color: var(--fail);
+    }
+    [data-state='open'] > summary > .pill {
+      color: var(--open);
+    }
+    [data-state='blocked'] > summary > .pill {
+      color: var(--blocked);
+    }
+    /* a done node's heading reads settled: dim, struck through. :where
+       weighs nothing, so hover's accent still wins */
+    :where([data-state='done']) > summary > :first-child {
+      color: var(--dim);
+      text-decoration: line-through;
+      text-decoration-color: var(--line);
+    }
+    .lede {
+      flex-basis: 100%;
+      color: var(--dim);
+      font-size: 0.8125rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    details[open] > summary > .lede {
+      display: none;
+    }
+    [data-state='done'] {
+      --tint: var(--done);
+    }
+    [data-state='now'] {
+      --tint: var(--now);
+    }
+    [data-state='fail'] {
+      --tint: var(--fail);
+    }
+    [data-state='open'] {
+      --tint: var(--open);
+    }
+    [data-state='blocked'] {
+      --tint: var(--blocked);
+    }
+    /* -- tiles -- */
+    /* main.tiles: each top node a tile in a grid, in a div.tile. one open is
+       the page, the grid out of sight, and closing it comes back; two or
+       more, as e does, open in place */
+    /* the tiles: a grid, each tile its state's colour. an open node floats over the grid as a card, its
+       tile kept, so nothing moves */
+    main.tiles {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+      gap: 0.5rem;
+    }
+    main.tiles > :not(.tile) {
+      grid-column: 1 / -1;
+    }
+    .tiles > .tile {
+      height: 7rem;
+    }
+    main.tiles > .tile > details {
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      border-color: transparent;
+      border-radius: 1rem;
+      background: color-mix(
+        in oklab,
+        var(--tint, transparent) 9%,
+        var(--panel)
+      );
+      box-shadow:
+        0 1px 2px rgb(0 0 0 / 0.06),
+        0 6px 18px rgb(0 0 0 / 0.05);
+    }
+    /* one open: you go in, the grid is out of sight and the node is the
+       page; closing it comes back to the grid. two or more, as e does,
+       open in place */
+    main.many .tile:has(> [open]),
+    main:not(.many) .tile:has(> [open]) {
+      height: auto;
+    }
+    main:not(.many):has(> .tile > [open]) {
+      display: block;
+    }
+    main:not(.many):has(> .tile > [open]) > .tile:not(:has(> [open])) {
+      display: none;
+    }
+    /* an entry's text is read, not run: the page's own face, wrapped */
+    .tiles pre {
+      max-width: 54rem;
+      font: 0.9375rem/1.6 var(--sans);
+      white-space: pre-wrap;
+    }
+    .tiles > .tile > .focus {
+      outline: 0;
+    }
+    .tiles > .tile > .focus:not([open]) {
+      box-shadow:
+        0 0 0 2px var(--accent),
+        0 6px 18px rgb(0 0 0 / 0.08);
+    }
+    .tiles > .tile > .focus > summary {
+      background: none;
+      box-shadow: none;
+    }
     /* -- local -- */
   </style>
 
@@ -363,6 +550,7 @@
       focused?.classList.remove('focus');
       focused = d;
       d.classList.add('focus');
+      trail();
     }
     function show(d) {
       focus(d);
@@ -376,7 +564,12 @@
     // the node being read: the last summary above a line near the top. ask
     // the folds, not the layout: firefox boxes a summary under a closed one
     const above = d => d.firstElementChild.getBoundingClientRect().top < 90;
-    const reading = () => nodes.filter(shown).findLast(above) ?? nodes[0];
+    const topOf = d => d.firstElementChild.getBoundingClientRect().top;
+    function reading() {
+      const seen = nodes.filter(shown);
+      const last = seen.findLast(above);
+      return seen.find(d => last && topOf(d) === topOf(last)) ?? nodes[0];
+    }
     function inview(d) {
       const r = d.firstElementChild.getBoundingClientRect();
       return r.bottom > 0 && r.top < innerHeight;
@@ -439,7 +632,6 @@
     const query = box.querySelector('input');
     const results = box.querySelector('ol');
     const says = d => heading(d).textContent.toLowerCase();
-    const depth = d => (up(d) ? 1 + depth(up(d)) : 0);
     let hits = [];
     let hit = 0;
 
@@ -455,6 +647,11 @@
       hit = typed.length ? 0 : hits.indexOf(focused);
       paint();
     }
+    // the cards sit in rows: a row is the cards level with the first
+    const across = () =>
+      [...results.children].filter(
+        li => li.offsetTop === results.firstChild.offsetTop,
+      ).length;
     function select(by) {
       hit = Math.max(0, Math.min(hits.length - 1, hit + by));
       paint();
@@ -466,9 +663,8 @@
             role: 'option',
             ariaSelected: i === hit,
             ariaCurrent: d === focused,
-            className: up(d) ? '' : 'top',
-            style: `--depth: ${depth(d)}`,
-            innerHTML: heading(d).innerHTML,
+            style: `--tint: var(--${d.dataset.state})`,
+            innerHTML: d.firstElementChild.innerHTML,
           }),
         ),
       );
@@ -480,8 +676,10 @@
     }
     query.oninput = search;
     query.onkeydown = e => {
-      if (e.key === 'ArrowDown') select(1);
-      else if (e.key === 'ArrowUp') select(-1);
+      if (e.key === 'ArrowDown') select(across());
+      else if (e.key === 'ArrowUp') select(-across());
+      else if (e.key === 'ArrowRight') select(1);
+      else if (e.key === 'ArrowLeft') select(-1);
       else if (e.key === 'Enter' && hits[hit]) pick(hits[hit]);
       else return;
       e.preventDefault();
@@ -492,11 +690,22 @@
     };
 
     // -- keys --
+    // in tiles, one node open is the page, the grid out of sight
+    const inside = () =>
+      main.matches('.tiles:not(.many):has(> .tile > [open])');
     function move(by) {
+      if (inside() && !up(focused)) focused.open = false;
       const seen = nodes.filter(shown);
       const i = seen.indexOf(focused) + by;
       show(seen[Math.max(0, Math.min(seen.length - 1, i))]);
     }
+    // a grid has its nodes in rows: the tops level with the first, or one
+    const row = () => {
+      if (inside()) return 1;
+      const tops = nodes.filter(d => !up(d));
+      const at = d => d.closest('main > *').getBoundingClientRect().top;
+      return tops.filter(d => at(d) === at(tops[0])).length;
+    };
     const right = () => (focused.open ? move(1) : (focused.open = true));
     function left() {
       if (focused.open) return (focused.open = false);
@@ -508,18 +717,30 @@
 
     // one table: each key is bound from it, and ? lists it
     const keys = [
-      ['j ↓', 'Next heading', () => move(1)],
-      ['k ↑', 'Previous heading', () => move(-1)],
-      ['l →', 'Unfold, or step in', right],
-      ['h ←', 'Fold, or go up and fold that', left],
+      ['j', 'Next heading', () => move(1)],
+      ['k', 'Previous heading', () => move(-1)],
+      ['↓', 'Next heading, in a grid a row down', () => move(row())],
+      ['↑', 'Previous heading, in a grid a row up', () => move(-row())],
+      [
+        '→',
+        'In a grid the next, else l',
+        () => (row() > 1 ? move(1) : right()),
+      ],
+      [
+        '←',
+        'In a grid the previous, else h',
+        () => (row() > 1 ? move(-1) : left()),
+      ],
+      ['l', 'Unfold, or step in', right],
+      ['h', 'Fold, or go up and fold that', left],
       ['enter', 'Go to it: its address in the url', () => go(focused)],
-      ['/ t', 'The box: the outline, type to find, enter to go', find],
+      ['/ t', 'The box: cards, type to find, arrows, enter to go', find],
       ['o', 'Outline: every node that holds nodes, open', outline],
       ['z', 'Fold the rest', rest],
       ['e', 'Expand all', all],
       ['c', 'Collapse all', none],
       ['?', 'These keys', () => toggle(help)],
-      ['esc', 'Close a box'],
+      ['esc', 'Close a box, else fold', left],
     ];
     // the keys the bar holds: each one's icon, its strokes on a 16 grid
     const icons = {
@@ -555,6 +776,33 @@
         }),
       );
     }
+    // and where the reader is, as a path from the title: each a way back
+    const crumb = el('nav', { className: 'crumb' });
+    bar.lastChild.before(crumb);
+    const home = () => {
+      main.querySelector(':scope > .tile > [open]')?.removeAttribute('open');
+      scrollTo(0, 0);
+    };
+    function trail() {
+      const path = [];
+      for (let d = focused; d; d = up(d)) path.unshift(d);
+      crumb.replaceChildren(
+        el('a', {
+          href: '#',
+          textContent: main.querySelector('h1').textContent,
+          onclick: e => (e.preventDefault(), home()),
+        }),
+        ...path.flatMap((d, i) => [
+          ' › ',
+          i < path.length - 1
+            ? el('a', {
+                href: '#' + d.id,
+                textContent: heading(d).textContent,
+              })
+            : el('b', { textContent: heading(d).textContent }),
+        ]),
+      );
+    }
     document.body.prepend(bar);
     const bound = Object.fromEntries(
       keys.flatMap(([names, , act]) => names.split(' ').map(k => [k, act])),
@@ -566,6 +814,7 @@
       ArrowRight: '→',
       ArrowLeft: '←',
       Enter: 'enter',
+      Escape: 'esc',
     };
 
     // a page's own key handler wins where it prevents the default. a field
@@ -578,6 +827,18 @@
       if (!act) return;
       e.preventDefault();
       act();
+    });
+
+    // one node open is the page, two or more open in place
+    new MutationObserver(() =>
+      main.classList.toggle(
+        'many',
+        main.querySelectorAll(':scope > .tile > [open]').length > 1,
+      ),
+    ).observe(main, {
+      attributes: true,
+      attributeFilter: ['open'],
+      subtree: true,
     });
 
     // -- start --

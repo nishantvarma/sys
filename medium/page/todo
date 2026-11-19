@@ -1,0 +1,290 @@
+#!/usr/bin/env python3
+"""a page of a todo folder: each entry a node, its state a pill. the folder
+is the data and the page is made from it, never edited.
+
+    medium/page/todo FOLDER [TEMPLATE] > page.html
+    medium/page/todo -w FOLDER [TEMPLATE]            writes FOLDER/index.html
+
+TEMPLATE defaults to FOLDER/index.html, else the medium's page.html. -w reads
+and writes the same file, which a redirect cannot: the page this makes is a
+template again.
+
+an entry is a file, a folder or a link, in name order. a leading NN- is only
+order: 04-lucky-instance is the node lucky-instance. dotfiles and index.html
+are not entries. the text is the file, or README in a folder, and in its first
+40 lines these lines are the entry's, not text:
+
+    title: ...                  else the first line of the text, else the name
+    state: todo|now|done|fail|open|blocked
+                                else todo: typed, never derived
+    after: id id                the entries it waits on, as links
+
+a line `- [ ]` or `- [x]` is a step, counted above the text. a folder's other
+files, and a link to a page, are links.
+
+check: node medium/page/run.mjs page.html, on the page it made
+"""
+
+import argparse
+import html
+import os
+import re
+import sys
+from collections import Counter
+from dataclasses import dataclass, field
+from pathlib import Path
+
+STATES = ("now", "open", "fail", "blocked", "todo", "done")
+SMALL = {
+    "a",
+    "an",
+    "and",
+    "as",
+    "at",
+    "but",
+    "by",
+    "for",
+    "in",
+    "of",
+    "on",
+    "or",
+    "the",
+    "to",
+    "vs",
+    "with",
+}
+ACRONYMS = {"db": "DB", "html": "HTML", "id": "ID", "mrs": "MRs", "ui": "UI"}
+META = re.compile(r"^(title|state|after):[ \t]*(.*?)[ \t]*$")
+STEP = re.compile(r"^\s*[-*] \[([ xX])\] ", re.MULTILINE)
+TITLE = re.compile(r"^#*\s*(.*?)(?: -- | — |$)")
+
+
+@dataclass
+class Entry:
+    id: str
+    title: str = ""
+    state: str = "todo"
+    after: list[str] = field(default_factory=list)
+    text: str = ""
+    files: list[Path] = field(default_factory=list)
+    tally: str = ""
+
+
+# -- the entries --
+
+
+def slug(name: str) -> str:
+    """an id: lower case, each other run a dash. page/list has the same, so
+    the list and the page join on it."""
+    return re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
+
+
+def entries(folder: Path) -> dict[str, Entry]:
+    """the folder's entries by id, each with what its text says."""
+    found: dict[str, Entry] = {}
+    for path in sorted(folder.iterdir()):
+        if path.name.startswith(".") or path.name == "index.html":
+            continue
+        e = entry(path)
+        if e.id in found:
+            sys.exit(f"{path.name}: {e.id} is already an entry")
+        found[e.id] = e
+    for e in found.values():
+        check(e, found)
+    return found
+
+
+def entry(path: Path) -> Entry:
+    name = re.sub(r"^\d+-|\.html?$", "", path.name)
+    text, files = load(path)
+    meta: dict[str, str] = {}
+    body = []
+    for n, line in enumerate(text.splitlines()):
+        found = META.match(line) if n < 40 else None
+        if found:
+            meta.setdefault(found[1], found[2])
+        else:
+            body.append(line)
+    text = "\n".join(body).strip()
+    first = TITLE.match(text.split("\n")[0])[1]
+    return Entry(
+        id=slug(name),
+        title=meta.get("title") or first or re.sub(r"[-_]", " ", name),
+        state=meta.get("state", "todo"),
+        after=meta.get("after", "").replace(",", " ").split(),
+        text=text,
+        files=files,
+        tally=tally(path.resolve()),
+    )
+
+
+def tally(folder: Path) -> str:
+    """what a folder with a page of its own holds, by state."""
+    if not (folder / "index.html").is_file():
+        return ""
+    held = Counter(e.state for e in entries(folder).values())
+    rest = [f"{n} {s}" for s, n in held.items() if s not in ("todo", "done")]
+    return " · ".join(
+        [
+            f"{held['done']} of {held.total()} done",
+            *rest,
+            f"{held['todo']} todo",
+        ]
+    )
+
+
+def load(path: Path) -> tuple[str, list[Path]]:
+    """the text of an entry, and the files that are links."""
+    target = path.resolve()
+    if target.is_dir():
+        readme = next(
+            (f for f in (target / "README", target / "readme") if f.is_file()),
+            None,
+        )
+        files = [
+            f
+            for f in sorted(target.iterdir())
+            if f != readme and not f.name.startswith(".")
+        ]
+        return (readme.read_text() if readme else ""), files
+    try:
+        return (
+            ("", [path])
+            if target.suffix == ".html"
+            else (target.read_text(), [])
+        )
+    except UnicodeDecodeError:
+        return "", [path]
+
+
+def check(e: Entry, found: dict[str, Entry]):
+    """what a typed state or an after gets wrong, said on stderr."""
+    if e.state not in STATES:
+        print(f"{e.id}: state {e.state} is none of {STATES}", file=sys.stderr)
+    if e.after and e.state != "blocked":
+        print(
+            f"{e.id}: after names entries, but state is not blocked",
+            file=sys.stderr,
+        )
+    for name in e.after:
+        if name not in found:
+            print(f"{e.id}: after {name} is no entry", file=sys.stderr)
+
+
+# -- the page --
+
+
+def headline(title: str) -> str:
+    """title case; a word with a capital, digit, dot or slash is as typed."""
+
+    def word(i: int, w: str) -> str:
+        if w.lower() in ACRONYMS:
+            return ACRONYMS[w.lower()]
+        if re.search(r"[A-Z0-9./~]", w):
+            return w
+        return (
+            w
+            if i and w in SMALL
+            else re.sub(r"[a-z]", lambda m: m[0].upper(), w, count=1)
+        )
+
+    return " ".join(word(i, w) for i, w in enumerate(title.split()))
+
+
+def esc(text: str) -> str:
+    return html.escape(text, quote=False)
+
+
+def lede(e: Entry) -> str:
+    """the first line of prose, to read on a folded card."""
+    lines = (
+        line.removeprefix(e.title).strip(" -—=#")
+        for line in e.text.splitlines()
+    )
+    first = e.tally or next(filter(None, lines), "")
+    return f'<span class="lede">{esc(first[:110])}</span>' if first else ""
+
+
+def node(e: Entry, folder: Path, found: dict[str, Entry]) -> str:
+    """an entry as a tile holding a node: heading and pill, then body."""
+    steps = STEP.findall(e.text)
+    done = len(steps) - steps.count(" ")
+    links = [
+        f'<a href="{os.path.relpath(f, folder)}">'
+        f"<code>{esc(f.name)}</code></a>"
+        for f in e.files
+    ]
+    after = [
+        f'<a href="#{a}">{esc(headline(found[a].title))}</a>'
+        if a in found
+        else esc(a)
+        for a in e.after
+    ]
+    body = [
+        f"<p>{e.tally}</p>" if e.tally else "",
+        f"<p>{done} of {len(steps)} steps</p>" if steps else "",
+        "<ul>" + "".join(f"<li>{a}</li>" for a in links) + "</ul>"
+        if links
+        else "",
+        f"<pre>{esc(e.text)}</pre>" if e.text else "",
+        f"<p>after: {', '.join(after)}</p>" if after else "",
+    ]
+    body = [part for part in body if part]
+    inner = "\n<div>\n" + "\n".join(body) + "\n</div>" if body else ""
+    return (
+        '<div class="tile">\n'
+        f'<details id="{e.id}" data-state="{e.state}">\n'
+        f"<summary><h2>{esc(headline(e.title))}</h2>"
+        f'<span class="pill">{e.state}</span>{lede(e)}</summary>{inner}\n'
+        "</details>\n</div>"
+    )
+
+
+def ordered(found: dict[str, Entry]) -> list[Entry]:
+    """the entries by state, the ones to do first, then by name."""
+    rank = {s: n for n, s in enumerate(STATES)}
+    return sorted(found.values(), key=lambda e: rank.get(e.state, len(rank)))
+
+
+def page(folder: Path, template: str) -> str:
+    """the template, with the folder's entries as main."""
+    found = entries(folder)
+    main = (
+        f'<main class="tiles">\n<h1>{esc(folder.resolve().name)}</h1>\n'
+        + "\n".join(node(e, folder, found) for e in ordered(found))
+        + "\n</main>"
+    )
+    return re.sub(
+        r"^([ \t]*)<main\b[^>]*>.*</main>",
+        lambda m: m[1] + main,
+        template,
+        flags=re.MULTILINE | re.DOTALL,
+    )
+
+
+# -- the files --
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    parser.add_argument("folder", type=Path)
+    parser.add_argument("template", type=Path, nargs="?")
+    parser.add_argument(
+        "-w", action="store_true", help="write FOLDER/index.html"
+    )
+    args = parser.parse_args()
+    here = args.folder / "index.html"
+    template = args.template or (
+        here
+        if here.exists()
+        else Path(__file__).resolve().parent.parent / "page.html"
+    )
+    out = page(args.folder, template.read_text())
+    if args.w:
+        here.write_text(out)
+    else:
+        sys.stdout.write(out)
+
+
+if __name__ == "__main__":
+    main()

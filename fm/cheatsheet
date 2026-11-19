@@ -46,7 +46,7 @@ c or x it whole, * or = it. On .. enter is h; on . it stays. d refuses
 both, as rm(1) does. A first visit lands past them.
 
 act
-  space    select
+  space    select, then step down
   c x      copy, cut — both fill the clip and clear the selection
   p        paste the clip here, asking a name on a clash
   l        symlink the clip here

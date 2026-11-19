@@ -1,0 +1,363 @@
+#!/usr/bin/env python3
+"""the list: a note, a folder or a page read into the one tree the page is
+made of. a node holds nodes and leaves; a leaf has a type.
+
+    medium/page/list PATH            the list, as lisp
+    medium/page/list PATH --json     the same, for a program
+
+PATH is a note (text), a folder (its files are its nodes) or an html page
+(its main's details#id are its nodes; what else is in them is an html leaf).
+
+text is read as the notes are written: "key: value" lines on top are the
+head; indent is depth, so a line with lines under it is a node; "name  text"
+is a row, and goes on under it; "- " an item, "- [ ]" a step; fenced lines,
+or a file that starts "#!", are code. a leaf is typed, so a view can pick
+a component for it: para row item step code html file.
+
+an id is a page's own, else a folder entry's name as page/todo makes it
+(NN- and .html off), else the slug of the title; a repeat gets -2, the
+shallower first.
+
+check: python3 medium/page/list PATH --json | python3 -m json.tool
+"""
+
+import html.parser
+import json
+import os
+import re
+import signal
+import sys
+from pathlib import Path
+
+BIG = 1 << 20
+KEYS = "title|state|after|tags"
+
+
+def node(title, kids, **meta):
+    n = {"type": "node", "title": title, "kids": kids}
+    n.update({k: v for k, v in meta.items() if v not in (None, "")})
+    return n
+
+
+def leaf(type, **fields):
+    return {"type": type, **fields}
+
+
+def slug(name):
+    """an id: lower case, each other run a dash. page/todo has the same, so
+    the list and the page join on it."""
+    return re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
+
+
+def head(lines):
+    """the key: value lines on top, until a line that is not one."""
+    meta = {}
+    while lines and re.match(rf"({KEYS}): ", lines[0]):
+        k, v = lines.pop(0).split(": ", 1)
+        meta[k] = v
+    return meta
+
+
+def indent(line):
+    return len(line) - len(line.lstrip())
+
+
+def outline(lines):
+    kids, i, gap = [], 0, True
+    while i < len(lines):
+        ln = lines[i]
+        if not ln.strip():
+            i, gap = i + 1, True
+            continue
+        text = ln.strip()
+        if text.startswith("```"):
+            end = i + 1
+            while end < len(lines) and not lines[end].strip().startswith(
+                "```"
+            ):
+                end += 1
+            fence = [x[indent(ln) :] for x in lines[i + 1 : end]]
+            kids.append(leaf("code", text="\n".join(fence), caption=text[3:]))
+            i = end + 1
+            continue
+        b, under, i = indent(ln), [], i + 1
+        while i < len(lines) and (
+            not lines[i].strip() or indent(lines[i]) > b
+        ):
+            under.append(lines[i])
+            i += 1
+        while under and not under[-1].strip():
+            under.pop()
+        got = item(text, under, None if gap else kids)
+        gap = False
+        if got:
+            kids.append(got)
+    return kids
+
+
+def item(text, under, before):
+    step = re.match(r"- \[( |x)\] (.*)", text)
+    row = re.match(r"([^\s-]\S*)\s{2,}(.*)", text)
+    if step:
+        return leaf("step", done=step[1] == "x", text=step[2])
+    if row:
+        more = " ".join(u.strip() for u in under if u.strip())
+        return leaf("row", name=row[1], text=f"{row[2]} {more}".strip())
+    if under:
+        return node(text.removeprefix("- "), outline(under))
+    if text.startswith("- "):
+        return leaf("item", text=text[2:])
+    if before and before[-1]["type"] == "para":
+        before[-1]["text"] += " " + text
+        return None
+    return leaf("para", text=text)
+
+
+def read_text(path):
+    raw = Path(path).read_text()
+    if raw.startswith("#!"):
+        return node(os.path.basename(path), [leaf("code", text=raw)])
+    lines = raw.splitlines()
+    meta = head(lines)
+    name = os.path.basename(path)
+    return node(meta.pop("title", name), outline(lines), name=name, **meta)
+
+
+def read_file(path):
+    name = os.path.basename(path)
+    if os.path.getsize(path) > BIG:
+        return leaf("file", name=name)
+    try:
+        return read_page(path) if name.endswith(".html") else read_text(path)
+    except UnicodeDecodeError:
+        return leaf("file", name=name)
+
+
+def read_dir(path):
+    names = sorted(os.listdir(path))
+    kids = []
+    for n in names:
+        p = os.path.join(path, n)
+        made = n.endswith(".html") and n[:-5] in names
+        if (
+            n.startswith(".")
+            or n.endswith(".url")
+            or n == "index.html"
+            or made
+        ):
+            continue
+        kid = read_dir(p) if os.path.isdir(p) else read_file(p)
+        if kid["type"] == "node":
+            kid["name"] = n
+            kid["id"] = slug(re.sub(r"^\d+-|\.html?$", "", n))
+            kid["title"] = re.sub(
+                r"^\d+-", "", kid["title"] if kid["title"] != n else n
+            )
+        kids.append(kid)
+    top = node(os.path.basename(os.path.abspath(path)), kids)
+    lead = next((k for k in kids if k.get("name", "").lower() == "readme"), 0)
+    if lead:
+        for k in ("title", "state", "after", "tags"):
+            if k in lead:
+                top[k] = lead[k]
+        top["title"] = (
+            lead["title"] if lead["title"] != lead["name"] else top["title"]
+        )
+    return top
+
+
+class Tree(html.parser.HTMLParser):
+    """a parse that keeps where each element sits in the source."""
+
+    VOID = frozenset(
+        {"meta", "link", "br", "hr", "img", "input", "col", "source"}
+    )
+
+    def __init__(self, src):
+        super().__init__(convert_charrefs=True)
+        self.src = src
+        self.starts = [0]
+        for ln in src.splitlines(True):
+            self.starts.append(self.starts[-1] + len(ln))
+        self.root = {
+            "tag": "#",
+            "attrs": {},
+            "kids": [],
+            "a": 0,
+            "b": len(src),
+        }
+        self.stack = [self.root]
+
+    def at(self):
+        line, col = self.getpos()
+        return self.starts[line - 1] + col
+
+    def handle_starttag(self, tag, attrs):
+        e = {"tag": tag, "attrs": dict(attrs), "kids": [], "a": self.at()}
+        self.stack[-1]["kids"].append(e)
+        if tag in self.VOID:
+            e["b"] = e["a"] + len(self.get_starttag_text())
+        else:
+            self.stack.append(e)
+
+    def handle_endtag(self, tag):
+        for j in range(len(self.stack) - 1, 0, -1):
+            if self.stack[j]["tag"] == tag:
+                at = self.at()
+                for e in self.stack[j + 1 :]:
+                    e["b"] = at
+                self.stack[j]["b"] = at + len(tag) + 3
+                del self.stack[j:]
+                return
+
+    def close(self):
+        """what is still open ends with the source."""
+        super().close()
+        for e in self.stack[1:]:
+            e["b"] = len(self.src)
+
+    def handle_data(self, data):
+        if data.strip():
+            self.stack[-1]["kids"].append(data)
+
+
+def find(e, tag):
+    for k in e["kids"]:
+        if isinstance(k, dict):
+            if k["tag"] == tag:
+                return k
+            if (f := find(k, tag)) is not None:
+                return f
+    return None
+
+
+def text_of(e):
+    if isinstance(e, str):
+        return e
+    return " ".join(text_of(k) for k in e["kids"]).strip()
+
+
+def has_node(e):
+    return any(
+        isinstance(k, dict)
+        and ((k["tag"] == "details" and "id" in k["attrs"]) or has_node(k))
+        for k in e["kids"]
+    )
+
+
+def blocks(t, e):
+    """what is in an element: nodes, and the rest as html leaves."""
+    out = []
+    for k in e["kids"]:
+        if not isinstance(k, dict):
+            continue
+        if k["tag"] == "details" and "id" in k["attrs"]:
+            out.append(page_node(t, k))
+        elif k["tag"] in ("script", "style"):
+            continue
+        elif has_node(k):
+            out += blocks(t, k)
+        else:
+            out.append(leaf("html", html=t.src[k["a"] : k["b"]]))
+    return out
+
+
+def page_node(t, d):
+    kids = d["kids"]
+    summary = next(
+        k for k in kids if isinstance(k, dict) and k["tag"] == "summary"
+    )
+    h = next(
+        (
+            k
+            for k in summary["kids"]
+            if isinstance(k, dict) and re.match(r"h\d", k["tag"])
+        ),
+        None,
+    )
+    title = text_of(h) if h else text_of(summary)
+    rest = [k for k in summary["kids"] if k is not h]
+    edge = " ".join(text_of(r) for r in rest).strip()
+    body = {"kids": [k for k in kids if k is not summary]}
+    return node(
+        title,
+        blocks(t, body),
+        id=d["attrs"]["id"],
+        open=True if "open" in d["attrs"] else None,
+        edge=edge,
+    )
+
+
+def read_page(path):
+    src = Path(path).read_text()
+    t = Tree(src)
+    t.feed(src)
+    t.close()
+    main = find(t.root, "main") or find(t.root, "body") or t.root
+    title = find(t.root, "title")
+    return node(
+        text_of(title) if title else path,
+        blocks(t, main),
+        name=os.path.basename(path),
+    )
+
+
+def read(path):
+    if os.path.isdir(path):
+        return read_dir(path)
+    if path.endswith(".html"):
+        return read_page(path)
+    return read_file(path)
+
+
+def ids(top):
+    """an id given stays, the shallower first; the rest are the title's
+    slug. a repeat gets -2."""
+    order, level, seen = [], [top], set()
+    while level:
+        order += level
+        level = [k for n in level for k in n["kids"] if k["type"] == "node"]
+    for n in sorted(order, key=lambda n: "id" not in n):
+        base = n.get("id") or slug(n["title"]) or "x"
+        i, n["id"] = 1, base
+        while n["id"] in seen:
+            i += 1
+            n["id"] = f"{base}-{i}"
+        seen.add(n["id"])
+
+
+def lisp(n, d=0):
+    pad = "  " * d
+    dq = json.dumps
+    if n["type"] == "node":
+        extra = "".join(
+            f" :{k} {dq(v)}"
+            for k, v in n.items()
+            if k not in ("type", "title", "kids", "id")
+        )
+        head = f"(node {dq(n['id'])} {dq(n['title'])}{extra}"
+        if not n["kids"]:
+            return head + ")"
+        return (
+            head
+            + "\n"
+            + "\n".join(pad + "  " + lisp(k, d + 1) for k in n["kids"])
+            + ")"
+        )
+    fields = " ".join(f"{dq(v)}" for k, v in n.items() if k != "type")
+    return f"({n['type']} {fields})"
+
+
+def main(argv):
+    flags = [a for a in argv if a.startswith("--")]
+    args = [a for a in argv if not a.startswith("--")]
+    if len(args) != 1 or set(flags) - {"--json"}:
+        sys.exit(__doc__.split("\n\n")[1])
+    tree = read(os.path.expanduser(args[0]))
+    ids(tree)
+    print(json.dumps(tree, indent=1) if "--json" in flags else lisp(tree))
+
+
+if __name__ == "__main__":
+    signal.signal(signal.SIGPIPE, signal.SIG_DFL)
+    main(sys.argv[1:])

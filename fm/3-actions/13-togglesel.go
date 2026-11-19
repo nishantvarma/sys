@@ -5,5 +5,6 @@ func (m *fm) toggleSel() {
 		} else {
 			m.sel[c] = true
 		}
+		m.mv(1)
 	}
 }
