@@ -1,6 +1,6 @@
 markup — a note for a person that a program can read too. a draft.
 
-Written from what the notes already do (~/work/todo/*, lisp-notebook.txt),
+Written from what the notes already do (a todo's entries, lisp-notebook.txt),
 not from a new syntax: a note that follows the rules reads the same as one
 that does not. Code is a leaf of the page like prose is, not a guest in it.
 
@@ -86,9 +86,9 @@ trip.
   lisp-notebook.txt   "pollen - ..." line is the title; each "**x:**" is a
                       node, 6 of them; "- " lists stay; the (section ...)
                       and {(define ...)} blocks are code, as they are
-  01-databricks       its tree (├──) is a code block, its "## case" a node,
+  a project note      its tree (├──) is a code block, its "## case" a node,
                       "rule / message / payload" three rows
-  18-jivasup66        "## Problem" and "## Branch / pin map" nodes; the
+  a support note      "## Problem" and "## Branch / pin map" nodes; the
                       table is a "|" table; "Chain: a → b" a prose line
                       with three refs
 
@@ -96,7 +96,7 @@ trip.
   without a blank above them (rule 4 needs the blank).
 
 
-## found, on 01-databricks (viz2)
+## found, on a project's notes
 
   the real notes (readme, next) do not use "#". a bare line with lines
   indented under it is a node; "name  text" with lines under it is a row
