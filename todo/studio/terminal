@@ -48,7 +48,7 @@ The pane at the bottom, and full screen (an idea, nothing built)
     | poc/   | def broken_constraint(value)        29  |
     |        | 206  if self.choices and ...            |
     +--------+-----------------------------------------+
-    | terminal  ~/work/ssv/poc                 [f] [x] |
+    | terminal  poc                            [f] [x] |
     | poc % pytest -q         | > fix model.py:214     |
     | 1 failed, 22 passed     | wrote todo/next:/fix/  |
     +--------------------------------------------------+

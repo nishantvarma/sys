@@ -22,7 +22,7 @@ the node (page.html's, kept as is)
   body and in the edge; it may not put a details#id there, or the keys walk in.
 
 the case, carried through
-  work/ssv/poc/model.py. Field.broken_constraint:
+  proj/poc/model.py. Field.broken_constraint:
 
     heading   def broken_constraint(value)          faint def, bold name
     edge      [skyline glyph]  29
@@ -79,7 +79,7 @@ does markdown change the same way: yes
 decided
   node       page.html's, frozen. The checker is the oracle.
   python row the def line itself, no pill: `@property def parts()`,
-             `@dataclass class Field`, `class JivaRequest(Base)`. def is
+             `@dataclass class Field`, `class Request(Base)`. def is
              faint and means a plain method; a class says class once, as a
              card. self and cls dropped; a default over 10 chars is =...
              Hover: the full signature and the docstring. The docstring line
@@ -155,7 +155,7 @@ check
 
 calls made (were open)
   address    #path:id  ->
-             shelf.html#work/ssv/poc/model.py:Field.broken_constraint
+             shelf.html#proj/poc/model.py:Field.broken_constraint
              The id is the address, as in page.html (page.html#id); the file
              goes before the colon because the shelf's hash is the file. An id
              never starts with /, so path:/pattern/ stays the form for prose
@@ -194,7 +194,7 @@ Changed, 2026-10-28 (from reading request.html): a page hides nothing.
     comments) show as source, in file order. A module's docstring is the lead,
     kept as written (pre-wrap, mono).
   - check: every non-blank line of a file is in its page but the module
-    docstring and the def lines; 3000 .py under ~/work, 0 missing
+    docstring and the def lines; 3000 .py files, 0 missing
     (~/scratch/lossless.py; broken once, it fails).
   The decided list above (folds, body) is superseded by this.
 
