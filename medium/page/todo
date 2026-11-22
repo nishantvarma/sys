@@ -7,7 +7,10 @@ is the data and the page is made from it, never edited.
 
 TEMPLATE defaults to FOLDER/index.html, else the medium's page.html. -w reads
 and writes the same file, which a redirect cannot: the page this makes is a
-template again.
+template again. a folder named todo is a project's own todo: its page is
+todo.html beside it — unless it has an index.html of its own, which stays
+its page — and it takes the parent's name and opens with the lead of the
+parent's readme.
 
 an entry is a file, a folder or a link, in name order. a leading NN- is only
 order: 04-lucky-instance is the node lucky-instance. dotfiles and index.html
@@ -16,11 +19,16 @@ are not entries. the text is the file, or README in a folder, and in its first
 
     title: ...                  else the first line of the text, else the name
     state: todo|now|done|fail|open|blocked
-                                else todo: typed, never derived
+                                else todo. typed, never derived — but a link
+                                to a page takes its state and its tally from
+                                the page's own nodes
     after: id id                the entries it waits on, as links
 
-a line `- [ ]` or `- [x]` is a step, counted above the text. a folder's other
-files, and a link to a page, are links.
+a line `- [ ]` or `- [x]` is a step, counted above the text. a folder's files
+are the explorer's lens, not the todo's, and are not listed; a link to a
+page keeps its link, the link being the entry itself. a folder with a todo/
+of its own lends that folder's entries to its node as children, their ids
+prefixed by the path down: proj/task. the card's tally counts the same nodes.
 
 check: node medium/page/run.mjs page.html, on the page it made
 """
@@ -54,6 +62,8 @@ SMALL = {
     "with",
 }
 ACRONYMS = {"db": "DB", "html": "HTML", "id": "ID", "mrs": "MRs", "ui": "UI"}
+# a folder's files a reader opens, by suffix; "" is a note or a script
+READ = {"", ".htm", ".html", ".md", ".pdf", ".txt", ".url"}
 META = re.compile(r"^(title|state|after):[ \t]*(.*?)[ \t]*$")
 STEP = re.compile(r"^\s*[-*] \[([ xX])\] ", re.MULTILINE)
 TITLE = re.compile(r"^#*\s*(.*?)(?: -- | — |$)")
@@ -68,6 +78,8 @@ class Entry:
     text: str = ""
     files: list[Path] = field(default_factory=list)
     tally: str = ""
+    is_dir: bool = False
+    children: list["Entry"] = field(default_factory=list)
 
 
 # -- the entries --
@@ -79,13 +91,15 @@ def slug(name: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
 
 
-def entries(folder: Path) -> dict[str, Entry]:
-    """the folder's entries by id, each with what its text says."""
+def entries(folder: Path, seen: set[Path] | None = None) -> dict[str, Entry]:
+    """the folder's entries by id, each with what its text says. seen is
+    the folders already read above this one, so a link cannot cycle."""
+    seen = (seen or set()) | {folder.resolve()}
     found: dict[str, Entry] = {}
     for path in sorted(folder.iterdir()):
         if path.name.startswith(".") or path.name == "index.html":
             continue
-        e = entry(path)
+        e = entry(path, seen)
         if e.id in found:
             sys.exit(f"{path.name}: {e.id} is already an entry")
         found[e.id] = e
@@ -94,9 +108,9 @@ def entries(folder: Path) -> dict[str, Entry]:
     return found
 
 
-def entry(path: Path) -> Entry:
-    name = re.sub(r"^\d+-|\.html?$", "", path.name)
-    text, files = load(path)
+def head(text: str) -> tuple[dict[str, str], str]:
+    """the head lines (key: value, in the first 40) out of a text; the rest
+    is the body."""
     meta: dict[str, str] = {}
     body = []
     for n, line in enumerate(text.splitlines()):
@@ -105,25 +119,83 @@ def entry(path: Path) -> Entry:
             meta.setdefault(found[1], found[2])
         else:
             body.append(line)
-    text = "\n".join(body).strip()
-    first = TITLE.match(text.split("\n")[0])[1]
+    return meta, "\n".join(body).strip()
+
+
+def entry(path: Path, seen: set[Path]) -> Entry:
+    name = re.sub(r"^\d+-|\.html?$", "", path.name)
+    text, files = load(path)
+    meta, text = head(text)
+    first = TITLE.match(text.split("\n")[0])[1] if text else ""
+    target = path.resolve()
+    if target.is_dir():
+        text = lead(text)
+    held = states(target)
+    # a folder with a todo/ of its own lends its entries to the card
+    todo = target / "todo"
+    children = (
+        list(entries(todo, seen).values())
+        if target.is_dir() and todo.is_dir() and todo.resolve() not in seen
+        else []
+    )
     return Entry(
         id=slug(name),
         title=meta.get("title") or first or re.sub(r"[-_]", " ", name),
-        state=meta.get("state", "todo"),
+        state=meta.get("state")
+        or next((s for s in STATES if held[s]), "todo"),
         after=meta.get("after", "").replace(",", " ").split(),
         text=text,
         files=files,
-        tally=tally(path.resolve()),
+        tally=tally(held),
+        is_dir=target.is_dir(),
+        children=children,
     )
 
 
-def tally(folder: Path) -> str:
-    """what a folder with a page of its own holds, by state."""
-    if not (folder / "index.html").is_file():
+def lead(text: str) -> str:
+    """the first paragraph of a folder's readme: its heading line dropped,
+    then to the first blank. the rest is the folder's, not the card's."""
+    lines = text.splitlines()
+    if lines and lines[0].startswith("#"):
+        lines = lines[1:]
+    para = []
+    for line in lines:
+        if not line.strip():
+            if para:
+                break
+            continue
+        para.append(line)
+    return "\n".join(para)
+
+
+def states(target: Path) -> Counter:
+    """the states a todo page holds: a folder's own index.html or todo.html,
+    or the page a link names."""
+    if target.is_dir():
+        page = next(
+            (
+                p
+                for p in (target / "index.html", target / "todo.html")
+                if p.is_file() and not p.is_symlink()
+            ),
+            None,
+        )
+    else:
+        page = target if target.suffix in (".htm", ".html") else None
+    if not page or not page.is_file():
+        return Counter()
+    return Counter(re.findall(r'data-state="(\w+)"', page.read_text()))
+
+
+def tally(held: Counter) -> str:
+    """a page's states as a line: 4 of 13 done · 1 now · 8 todo."""
+    if not held:
         return ""
-    held = Counter(e.state for e in entries(folder).values())
-    rest = [f"{n} {s}" for s, n in held.items() if s not in ("todo", "done")]
+    rest = [
+        f"{held[s]} {s}"
+        for s in STATES
+        if held[s] and s not in ("todo", "done")
+    ]
     return " · ".join(
         [
             f"{held['done']} of {held.total()} done",
@@ -134,7 +206,8 @@ def tally(folder: Path) -> str:
 
 
 def load(path: Path) -> tuple[str, list[Path]]:
-    """the text of an entry, and the files that are links."""
+    """the text of an entry, and the files that are links: what a reader
+    opens. a page's assets (css, js, images) are not listed."""
     target = path.resolve()
     if target.is_dir():
         readme = next(
@@ -144,7 +217,9 @@ def load(path: Path) -> tuple[str, list[Path]]:
         files = [
             f
             for f in sorted(target.iterdir())
-            if f != readme and not f.name.startswith(".")
+            if f != readme
+            and not f.name.startswith(".")
+            and (f.is_dir() or f.suffix.lower() in READ)
         ]
         return (readme.read_text() if readme else ""), files
     try:
@@ -195,6 +270,65 @@ def esc(text: str) -> str:
     return html.escape(text, quote=False)
 
 
+SEP = re.compile(r"^\s*([-=~_])\1{2,}\s*$")
+
+
+def leaves(text: str) -> str:
+    """a note's body as html, studio/markup's first leaves: a paragraph
+    flows, its hard-wrapped lines joined; a run of "- " lines is a list,
+    "- [ ]" and "- [x]" its steps, an indented line continues the item
+    above; an aligned block (columns, a diagram) stays as typed, a pre;
+    a rule line only parts blocks."""
+    out: list[str] = []
+    para: list[str] = []
+    items: list[str] = []
+
+    def flush_para():
+        if para:
+            if any(
+                "  " in line or line.startswith((" ", "\t")) for line in para
+            ):
+                out.append(f"<pre>{esc(chr(10).join(para))}</pre>")
+            else:
+                out.append(
+                    "<p>" + esc(" ".join(l.strip() for l in para)) + "</p>"
+                )
+            para.clear()
+
+    def flush_items():
+        if items:
+            lis = []
+            for it in items:
+                step = re.match(r"\[([ xX])\] (.*)", it, re.DOTALL)
+                if step:
+                    cls = (
+                        ' class="step done"'
+                        if step[1] != " "
+                        else ' class="step"'
+                    )
+                    lis.append(f"<li{cls}>{esc(step[2])}</li>")
+                else:
+                    lis.append(f"<li>{esc(it)}</li>")
+            out.append("<ul>" + "".join(lis) + "</ul>")
+            items.clear()
+
+    for line in text.splitlines():
+        if not line.strip() or SEP.match(line):
+            flush_para()
+            flush_items()
+        elif line.startswith("- "):
+            flush_para()
+            items.append(line[2:])
+        elif line.startswith(" ") and items:
+            items[-1] += " " + line.strip()
+        else:
+            flush_items()
+            para.append(line)
+    flush_para()
+    flush_items()
+    return "\n".join(out)
+
+
 def lede(e: Entry) -> str:
     """the first line of prose, to read on a folded card."""
     lines = (
@@ -205,8 +339,11 @@ def lede(e: Entry) -> str:
     return f'<span class="lede">{esc(first[:110])}</span>' if first else ""
 
 
-def node(e: Entry, folder: Path, found: dict[str, Entry]) -> str:
-    """an entry as a tile holding a node: heading and pill, then body."""
+def node(
+    e: Entry, folder: Path, found: dict[str, Entry], prefix: str = ""
+) -> str:
+    """an entry as a node: heading and pill, then body. a child's id and
+    after links are prefixed by the path down to it: proj/task."""
     steps = STEP.findall(e.text)
     done = len(steps) - steps.count(" ")
     links = [
@@ -215,43 +352,78 @@ def node(e: Entry, folder: Path, found: dict[str, Entry]) -> str:
         for f in e.files
     ]
     after = [
-        f'<a href="#{a}">{esc(headline(found[a].title))}</a>'
+        f'<a href="#{prefix}{a}">{esc(headline(found[a].title))}</a>'
         if a in found
         else esc(a)
         for a in e.after
     ]
+    sibs = {c.id: c for c in e.children}
+    children = [
+        node(c, folder, sibs, f"{prefix}{e.id}/") for c in ordered(e.children)
+    ]
+    # a folder's readme gives its lead, on top; a note's text is the body.
+    # a folder's files are the explorer's lens, not the todo's: only a
+    # link entry keeps its link, where the link is the entry itself
+    block = leaves(e.text) if e.text else ""
     body = [
+        block if e.is_dir else "",
         f"<p>{e.tally}</p>" if e.tally else "",
-        f"<p>{done} of {len(steps)} steps</p>" if steps else "",
-        "<ul>" + "".join(f"<li>{a}</li>" for a in links) + "</ul>"
-        if links
+        *children,
+        '<p class="files">' + " · ".join(links) + "</p>"
+        if links and not e.is_dir
         else "",
-        f"<pre>{esc(e.text)}</pre>" if e.text else "",
+        f"<p>{done} of {len(steps)} steps</p>" if steps else "",
+        "" if e.is_dir else block,
         f"<p>after: {', '.join(after)}</p>" if after else "",
     ]
     body = [part for part in body if part]
     inner = "\n<div>\n" + "\n".join(body) + "\n</div>" if body else ""
     return (
-        '<div class="tile">\n'
-        f'<details id="{e.id}" data-state="{e.state}">\n'
+        f'<details id="{prefix}{e.id}" data-state="{e.state}">\n'
         f"<summary><h2>{esc(headline(e.title))}</h2>"
         f'<span class="pill">{e.state}</span>{lede(e)}</summary>{inner}\n'
-        "</details>\n</div>"
+        "</details>"
     )
 
 
-def ordered(found: dict[str, Entry]) -> list[Entry]:
+def ordered(found) -> list[Entry]:
     """the entries by state, the ones to do first, then by name."""
     rank = {s: n for n, s in enumerate(STATES)}
-    return sorted(found.values(), key=lambda e: rank.get(e.state, len(rank)))
+    values = found.values() if isinstance(found, dict) else found
+    return sorted(values, key=lambda e: rank.get(e.state, len(rank)))
 
 
 def page(folder: Path, template: str) -> str:
-    """the template, with the folder's entries as main."""
+    """the template, with the folder's entries as main. a folder named todo
+    is a project's own todo: the page takes the parent's name and opens with
+    the lead of the parent's readme."""
     found = entries(folder)
+    here = folder.resolve()
+    says = ""
+    if here.name == "todo":
+        title = f"{here.parent.name} todo"
+        readme = next(
+            (
+                p
+                for p in (here.parent / "README", here.parent / "readme")
+                if p.is_file()
+            ),
+            None,
+        )
+        if readme:
+            says = lead(head(readme.read_text())[1])
+    else:
+        title = here.name
+    lead_div = (
+        f'<div class="lead">\n<p>{esc(says)}</p>\n</div>\n' if says else ""
+    )
     main = (
-        f'<main class="tiles">\n<h1>{esc(folder.resolve().name)}</h1>\n'
-        + "\n".join(node(e, folder, found) for e in ordered(found))
+        f'<main class="tiles">\n<h1>{esc(title)}</h1>\n'
+        + lead_div
+        + "\n".join(
+            '<div class="tile">\n' + node(e, folder, found) + "\n</div>"
+            for e in ordered(found)
+        )
         + "\n</main>"
     )
     return re.sub(
@@ -273,7 +445,13 @@ def main():
         "-w", action="store_true", help="write FOLDER/index.html"
     )
     args = parser.parse_args()
-    here = args.folder / "index.html"
+    folder = args.folder.resolve()
+    inside = folder / "index.html"
+    here = (
+        folder.with_name("todo.html")
+        if folder.name == "todo" and not inside.exists()
+        else inside
+    )
     template = args.template or (
         here
         if here.exists()

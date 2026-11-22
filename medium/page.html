@@ -198,6 +198,11 @@
     summary:hover > :first-child {
       color: var(--accent);
     }
+    /* the page marks the node being read itself (.focus), so the
+       browser's ring on a clicked summary only doubles it */
+    summary:focus-visible {
+      outline: 0;
+    }
     .focus > summary {
       border-radius: inherit;
       background: var(--hit);
@@ -258,6 +263,28 @@
     }
     details details:not(:has(details)) > div {
       padding: 0 0 0.5rem 0.75rem;
+    }
+
+    /* a node's files: one dim line, not a list of bullets */
+    .files {
+      margin: 0.375rem 0;
+      color: var(--dim);
+      font-size: 0.8125rem;
+    }
+    .files code {
+      font-size: inherit;
+    }
+    /* a step in a list: its box, ticked when done */
+    li.step {
+      list-style: none;
+    }
+    li.step::before {
+      content: "☐ ";
+      color: var(--dim);
+    }
+    li.step.done::before {
+      content: "☑ ";
+      color: var(--plus);
     }
 
     /* the boxes: the outline, an input over a list; the keys, a dl */
@@ -462,6 +489,20 @@
       box-shadow:
         0 1px 2px rgb(0 0 0 / 0.06),
         0 6px 18px rgb(0 0 0 / 0.05);
+    }
+    /* a tile is narrower than a page: the heading gives up its min-width
+       and wraps instead of being clipped — two lines, then an ellipsis,
+       so the pill and the lede always fit the tile's height */
+    .tiles > .tile summary > :first-child {
+      min-width: 0;
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+      overflow: hidden;
+    }
+    /* open, a node is the page: the state's tint stays in the grid */
+    .tiles > .tile > details[open] {
+      background: var(--panel);
     }
     /* one open: you go in, the grid is out of sight and the node is the
        page; closing it comes back to the grid. two or more, as e does,
@@ -693,11 +734,20 @@
     // in tiles, one node open is the page, the grid out of sight
     const inside = () =>
       main.matches('.tiles:not(.many):has(> .tile > [open])');
+    // one open is the page, and j k walk it: into its nodes where it has
+    // them; stepping off its end folds it and the walk moves on
     function move(by) {
-      if (inside() && !up(focused)) focused.open = false;
-      const seen = nodes.filter(shown);
+      let seen = nodes.filter(shown);
       const i = seen.indexOf(focused) + by;
-      show(seen[Math.max(0, Math.min(seen.length - 1, i))]);
+      const d = seen[Math.max(0, Math.min(seen.length - 1, i))];
+      if (inside()) {
+        const top = main.querySelector(':scope > .tile > [open]');
+        if (d !== top && !top.contains(d)) {
+          top.open = false;
+          seen = nodes.filter(shown);
+        }
+      }
+      show(d);
     }
     // a grid has its nodes in rows: the tops level with the first, or one
     const row = () => {

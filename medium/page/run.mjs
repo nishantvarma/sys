@@ -191,18 +191,42 @@ for (const page of pages) {
       .filter(t => t.getClientRects().length).length`;
     await press('l');
     check(await until(`${seen} === 1`), 'tiles: l goes in, the grid is out');
+    // j walks the page: into the node's nodes where it has them
+    if (await c.evaluate(`!!${focused}.querySelector('details[id]')`)) {
+      const firstKid = await c.evaluate(
+        `${focused}.querySelector('details[id]').id`,
+      );
+      await press('j');
+      check(
+        await until(`${focused}.id === ${json(firstKid)} && ${seen} === 1`),
+        'tiles: j steps into the node\'s nodes',
+      );
+      await press('h');
+    }
     await press('Escape');
     check(
       await until(`${seen} === ${tops.length}`),
       'tiles: esc comes back to the grid',
     );
-    await press('l');
-    await press('j');
-    check(
-      await until(`${seen} === ${tops.length} && !${focused}.open`),
-      'tiles: j comes out and moves on',
-    );
-    await press('k');
+    // from a leaf page, j comes out and moves on
+    const leaf = await c.evaluate(`(${json(tops)}
+      .map(id => document.getElementById(id))
+      .find(d => !d.querySelector('details[id]')))?.id`);
+    if (leaf) {
+      await c.evaluate(`location.hash = ${json(leaf)}; 1`);
+      await until(`${focused}.id === ${json(leaf)}`);
+      await press('l');
+      await press('j');
+      check(
+        await until(`${seen} === ${tops.length} && !${focused}.open`),
+        'tiles: j on a leaf page comes out and moves on',
+      );
+      // back to the first node: the checks below count on it. the hash may
+      // already name it, so fire the event by hand too
+      await c.evaluate(`location.hash = ${json('#' + first)};
+        dispatchEvent(new HashChangeEvent('hashchange')); 1`);
+      await until(`${focused}.id === ${json(first)}`);
+    }
   }
   if (tops[1]) {
     await press('j');

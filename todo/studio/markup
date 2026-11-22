@@ -10,7 +10,11 @@ programmatic access (ask the notes, not scrape them), and the studio later
 or a folder into the list, saved as json. the text is the surface, the list
 is the truth, a view is a renderer over it (renderer: node, renderer, page).
 built: medium/page/list reads a note, a folder or an html page to the list,
-lisp or --json. next: page/todo reads through it; the round trip.
+lisp or --json. page/todo renders the first leaves itself:
+a paragraph flows (hard-wrapped lines join), a "- " run is a list, "- [ ]"
+a step with its box, an aligned block (columns, a diagram) stays a pre, a
+rule line only parts blocks. next: page/todo reads through it; the round
+trip.
 
 ├── tree     a heading is a node, nesting is depth
 ├── head     key: value lines on top

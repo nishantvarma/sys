@@ -1,0 +1,46 @@
+aggregate — a todo of todos. the global index computes; it does not collect.
+
+a project keeps its own todo in its own place (its todo.html, or a page of
+its own). the global page holds links to those places, and standalone
+items. a card's tally is read from the page there, never typed here:
+page/todo's states() and tally() — a folder's own index.html or todo.html,
+or the page a link names. a borrowed link (a file symlinked in) is not the
+folder's own page.
+
+  typed at rest, derived in motion
+    a note's state is typed: a person moves it by editing (renderer)
+    a link's state is derived: the page it names holds the nodes
+    a run's state is derived: ls is the status
+
+todo and pipeline are one structure with two evaluators. the evaluator
+differs — you, or the runner — the tree and the renderer do not. a gate is
+an open node, reads are after:. "open is a decision for a human" holds at
+every level.
+
+the lifecycle of a node: a bare name (an idea) -> a line -> a README -> a
+folder -> a folder with its own todo. the same node at every size; only the
+tally changes. an idea lives in the global list alone until it is work;
+then the content moves to its place and the entry becomes a link.
+
+a project's todo can be a folder, todo/, an entry a task. a folder named
+todo writes its page, todo.html, beside itself, unless it has an
+index.html of its own.
+
+the isomorphism: the global page is the forest. a card folded shows the
+tally; open, it holds the project's real task nodes, inlined from its
+todo/, ids the path down (index.html#proj/task). after: links resolve
+inside the card. the engine has one rule for it: one open is the page,
+and j k walk it -- into the node's nodes where it has them, and stepping
+off its end folds it and moves on. run.mjs checks it: step in for a node
+with nodes, come out for a leaf.
+
+the lens rule: the todo page is the todo lens only. a folder's file listing
+is the explorer's lens (the shelf) and is not shown; a card holds state,
+text and its tree. a link to a page keeps its link, the link being the
+entry itself.
+
+one list, every page (renderer) is what makes the fold cheap: the tally is
+a query over the list. open: scan-and-include (a folder with a todo page
+joins by itself) vs the link, curated and ordered, which the page uses.
+
+See renderer (the list), markup (the note's form), studio (the whole).
