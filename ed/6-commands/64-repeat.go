@@ -8,5 +8,5 @@ func (e *editor) repeat() {
 		e.msg = "nothing to repeat"
 		return
 	}
-	e.t.Feed(e.again)
+	e.fed = slices.Concat(e.again, e.fed)
 }

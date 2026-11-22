@@ -16,5 +16,6 @@ type editor struct {
 	done  bool
 	typed []tty.Key // keys read since normal mode was last idle
 	again []tty.Key // the last typed that changed the text: what . types
+	fed   []tty.Key // what . put back, read ahead of the view
 	seen  int       // b.edits at that idle
 }

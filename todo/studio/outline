@@ -50,11 +50,11 @@ The terminal is one view, behind an abstraction
   text a paste brings; a line typed at a prompt comes back through Ask.
   The window is the view's own, so the terminal scrolls by itself and a
   page would scroll natively.
-  fm and ed draw, take their keys and ask through View, their screens byte
-  for byte what they were. Still on tty directly: fm's title and the
-  suspend around a spawned program or an fzf picker; ed's copy to the
-  clipboard, the keys . puts back to replay a change, and its check for
-  keys still waiting.
+  fm and ed draw, take their keys, ask and copy through View, their screens
+  byte for byte what they were. Still on tty directly: fm's title and the
+  suspend around a spawned program or an fzf picker, and ed's check for
+  keys still waiting. The keys . puts back to replay a change wait in ed's
+  own queue, ahead of the view's.
   A page view still runs fm or ed here, as a process beside the files: the
   page is its screen and its keys, over localhost with a token. That is
   the step studio puts off (studio:/It makes the page an app/), and this
@@ -64,10 +64,12 @@ Messages, not calls
   A foundation of all of sys, as the outline is:
   README:/everything talks in messages/. A program and its view pass only
   plain data: in one process a call whose arguments are data; down a pipe
-  or a socket a JSON line each, as outline.Stream writes them. fm -w runs
-  fm with its view in another process, sh/window, which Tk draws.
+  or a socket a JSON line each, as outline.Stream writes them. fm -w and
+  ed -w run the program with its view in another process, sh/window, which
+  Tk draws and outline.Window starts. It draws ed's text as text, in the
+  terminal's font, and hands ed every key.
     to the view      draw: the tree, the program's word and its state;
-                     ask: a prompt
+                     ask: a prompt; copy: text for the clipboard
     to the program   key: its name, the node it was said on and any text;
                      answer: the line typed; size: how much the view shows
   A message joins when a view needs one, as a primitive does. ed sends
@@ -125,7 +127,8 @@ The status line, at the bottom only, in every view
   view's, its layout and where the cursor is, 12/34. Short of room the
   word is cut, for the state says what holds now. The top line keeps
   where: the path, or an item's address. A prompt takes the bottom line
-  while it asks. ed says no state yet; its words come with its window.
+  while it asks. ed says its mode, and + while unsaved; its views add
+  where the cursor is, line:col.
 
 fm and ed as primitives, three ways
   proposed  fm grows into the studio: it already is the outline at the
@@ -162,7 +165,11 @@ Open
     that draws an outline on a terminal; a second lifts it out beside
     outline, as the window already is
     (programming/standalone:/one host, one call site/)
+  - ed in the window: a click does not move the cursor, for ed's lines
+    have no ids yet
+  - fm's yank still runs xclip; the view's copy would carry it into a
+    window too
 
 The plan, each step checked to change nothing it should not
-  1  ed in a window, and a page view of both.
+  1  a page view of fm and ed.
   2  the keys, decided last, once the ideas are settled.

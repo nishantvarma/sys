@@ -1,3 +1,5 @@
+// run is ed on the terminal: a screen of its own, a paste as one key, and
+// the shell's screen back when it is done.
 func (e *editor) run() error {
 	t, err := tty.New()
 	if err != nil {
@@ -13,35 +15,6 @@ func (e *editor) run() error {
 		t.Flush()
 		t.Close()
 	}()
-	for !e.done {
-		// Only the last frame of a burst is worth painting, and a
-		// paste is a long burst: draw once the queue has run dry.
-		if !t.Pending() {
-			e.draw()
-		}
-		ev, ok := e.ui.Key()
-		if !ok {
-			break
-		}
-		k := keyOf(ev)
-		if k.Name == tty.KResize { // redraw at the top of the loop
-			continue
-		}
-		// Ctrl-C is a raw byte here: quit through the guard
-		if k.Name == tty.KInt {
-			e.quit()
-			continue
-		}
-		e.msg = ""
-		e.typed = append(e.typed, k)
-		// A paste is text, not keystrokes: it goes in whole, in
-		// either mode, and never through a binding.
-		if k.Name == tty.KPaste {
-			e.pasteText(k.Text)
-		} else {
-			e.mode.key(e, k)
-		}
-		e.keep()
-	}
+	e.loop()
 	return nil
 }

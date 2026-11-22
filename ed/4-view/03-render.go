@@ -1,4 +1,9 @@
-func (v *term) render(n *outline.Node, status string, w, h int) string {
+func (v *term) render(
+	n *outline.Node,
+	status string,
+	state []string,
+	w, h int,
+) string {
 	line := curLine(n)
 	v.scroll(n, line, h-1, w)
 	var b strings.Builder
@@ -14,7 +19,7 @@ func (v *term) render(n *outline.Node, status string, w, h int) string {
 	}
 	cur := n.Kids[line]
 	col := cursorCol(cur)
-	b.WriteString(statusLine(n, status, line, col, w, h))
+	b.WriteString(statusLine(n, state, status, line, col, w, h))
 	// Place the real cursor at the head's visual column, shaped by mode.
 	// scroll has already put that column inside the window.
 	row := line - v.top + 1
@@ -25,7 +30,7 @@ func (v *term) render(n *outline.Node, status string, w, h int) string {
 			row,
 			x,
 			tty.Cnorm,
-			cursorShape(n.Tags[0]),
+			cursorShape(state[0]),
 		),
 	)
 	return b.String()

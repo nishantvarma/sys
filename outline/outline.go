@@ -7,6 +7,8 @@ package outline
 import (
 	"encoding/json"
 	"io"
+	"os"
+	"os/exec"
 )
 
 // Node is one thing to show: what kind it is, what it says, and the nodes
@@ -43,13 +45,15 @@ type View interface {
 	Key() (Key, bool)
 	Ask(prompt, def string) (string, bool) // def: the line it starts from
 	Size() (w, h int)                      // how much it shows at once
+	Copy(text string)                      // text onto the clipboard
 }
 
-// msg is one line on the wire, a JSON object with one part set: draw and
-// ask go to the view; key, answer and size come back.
+// msg is one line on the wire, a JSON object with one part set: draw, ask
+// and copy go to the view; key, answer and size come back.
 type msg struct {
 	Draw   *draw   `json:"draw,omitempty"`
 	Ask    *ask    `json:"ask,omitempty"`
+	Copy   *clip   `json:"copy,omitempty"`
 	Key    *Key    `json:"key,omitempty"`
 	Answer *answer `json:"answer,omitempty"`
 	Size   *size   `json:"size,omitempty"`
@@ -64,6 +68,10 @@ type draw struct {
 type ask struct {
 	Prompt string `json:"prompt"`
 	Def    string `json:"def"`
+}
+
+type clip struct {
+	Text string `json:"text"`
 }
 
 type answer struct {
@@ -90,6 +98,34 @@ type stream struct {
 
 func (s *stream) Draw(n *Node, status string, state []string) {
 	s.out.Encode(msg{Draw: &draw{n, status, state}})
+}
+
+func (s *stream) Copy(text string) {
+	s.out.Encode(msg{Copy: &clip{text}})
+}
+
+// Window starts the program window and is the view at its other end: what
+// to show goes down its input and keys come back up its output, a JSON
+// line each. done closes its input, which ends it, and waits for it.
+func Window() (v View, done func() error, err error) {
+	c := exec.Command("window")
+	in, err := c.StdinPipe()
+	if err != nil {
+		return nil, nil, err
+	}
+	out, err := c.StdoutPipe()
+	if err != nil {
+		return nil, nil, err
+	}
+	c.Stderr = os.Stderr
+	if err := c.Start(); err != nil {
+		return nil, nil, err
+	}
+	done = func() error {
+		in.Close()
+		return c.Wait()
+	}
+	return Stream(out, in), done, nil
 }
 
 // Key reads the next key. A new size is a key too, RESIZE as tty names

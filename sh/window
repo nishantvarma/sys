@@ -168,6 +168,13 @@ foreach {kind colour} $fg {
 # tiles are drawn on a canvas, which takes the tree's place
 canvas .c -background #ffffff -highlightthickness 0 -takefocus 1 \
     -yscrollincrement 24
+# a program's text, as ed's buffer, is drawn as text in the terminal's font
+set mono {{DejaVu Sans Mono} 11}
+text .x -font $mono -wrap none -borderwidth 0 -highlightthickness 0 \
+    -background #ffffff -foreground #1c211f -padx 12 -pady 6 \
+    -insertwidth 0 -exportselection 0 -takefocus 1
+.x tag configure picked -background #dbe4f0
+.x tag configure cur -background #1c211f -foreground #ffffff
 set marks {dir / link @ exec * bad @}
 
 # -- what comes in
@@ -181,6 +188,10 @@ proc draw {d} {
 # as the tree, every open folder from the top, nested
 proc show {} {
     set top [get $::last tree]
+    if {[get $top kind] eq "text"} {
+        doc $top ;# a program's text, as ed's
+        return
+    }
     set in [zoom $top]
     if {$in eq ""} {
         set in $top
@@ -189,11 +200,7 @@ proc show {} {
     if {$::tree} {
         set shown $top
     }
-    set head [get $shown id]
-    set home $::env(HOME)
-    if {$head eq $home || [string first $home/ $head] == 0} {
-        set head ~[string range $head [string length $home] end]
-    }
+    set head [tilde [get $shown id]]
     wm title . $head
     .head configure -text $head
     .foot.word configure -text [get $::last status]
@@ -203,9 +210,10 @@ proc show {} {
     set ::rows {}
     set ::cur -1
     set ::here 0
-    set on .t
+    set ::on .t
+    grid remove .x
     if {$::lay eq "tiles"} {
-        set on .c
+        set ::on .c
         grid remove .t
         grid .c -row 1 -column 0 -sticky nsew
         tiles $in
@@ -222,7 +230,7 @@ proc show {} {
     if {$::cur < 0} {
         set ::cur $::here ;# an empty folder holds the cursor on its own row
     }
-    if {[llength $::rows] > 0 && $on eq ".t"} {
+    if {[llength $::rows] > 0 && $::on eq ".t"} {
         .t see r$::cur
     }
     # the state: the program's words, then the window's own, its layout and
@@ -236,8 +244,79 @@ proc show {} {
     }
     .foot.state configure -text $mine
     if {!$::asking} {
-        focus $on
+        focus $::on
     }
+}
+
+# doc shows a program's text, as ed's buffer: its lines in the terminal's
+# font, and in them the selection and the cursor, a block, or a bar in
+# insert mode; the path on top, and on the bottom line the program's word,
+# its state, and where the cursor is, line:col. Every key is the
+# program's: an editor's keys are its language
+proc doc {n} {
+    set ::on .x
+    grid remove .t
+    grid remove .c
+    grid .x -row 1 -column 0 -sticky nsew
+    set head [tilde [get $n text]]
+    wm title . $head
+    .head configure -text $head
+    .foot.word configure -text [get $::last status]
+    set state [get $::last state]
+    set bar [expr {[lindex $state 0] eq "insert"}]
+    .x delete 1.0 end
+    set at 1.0
+    set i 0
+    foreach k [get $n kids] {
+        incr i
+        set runs [get $k kids]
+        if {[llength $runs] == 0} {
+            .x insert end [get $k text]
+        }
+        set col 0
+        foreach r $runs {
+            set t [get $r text]
+            set tags [expr {[get $r sel 0] ? "picked" : ""}]
+            if {$t eq "\n"} {
+                set t " " ;# a selected line break
+            }
+            if {[get $r cur 0]} {
+                set at $i.$col
+                if {!$bar} {
+                    if {$t eq ""} {
+                        set t " " ;# past the line's end
+                    }
+                    .x insert end [string index $t 0] [concat $tags cur]
+                    set t [string range $t 1 end]
+                    incr col
+                }
+            }
+            .x insert end $t $tags
+            incr col [string length $t]
+        }
+        .x insert end \n
+    }
+    .x configure -insertwidth [expr {$bar ? 2 : 0}]
+    .x mark set insert $at
+    .x see $at
+    lassign [split $at .] line col
+    set mine "$line:[expr {$col + 1}]"
+    if {[llength $state] > 0} {
+        set mine "[join $state " "] · $mine"
+    }
+    .foot.state configure -text $mine
+    if {!$::asking} {
+        focus .x
+    }
+}
+
+# tilde is path p with the home folder said as ~
+proc tilde {p} {
+    set home $::env(HOME)
+    if {$p eq $home || [string first $home/ $p] == 0} {
+        return ~[string range $p [string length $home] end]
+    }
+    return $p
 }
 
 # tiles lays out n's kids as a grid read left to right, each tile as wide
@@ -347,6 +426,7 @@ proc zoom {n} {
 }
 
 set last {}
+set on .t  ;# the widget showing: .t the list, .c tiles, .x text
 set lay {} ;# the layout: {} the cursor's folder, tree, or tiles
 set tree 0 ;# laid out as the tree
 set rows {}
@@ -373,16 +453,29 @@ proc answer {text ok} {
     set ::asking 0
     grid remove .ask
     grid .foot
-    focus [expr {$::lay eq "tiles" ? ".c" : ".t"}]
+    focus $::on
     set ok [expr {$ok ? "true" : "false"}]
     say "{\"answer\":{\"text\":[jstr $text],\"ok\":$ok}}"
 }
 
-proc key {name {node ""}} {
+proc key {name {node ""} {text ""}} {
     if {$::asking || ($name eq "" && $node eq "")} {
         return
     }
-    say "{\"key\":{\"name\":[jstr $name],\"node\":[jstr $node]}}"
+    set k "\"name\":[jstr $name],\"node\":[jstr $node]"
+    if {$text ne ""} {
+        append k ",\"text\":[jstr $text]"
+    }
+    say "{\"key\":{$k}}"
+}
+
+# pasted sends what is on the clipboard, or the selection a middle click
+# brings, as one key, PASTE, the way a terminal's bracketed paste comes
+proc pasted {which} {
+    if {$::on ne ".x" || [catch {selection get -selection $which} text]} {
+        return
+    }
+    key PASTE "" $text
 }
 
 # a move among the rows is the window's own: down, up, the last, a page,
@@ -464,6 +557,10 @@ proc pressed {name} {
     if {$::asking} {
         return
     }
+    if {$::on eq ".x"} {
+        key $name ;# an editor's keys are its language
+        return
+    }
     if {$name eq "t"} {
         set ::lay [dict get {{} tree tree tiles tiles {}} $::lay]
         set ::tree [expr {$::lay eq "tree"}]
@@ -480,6 +577,9 @@ proc keyname {sym ch} {
         Up UP Down DOWN Left LEFT Right RIGHT Prior PGUP Next PGDN}
     if {[dict exists $named $sym]} {
         return [dict get $named $sym]
+    }
+    if {$ch eq "\x03"} {
+        return INT ;# ctrl-c, as tty names it
     }
     if {[string length $ch] == 1 && [string is print $ch]} {
         return $ch
@@ -519,6 +619,22 @@ bind .c <Button-4> {.c yview scroll -1 units}
 bind .c <Button-5> {.c yview scroll 1 units}
 bind .c <MouseWheel> {.c yview scroll [expr {-%D / 120}] units}
 bind .c <Configure> {if {$lay eq "tiles"} show}
+
+# sized says how much the text shows, as a terminal would: columns, and
+# rows with one more for the bottom line
+proc sized {w h} {
+    set cols [expr {($w - 24) / [font measure $::mono 0]}]
+    set rows [expr {($h - 12) / [font metrics $::mono -linespace] + 1}]
+    say "{\"size\":{\"w\":$cols,\"h\":$rows}}"
+}
+
+bindtags .x {.x . all} ;# every key in the text is the program's
+bind .x <Button-4> {.x yview scroll -3 units}
+bind .x <Button-5> {.x yview scroll 3 units}
+bind .x <MouseWheel> {.x yview scroll [expr {-%D / 40}] units}
+bind .x <ButtonRelease-2> {pasted PRIMARY}
+bind . <Control-V> {pasted CLIPBOARD} ;# ctrl-shift-v, as in a terminal
+bind .x <Configure> {sized %w %h}
 bind . <Key> {pressed [keyname %K %A]}
 bind .t <ButtonRelease-1> {clicked %x %y ""}
 bind .t <Double-1> {clicked %x %y ENTER}
@@ -547,6 +663,10 @@ fileevent stdin readable {
     }
     if {[dict exists $m ask]} {
         ask [dict get $m ask]
+    }
+    if {[dict exists $m copy]} {
+        clipboard clear
+        clipboard append -- [get [dict get $m copy] text]
     }
 }
 focus .t

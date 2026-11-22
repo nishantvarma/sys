@@ -1,9 +1,14 @@
 // statusLine: colour-coded mode + filename on the left, line:col on the right.
 // A transient message takes the filename's place.
-func statusLine(n *outline.Node, status string, line, col, w, h int) string {
-	mode := n.Tags[0]
+func statusLine(
+	n *outline.Node,
+	state []string,
+	status string,
+	line, col, w, h int,
+) string {
+	mode := state[0]
 	info := tilde(n.Text)
-	if slices.Contains(n.Tags[1:], "+") {
+	if slices.Contains(state[1:], "+") {
 		info += " +"
 	}
 	if status != "" {
