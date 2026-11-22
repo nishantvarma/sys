@@ -90,8 +90,11 @@ Who holds what
            where the cursor landed. In the tree it goes in and out itself:
            a node opens or closes in place, the view saying open or close
            on it and the program sending what is inside, and out goes up to
-           the node a row is in. In the other two, going in and out stays
-           the program's, for it changes what is shown, and so does g, the
+           the node a row is in. Its hints are its own: in the terminal ⌄
+           on what is open, › on what can open, depth by the indent alone,
+           and a bracket, ╭ to ╰, down a text file's items, which the window
+           tints instead. In the other two, going in and out stays the
+           program's, for it changes what is shown, and so does g, the
            first file, which skips the folder's own . and .. rows that only
            fm knows.
   between  ideas, by name: down, in, zoom, rename. A key is one way to say
@@ -155,6 +158,10 @@ Open
   - an item's id is its line, so an edit above it moves it; the cursor
     then goes back to the file's row
   - a text file is read on every key, so one over a megabyte stays shut
+  - the terminal view stays in fm, fm/2-view, while fm is the one program
+    that draws an outline on a terminal; a second lifts it out beside
+    outline, as the window already is
+    (programming/standalone:/one host, one call site/)
 
 The plan, each step checked to change nothing it should not
   1  ed in a window, and a page view of both.

@@ -3,7 +3,7 @@
 // the top, under the top's path.
 func (v *term) shown() (*outline.Node, []row) {
 	if v.lay == "tree" {
-		return v.last, flat(v.last, 0)
+		return v.last, flat(v.last, 0, "")
 	}
 	z := zoom(v.last)
 	if z == nil {
@@ -11,7 +11,7 @@ func (v *term) shown() (*outline.Node, []row) {
 	}
 	rows := make([]row, len(z.Kids))
 	for i, k := range z.Kids {
-		rows[i] = row{k, 0}
+		rows[i] = row{n: k}
 	}
 	return z, rows
 }

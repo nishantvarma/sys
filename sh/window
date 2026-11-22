@@ -164,6 +164,7 @@ foreach {kind colour} $fg {
     .t tag configure $kind -foreground $colour
 }
 .t tag configure sel -background #e5e8e4
+.t tag configure inside -background #f8f6ef ;# a file's items, in the tree
 # tiles are drawn on a canvas, which takes the tree's place
 canvas .c -background #ffffff -highlightthickness 0 -takefocus 1 \
     -yscrollincrement 24
@@ -309,6 +310,8 @@ proc rows {n parent} {
         set tags [list $kind]
         if {[get $k sel 0]} {
             lappend tags sel
+        } elseif {$::tree && $kind eq "item" && ![get $k cur 0]} {
+            lappend tags inside ;# set apart, as the terminal's bracket does
         }
         set more [llength [get $k kids]]
         set open [expr {$::tree && [get $k open 0]}]
