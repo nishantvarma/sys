@@ -1,5 +1,5 @@
 // flat is the rows a tree shows: n's kids, and under each open one its own,
-// a level deeper. Each row's lead is its hint: ⌄ on an open node, › on one
+// a level deeper. Each row's lead is its hint: ▾ on an open node, ▸ on one
 // that can open, a folder or a node with more inside, and spaces on the
 // rest, so that the names line up; depth is the indent alone. A text
 // file's items stand in a bracket, the left side of a box (see bracket).
@@ -10,9 +10,9 @@ func flat(n *outline.Node, depth int, indent string) []row {
 		mark := "  "
 		switch {
 		case k.Open:
-			mark = "⌄ "
+			mark = "▾ "
 		case k.Kind == "dir" || len(k.Kids) > 0:
-			mark = "› "
+			mark = "▸ "
 		}
 		rows = append(rows, row{k, depth, indent + mark})
 		if k.Open {

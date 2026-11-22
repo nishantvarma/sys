@@ -92,8 +92,8 @@ Who holds what
            where the cursor landed. In the tree it goes in and out itself:
            a node opens or closes in place, the view saying open or close
            on it and the program sending what is inside, and out goes up to
-           the node a row is in. Its hints are its own: in the terminal ⌄
-           on what is open, › on what can open, depth by the indent alone,
+           the node a row is in. Its hints are its own: in the terminal ▾
+           on what is open, ▸ on what can open, depth by the indent alone,
            and a bracket, ╭ to ╰, down a text file's items, which the window
            tints instead. In the other two, going in and out stays the
            program's, for it changes what is shown, and so does g, the
