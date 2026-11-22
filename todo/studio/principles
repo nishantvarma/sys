@@ -1,5 +1,17 @@
 principles: the studio, in five lines
 
+The goal, first: one outline, two renderers
+  sys has grown pieces that each read and draw notes their own way: three
+  programs read a note's text, and two make a todo page. The first goal
+  is fewer. One outline runs from the root through folders and files to a
+  single item of a note (README:/The outline does not stop at a file/). One
+  reader builds it, medium/page/list. Two views draw it, the terminal and
+  the page in the browser, with one cursor, so you go into an item, act on
+  it and come back out at any level, in either. fm and ed run in either
+  view: what they do does not change with where it is shown. A primitive is
+  added once, to the reader, and both views draw it. A piece that serves
+  none of this goes.
+
 Built on sys, not beside it
   The studio is ed, fm and the rest of sys, not a new program. ed edits a
   thing, fm moves between things, tty is the terminal both stand on, and
@@ -38,8 +50,8 @@ A new idea fits if it is a lens on a thing, or a verb the terminal runs.
 If it is neither, it does not belong.
 
 Not built: follow (callers and callees at the edge), the graph, the run lens.
-First: follow. It needs no new picture; it is the join of diff and graph.
-Then: run, starting with tests, which already write a file.
+After the goal: follow. It needs no new picture; it is the join of diff and
+graph. Then: run, starting with tests, which already write a file.
 
 Open
   - may the shelf start a run itself (a key), or does that stay in the
@@ -47,5 +59,6 @@ Open
     it would bend.
   - a trace needs something to run: a test, a script, a request.
 
-See renderer (file -> nodes), terminal (the pane), studio (the whole, and the
-page it grew from), refactor (the build order).
+See outline (the goal, in Go), renderer (file -> nodes), terminal (the
+pane), studio (the whole, and the page it grew from), refactor (the build
+order).

@@ -1,0 +1,161 @@
+outline: the studio's goal, built in Go. One tree from the root, read once
+and drawn twice: on the terminal, and as a page in the browser. Proposed:
+grow fm into it rather than start a program beside it
+(principles:/Built on sys, not beside it/).
+
+The shape, a tangle tree like fm's and ed's
+  1-outline  one Node: kind, name, text, kids; the root is ~
+  2-read     a folder, by fm's fs; a note, by page/list's rules in Go
+  3-kinds    the primitives, a folder each: task, mr, ticket, ref
+  4-term     the tree on sys/tty, one cursor: j k move, l in, h out
+  5-html     the same tree as page.html's nodes, so the page's keys and
+             folds work unchanged
+  6-verbs    e runs ed at the item's line, o runs sh/o, a move says c
+
+The structure is the tree, not a language
+  Folders and files carry it down to the idea, and inside a file the
+  note's own outline carries the rest: its indent, items and labels. A
+  file per idea, not per field: field files cost a file per label, make a
+  task slower to write, and change nothing on the page. An s-expression is
+  only a way to print the tree for a program, as medium/page/list --json
+  does; no page language sits between the tree and a view.
+
+A primitive is a folder: the text it matches, such as !290, how the
+terminal draws it, how the page draws it, and what can be done with it.
+It registers itself, and tangle's <<others>> sweeps it in: no plugin
+system and no runtime library, as a page already carries its parts
+(studio:/carries its parts by/). ls 3-kinds is the list of primitives. A
+primitive earns its place when the notes keep needing what the reader
+cannot say, and it replaces a program, or two views need it.
+
+The terminal is one view, behind an abstraction
+  fm does what a file manager does, and ed what an editor does; how either
+  is shown is abstracted, in sys/outline. A program says what to show as
+  nodes, the same Node as the outline: fm's rows, ed's lines and
+  selections. It takes keys by name. A view draws the nodes and hands back
+  the names:
+
+    type View interface {
+        Draw(n *Node, status string, state []string) // the tree, the status
+        Key() (Key, bool)                            // what was pressed, where
+        Ask(prompt, def string) (string, bool)       // a line typed in answer
+        Size() (w, h int)                            // how much shows at once
+    }
+
+  Any system that implements View can show and work fm and ed: the
+  terminal on tty, a page, wish. Nodes, not cells: cells would make the
+  page a terminal in a browser, as ttyd does, where nodes let it draw a
+  pill or a chip. Interaction is the other half of a view: a key comes back
+  by name, with the node it was said on, as a click names one, and the
+  text a paste brings; a line typed at a prompt comes back through Ask.
+  The window is the view's own, so the terminal scrolls by itself and a
+  page would scroll natively.
+  fm and ed draw, take their keys and ask through View, their screens byte
+  for byte what they were. Still on tty directly: fm's title and the
+  suspend around a spawned program or an fzf picker; ed's copy to the
+  clipboard, the keys . puts back to replay a change, and its check for
+  keys still waiting.
+  A page view still runs fm or ed here, as a process beside the files: the
+  page is its screen and its keys, over localhost with a token. That is
+  the step studio puts off (studio:/It makes the page an app/), and this
+  goal takes it.
+
+Messages, not calls
+  A foundation of all of sys, as the outline is:
+  README:/everything talks in messages/. A program and its view pass only
+  plain data: in one process a call whose arguments are data; down a pipe
+  or a socket a JSON line each, as outline.Stream writes them. fm -w runs
+  fm with its view in another process, sh/window, which Tk draws.
+    to the view      draw: the tree, the program's word and its state;
+                     ask: a prompt
+    to the program   key: its name, the node it was said on and any text;
+                     answer: the line typed; size: how much the view shows
+  A message joins when a view needs one, as a primitive does. ed sends
+  every line, until a measure says lines must be read on demand. What only
+  a terminal can do stays with it: in a window fm says running another
+  program, a picker or help needs the terminal.
+
+Who holds what
+  program  the data, the cursor and the selection: what its verbs act on.
+           fm sends one tree, from its top, where it began, down through
+           what a view opened, folders and text files, and the way to the
+           cursor, which may be on an item inside a file; going out past
+           the top brings the top along.
+  view     how it shows, in one of three layouts, t turning to the next:
+           the cursor's folder as a list, the tree from the top, or the
+           folder as tiles, a grid read left to right. It moves the cursor
+           among what it shows, down, up, to the last, a page, and in the
+           terminal to a row by its number; as tiles right and left move
+           too, and down and up go a line of tiles. It tells the program
+           where the cursor landed. In the tree it goes in and out itself:
+           a node opens or closes in place, the view saying open or close
+           on it and the program sending what is inside, and out goes up to
+           the node a row is in. In the other two, going in and out stays
+           the program's, for it changes what is shown, and so does g, the
+           first file, which skips the folder's own . and .. rows that only
+           fm knows.
+  between  ideas, by name: down, in, zoom, rename. A key is one way to say
+           one and a click another. A view does the ideas of moving itself,
+           and hands the rest to the program with the node they were said
+           on. ed passes its keys through: an editor's keys are its
+           language.
+
+What opening shows, and what a key does, go by kind
+  Opening a node shows what its kind holds: a folder its rows, a text file
+  its items, anything else nothing, for o opens it beside. That is a
+  format dispatcher in place, fm/4-main/35-inside.go, and a new format
+  joins it as one more case. Every text file is read the same way, by
+  outline.Text: by its indent, as Python is read, a line's kids being the
+  lines indented under it, and a line that hangs under the text after a
+  dash, a number or a label going on with the line above. No markup and
+  no guessing; text with no structure is made structured by indenting it.
+  An item's id is its path and line, an address, so e edits there.
+  A key goes by kind too: the view's own first, moving and folding, then
+  what the cursor is on. On a file's row it is fm's file verbs; on an item
+  an item's, in, out and e, so no file verb reaches a file through one of
+  its items.
+
+The status line, at the bottom only, in every view
+  On the left the program's word, what just happened or what it asks; on
+  the right the state, a few short words from whoever holds each: the
+  program's, [2] selected, cut:3, mark:x, dotfiles, the search; then the
+  view's, its layout and where the cursor is, 12/34. Short of room the
+  word is cut, for the state says what holds now. The top line keeps
+  where: the path, or an item's address. A prompt takes the bottom line
+  while it asks. ed says no state yet; its words come with its window.
+
+fm and ed as primitives, three ways
+  proposed  fm grows into the studio: it already is the outline at the
+            folder level, with one cursor, h and l. ed stays ed: the
+            studio never edits text itself, and e hands ed the item, in
+            the terminal or on the page.
+  later     fm and ed as Go packages, each a component with its keys and
+            its views, their mains ten lines, so one process can host
+            both on one page. A primitive is a Go interface from the
+            start, so this stays open.
+  not       both stitched into one main.go: they share twelve top-level
+            names (binding cut draw help paste prompt render run search
+            tilde userHome yank), and tangle walks with WalkDir, which does
+            not follow a linked folder.
+
+The check: outline/text_test.go carries one note through every rule, and
+over every text file in sys the nodes say, word for word and in order,
+what the file says.
+
+What retires once it holds: page/todo and page/list, the python that reads
+and draws notes (principles:/A piece that serves none of this/).
+
+Open
+  - grow fm, or a studio tree that hosts fm and ed
+  - fm and ed on one page from one process, or a page each
+  - select moves down within the cursor's folder only, so in the tree it
+    stops at the folder's last row
+  - a file is gone into only in the tree: in the folder and as tiles,
+    enter on a file's row edits, until the keys are settled
+  - an item's id is its line, so an edit above it moves it; the cursor
+    then goes back to the file's row
+  - a text file is read on every key, so one over a megabyte stays shut
+
+The plan, each step checked to change nothing it should not
+  1  ed in a window, and a page view of both.
+  2  the keys, decided last, once the ideas are settled.

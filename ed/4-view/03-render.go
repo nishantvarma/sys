@@ -1,27 +1,31 @@
-func render(f frame) string {
+func (v *term) render(n *outline.Node, status string, w, h int) string {
+	line := curLine(n)
+	v.scroll(n, line, h-1, w)
 	var b strings.Builder
 	b.WriteString(tty.Home)
-	body := f.h - 1 // screen rows above the status line
+	body := h - 1 // screen rows above the status line
 	for r := 0; r < body; r++ {
-		idx := f.top + r
-		if idx < f.rows {
-			tty.Line(&b, paintLine(f, idx))
+		idx := v.top + r
+		if idx < len(n.Kids) {
+			tty.Line(&b, v.paintLine(n.Kids[idx], w))
 		} else {
 			tty.Line(&b, "")
 		}
 	}
-	b.WriteString(statusLine(f))
+	cur := n.Kids[line]
+	col := cursorCol(cur)
+	b.WriteString(statusLine(n, status, line, col, w, h))
 	// Place the real cursor at the head's visual column, shaped by mode.
 	// scroll has already put that column inside the window.
-	row := f.head.line - f.top + 1
-	col := visualCol(f.line(f.head.line), f.head.col) - f.off + 1
+	row := line - v.top + 1
+	x := visualCol([]rune(cur.Text), col) - v.off + 1
 	b.WriteString(
 		fmt.Sprintf(
 			"\x1b[%d;%dH%s%s",
 			row,
-			col,
+			x,
 			tty.Cnorm,
-			cursorShape(f.mode),
+			cursorShape(n.Tags[0]),
 		),
 	)
 	return b.String()

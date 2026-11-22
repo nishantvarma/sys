@@ -12,6 +12,8 @@ func newFM(path string) (*fm, error) {
 	id, on := pane()
 	m := &fm{
 		cwd:  cwd,
+		root: cwd,
+		open: map[string]bool{},
 		this: filepath.Join(userHome, curRel, id),
 		on:   on,
 		pos:  map[string]string{},

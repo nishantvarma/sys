@@ -1,0 +1,549 @@
+#!/usr/bin/env wish
+# window: an outline drawn by Tk, the view at the other end of a program's
+# pipe, as fm -w starts it. A message is a JSON object a line. In come
+# draw, the tree and the status, and ask, a prompt; out go key, a key's
+# name or a click on a node by its id, answer, a prompt's line, and size.
+
+package require Tk
+
+# -- reading JSON: an object is a dict, an array a list, true 1, false
+# and null 0; a view needs no more to read what comes in
+
+proc json {s} {
+    set i 0
+    return [jvalue $s i]
+}
+
+proc jskip {s iv} {
+    upvar $iv i
+    while {[string is space -strict [string index $s $i]]} {
+        incr i
+    }
+}
+
+proc jvalue {s iv} {
+    upvar $iv i
+    jskip $s i
+    set c [string index $s $i]
+    if {$c eq "\{"} {
+        incr i
+        set d [dict create]
+        jskip $s i
+        if {[string index $s $i] eq "\}"} {
+            incr i
+            return $d
+        }
+        while 1 {
+            jskip $s i
+            set k [jstring $s i]
+            jskip $s i
+            incr i ;# the colon
+            dict set d $k [jvalue $s i]
+            jskip $s i
+            set c [string index $s $i]
+            incr i
+            if {$c ne ","} {
+                return $d
+            }
+        }
+    }
+    if {$c eq "\["} {
+        incr i
+        set l {}
+        jskip $s i
+        if {[string index $s $i] eq "\]"} {
+            incr i
+            return $l
+        }
+        while 1 {
+            lappend l [jvalue $s i]
+            jskip $s i
+            set c [string index $s $i]
+            incr i
+            if {$c ne ","} {
+                return $l
+            }
+        }
+    }
+    if {$c eq "\""} {
+        return [jstring $s i]
+    }
+    # a word: true, false, null or a number
+    regexp -start $i {[a-z0-9.eE+-]+} $s w
+    incr i [string length $w]
+    return [string map {true 1 false 0 null 0} $w]
+}
+
+proc jstring {s iv} {
+    upvar $iv i
+    incr i ;# the opening quote
+    set out ""
+    while 1 {
+        set c [string index $s $i]
+        incr i
+        if {$c eq "\"" || $c eq ""} {
+            return $out
+        }
+        if {$c ne "\\"} {
+            append out $c
+            continue
+        }
+        set e [string index $s $i]
+        incr i
+        switch -- $e {
+            n {append out \n}
+            t {append out \t}
+            r {append out \r}
+            b {append out \b}
+            f {append out \f}
+            u {
+                set hex [string range $s $i [expr {$i + 3}]]
+                append out [format %c [scan $hex %x]]
+                incr i 4
+            }
+            default {append out $e}
+        }
+    }
+}
+
+# -- writing: a string as JSON, and a message out
+
+proc jstr {s} {
+    set s [string map {\\ \\\\ \" \\\" \n \\n \r \\r \t \\t} $s]
+    return "\"$s\""
+}
+
+proc say {line} {
+    puts $line
+    flush stdout
+}
+
+proc get {d k {def ""}} {
+    if {[dict exists $d $k]} {
+        return [dict get $d $k]
+    }
+    return $def
+}
+
+# -- the look: page.html's colours, and fm's marks after a name
+
+wm title . fm
+wm geometry . 760x560
+wm protocol . WM_DELETE_WINDOW exit
+ttk::style theme use clam
+ttk::style configure Treeview -font {{Ubuntu Sans} 11} -rowheight 24 \
+    -background #ffffff -fieldbackground #ffffff -foreground #1c211f \
+    -borderwidth 0
+ttk::style map Treeview -background {selected #fff4d6} \
+    -foreground {selected #1c211f}
+ttk::style configure TLabel -background #f5f6f4 -foreground #1c211f
+ttk::style configure TFrame -background #f5f6f4
+. configure -background #f5f6f4
+
+ttk::label .head -anchor w -padding {12 8} -font {{Ubuntu Sans} 11 bold}
+ttk::treeview .t -show tree -selectmode browse
+ttk::frame .foot ;# the bottom line: the program's word, then the state
+ttk::label .foot.word -anchor w -padding {12 6} -foreground #68716d
+ttk::label .foot.state -anchor e -padding {12 6} -foreground #68716d
+pack .foot.state -side right
+pack .foot.word -side left -fill x -expand 1
+ttk::frame .ask -padding {12 6}
+ttk::label .ask.p
+ttk::entry .ask.e
+pack .ask.p -side left
+pack .ask.e -side left -fill x -expand 1
+grid .head -sticky ew
+grid .t -sticky nsew
+grid .foot -sticky ew
+grid columnconfigure . 0 -weight 1
+grid rowconfigure . 1 -weight 1
+
+set font {{Ubuntu Sans} 11}
+set fg {dir #2463c7 link #0f7c8c exec #2e8653 bad #c4332a}
+foreach {kind colour} $fg {
+    .t tag configure $kind -foreground $colour
+}
+.t tag configure sel -background #e5e8e4
+# tiles are drawn on a canvas, which takes the tree's place
+canvas .c -background #ffffff -highlightthickness 0 -takefocus 1 \
+    -yscrollincrement 24
+set marks {dir / link @ exec * bad @}
+
+# -- what comes in
+
+proc draw {d} {
+    set ::last $d
+    show
+}
+
+# show lays out the outline drawn last: zoomed, the cursor's folder alone;
+# as the tree, every open folder from the top, nested
+proc show {} {
+    set top [get $::last tree]
+    set in [zoom $top]
+    if {$in eq ""} {
+        set in $top
+    }
+    set shown $in
+    if {$::tree} {
+        set shown $top
+    }
+    set head [get $shown id]
+    set home $::env(HOME)
+    if {$head eq $home || [string first $home/ $head] == 0} {
+        set head ~[string range $head [string length $home] end]
+    }
+    wm title . $head
+    .head configure -text $head
+    .foot.word configure -text [get $::last status]
+    set ::ids [dict create]
+    set ::kinds [dict create]
+    set ::more [dict create]
+    set ::rows {}
+    set ::cur -1
+    set ::here 0
+    set on .t
+    if {$::lay eq "tiles"} {
+        set on .c
+        grid remove .t
+        grid .c -row 1 -column 0 -sticky nsew
+        tiles $in
+    } else {
+        grid remove .c
+        grid .t -row 1 -column 0 -sticky nsew
+        .t delete [.t children {}]
+        rows $shown {}
+        if {$::cur >= 0} {
+            .t selection set r$::cur
+            .t focus r$::cur
+        }
+    }
+    if {$::cur < 0} {
+        set ::cur $::here ;# an empty folder holds the cursor on its own row
+    }
+    if {[llength $::rows] > 0 && $on eq ".t"} {
+        .t see r$::cur
+    }
+    # the state: the program's words, then the window's own, its layout and
+    # where the cursor is
+    set mine [expr {$::lay eq "" ? "folder" : $::lay}]
+    if {[llength $::rows] > 0} {
+        append mine " [expr {$::cur + 1}]/[llength $::rows]"
+    }
+    if {[llength [get $::last state]] > 0} {
+        set mine "[join [get $::last state] " "] · $mine"
+    }
+    .foot.state configure -text $mine
+    if {!$::asking} {
+        focus $on
+    }
+}
+
+# tiles lays out n's kids as a grid read left to right, each tile as wide
+# as the widest caption, up to 240 pixels, the cursor's line kept in sight
+proc tiles {n} {
+    .c delete all
+    set ::cw 0
+    foreach k [get $n kids] {
+        set ::cw [expr {max($::cw, [font measure $::font [caption $k]])}]
+    }
+    set ::cw [expr {min($::cw, 240) + 32}]
+    set ::cols [expr {max(1, [winfo width .c] / $::cw)}]
+    foreach k [get $n kids] {
+        set i [llength $::rows]
+        set kind [get $k kind file]
+        set x [expr {$i % $::cols * $::cw}]
+        set y [expr {$i / $::cols * 24}]
+        set bg ""
+        if {[get $k cur 0]} {
+            set ::cur $i
+            set bg #fff4d6
+        } elseif {[get $k sel 0]} {
+            set bg #e5e8e4
+        }
+        if {$bg ne ""} {
+            .c create rectangle [expr {$x + 4}] $y [expr {$x + $::cw - 4}] \
+                [expr {$y + 24}] -fill $bg -outline ""
+        }
+        .c create text [expr {$x + 16}] [expr {$y + 12}] -anchor w \
+            -text [fit [caption $k] 240] -font $::font \
+            -fill [get $::fg $kind #1c211f]
+        dict set ::ids r$i [get $k id]
+        dict set ::kinds r$i $kind
+        dict set ::more r$i [llength [get $k kids]]
+        lappend ::rows [get $k id]
+    }
+    set lines [expr {([llength $::rows] + $::cols - 1) / $::cols}]
+    .c configure -scrollregion [list 0 0 [winfo width .c] [expr {$lines * 24}]]
+    if {$::cur >= 0} {
+        set top [expr {max(0, $::cur / $::cols - $::page / 2)}]
+        .c yview moveto [expr {$top / double(max(1, $lines))}]
+    }
+}
+
+# caption is how node k reads: its text, its kind's mark, and … when it is
+# shut with more inside
+proc caption {k} {
+    set s [get $k text][get $::marks [get $k kind file]]
+    if {[llength [get $k kids]] && ![get $k open 0]} {
+        append s " …"
+    }
+    return $s
+}
+
+# fit is s cut, … at its end, to about px pixels wide
+proc fit {s px} {
+    set w [font measure $::font $s]
+    if {$w <= $px} {
+        return $s
+    }
+    return [string range $s 0 [expr {[string length $s] * $px / $w - 2}]]…
+}
+
+# rows puts n's kids under row parent and, as the tree, under each open one
+# its own
+proc rows {n parent} {
+    foreach k [get $n kids] {
+        set i [llength $::rows]
+        set kind [get $k kind file]
+        set tags [list $kind]
+        if {[get $k sel 0]} {
+            lappend tags sel
+        }
+        set more [llength [get $k kids]]
+        set open [expr {$::tree && [get $k open 0]}]
+        set name [caption $k]
+        .t insert $parent end -id r$i -text $name -tags $tags -open $open
+        dict set ::ids r$i [get $k id]
+        dict set ::kinds r$i $kind
+        dict set ::more r$i $more
+        lappend ::rows [get $k id]
+        if {[get $k cur 0]} {
+            set ::cur $i
+        } elseif {[get $k in 0]} {
+            set ::here $i
+        }
+        if {$open} {
+            rows $k r$i
+        }
+    }
+}
+
+# zoom is the node the cursor is among the kids of, else empty
+proc zoom {n} {
+    if {[get $n in 0]} {
+        return $n
+    }
+    foreach k [get $n kids] {
+        set z [zoom $k]
+        if {$z ne ""} {
+            return $z
+        }
+    }
+    return ""
+}
+
+set last {}
+set lay {} ;# the layout: {} the cursor's folder, tree, or tiles
+set tree 0 ;# laid out as the tree
+set rows {}
+set cur 0
+set page 20
+set cols 1 ;# tiles a line
+set cw 1   ;# a tile's width
+
+set asking 0
+
+proc ask {d} {
+    set ::asking 1
+    .ask.p configure -text [get $d prompt]
+    .ask.e delete 0 end
+    .ask.e insert 0 [get $d def]
+    grid remove .foot
+    grid .ask -row 2 -column 0 -sticky ew
+    focus .ask.e
+}
+
+# -- what goes out
+
+proc answer {text ok} {
+    set ::asking 0
+    grid remove .ask
+    grid .foot
+    focus [expr {$::lay eq "tiles" ? ".c" : ".t"}]
+    set ok [expr {$ok ? "true" : "false"}]
+    say "{\"answer\":{\"text\":[jstr $text],\"ok\":$ok}}"
+}
+
+proc key {name {node ""}} {
+    if {$::asking || ($name eq "" && $node eq "")} {
+        return
+    }
+    say "{\"key\":{\"name\":[jstr $name],\"node\":[jstr $node]}}"
+}
+
+# a move among the rows is the window's own: down, up, the last, a page,
+# and as tiles right and left, down and up going a line of tiles; the
+# program hears only where the cursor landed
+proc move {name} {
+    set n [llength $::rows]
+    set step [expr {$::lay eq "tiles" ? $::cols : 1}]
+    switch -- $name {
+        j - DOWN {set d $step}
+        k - UP {set d [expr {-$step}]}
+        PGDN {set d [expr {$::page * $step}]}
+        PGUP {set d [expr {-$::page * $step}]}
+        G {set d $n}
+        RIGHT - LEFT {
+            if {$::lay ne "tiles"} {
+                return 0
+            }
+            set d [expr {$name eq "RIGHT" ? 1 : -1}]
+        }
+        default {return 0}
+    }
+    if {$n > 0} {
+        key "" [lindex $::rows [expr {max(0, min($::cur + $d, $n - 1))}]]
+    }
+    return 1
+}
+
+# folds is whether key name opens or closes row r in place: enter and
+# right do on a folder or an item with kids, and right on a file too,
+# asking the program for its items. Enter on a file, or on an item with no
+# kids, is the program's: it edits
+proc folds {r name} {
+    set kind [dict get $::kinds $r]
+    if {$kind eq "item" && [dict get $::more $r] == 0} {
+        return 0
+    }
+    return [expr {$kind in {dir item} || $name eq "RIGHT"}]
+}
+
+# going in and out in the tree is the window's own: enter and right open or
+# close a row that folds, asking the program for what is inside; left and
+# h close what is open, else go up to the node the row is in. Zoomed, and
+# at the top, the key is the program's
+proc turn {name} {
+    if {!$::tree || [llength $::rows] == 0} {
+        return 0
+    }
+    set r r$::cur
+    set id [dict get $::ids $r]
+    set open [.t item $r -open]
+    switch -- $name {
+        ENTER - RIGHT {
+            if {![folds $r $name]} {
+                return 0
+            }
+            key [expr {$open ? "close" : "open"}] $id
+        }
+        LEFT - h {
+            if {$open} {
+                key close $id
+            } elseif {[.t parent $r] ne ""} {
+                key "" [dict get $::ids [.t parent $r]]
+            } else {
+                return 0
+            }
+        }
+        default {
+            return 0
+        }
+    }
+    return 1
+}
+
+# a key pressed: t turns to the next layout, the tree, tiles, the folder; a
+# move or a turn is the window's own, else the key is the program's. A
+# window shows no row numbers, so digits jump nowhere
+proc pressed {name} {
+    if {$::asking} {
+        return
+    }
+    if {$name eq "t"} {
+        set ::lay [dict get {{} tree tree tiles tiles {}} $::lay]
+        set ::tree [expr {$::lay eq "tree"}]
+        show
+    } elseif {![move $name] && ![turn $name] &&
+              ![string match {[0-9]} $name]} {
+        key $name
+    }
+}
+
+# a key as tty names it: a named key, else the letter it types
+proc keyname {sym ch} {
+    set named {Return ENTER Escape ESC Tab TAB BackSpace BACKSPACE
+        Up UP Down DOWN Left LEFT Right RIGHT Prior PGUP Next PGDN}
+    if {[dict exists $named $sym]} {
+        return [dict get $named $sym]
+    }
+    if {[string length $ch] == 1 && [string is print $ch]} {
+        return $ch
+    }
+    return ""
+}
+
+# a click puts the cursor on a row; a double click is enter there, which in
+# the tree opens or closes a row that folds
+proc clicked {x y name} {
+    set r [.t identify item $x $y]
+    if {$r eq ""} {
+        return
+    }
+    if {$name eq "ENTER" && $::tree && [folds $r ENTER]} {
+        set name [expr {[.t item $r -open] ? "close" : "open"}]
+    }
+    key $name [dict get $::ids $r]
+}
+
+# tapped is a click on the tiles: the cursor goes to the tile there, and a
+# double click is enter on it
+proc tapped {x y name} {
+    set x [.c canvasx $x]
+    set y [.c canvasy $y]
+    set i [expr {int($y) / 24 * $::cols + int($x) / $::cw}]
+    if {$x < $::cols * $::cw && $i < [llength $::rows]} {
+        key $name [lindex $::rows $i]
+    }
+}
+
+bindtags .t {.t . all} ;# the tree's own keys are the program's
+bindtags .c {.c . all}
+bind .c <ButtonRelease-1> {tapped %x %y ""}
+bind .c <Double-1> {tapped %x %y ENTER}
+bind .c <Button-4> {.c yview scroll -1 units}
+bind .c <Button-5> {.c yview scroll 1 units}
+bind .c <MouseWheel> {.c yview scroll [expr {-%D / 120}] units}
+bind .c <Configure> {if {$lay eq "tiles"} show}
+bind . <Key> {pressed [keyname %K %A]}
+bind .t <ButtonRelease-1> {clicked %x %y ""}
+bind .t <Double-1> {clicked %x %y ENTER}
+bind .t <Button-4> {.t yview scroll -3 units}
+bind .t <Button-5> {.t yview scroll 3 units}
+bind .t <MouseWheel> {.t yview scroll [expr {-%D / 40}] units}
+bind .ask.e <Return> {answer [.ask.e get] 1; break}
+bind .ask.e <Escape> {answer "" 0; break}
+bind .t <Configure> {
+    set page [expr {max(1, %h / 24)}]
+    say "{\"size\":{\"w\":[expr {%w / 8}],\"h\":[expr {$page + 3}]}}"
+}
+
+fconfigure stdin -encoding utf-8 -blocking 0
+fconfigure stdout -encoding utf-8
+fileevent stdin readable {
+    if {[gets stdin line] < 0} {
+        if {[eof stdin]} {
+            exit
+        }
+        return
+    }
+    set m [json $line]
+    if {[dict exists $m draw]} {
+        draw [dict get $m draw]
+    }
+    if {[dict exists $m ask]} {
+        ask [dict get $m ask]
+    }
+}
+focus .t

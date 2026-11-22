@@ -1,6 +1,10 @@
 // pick runs a finder and lets fzy choose one of its lines. The list is read
 // whole: piped, a finder outrunning a dead fzy blocks on the end we hold.
 func (m *fm) pick(args ...string) string {
+	if m.t == nil {
+		m.flash(args[0] + ": needs the terminal")
+		return ""
+	}
 	m.t.Suspend()
 	defer m.t.Resume()
 	tookInterrupt() // stale Ctrl-C; the children own the next one

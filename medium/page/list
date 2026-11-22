@@ -10,9 +10,13 @@ PATH is a note (text), a folder (its files are its nodes) or an html page
 
 text is read as the notes are written: "key: value" lines on top are the
 head; indent is depth, so a line with lines under it is a node; "name  text"
-is a row, and goes on under it; "- " an item, "- [ ]" a step; fenced lines,
-or a file that starts "#!", are code. a leaf is typed, so a view can pick
-a component for it: para row item step code html file.
+is a row, and goes on under it; "- " an item, "- [ ]" a step, and the
+lines under either at its text's column are its text, wrapped; fenced
+lines, or a file that starts "#!", are code. a leaf is typed, so a view
+can pick a component for it: para row item step code html file.
+
+a folder's README is the folder's own text, not a child of it: its head is
+the folder's head, and its leaves come first in the folder.
 
 an id is a page's own, else a folder entry's name as page/todo makes it
 (NN- and .html off), else the slug of the title; a repeat gets -2, the
@@ -86,25 +90,37 @@ def outline(lines):
         ):
             under.append(lines[i])
             i += 1
+        parted = bool(under) and not under[-1].strip()
         while under and not under[-1].strip():
             under.pop()
-        got = item(text, under, None if gap else kids)
-        gap = False
+        got = item(text, under, None if gap else kids, b)
+        gap = parted  # a blank line it ends on parts it from the next
         if got:
             kids.append(got)
     return kids
 
 
-def item(text, under, before):
+def item(text, under, before, b=0):
+    mark = re.match(r"- (\[[ x]\] )?", text)
+    if mark:  # its wrapped lines: those under it at its text's column
+        while (
+            under
+            and indent(under[0]) == b + len(mark[0])
+            and not under[0].lstrip().startswith("- ")
+        ):
+            text += " " + under.pop(0).strip()
+        while under and not under[0].strip():
+            under.pop(0)
     step = re.match(r"- \[( |x)\] (.*)", text)
     row = re.match(r"([^\s-]\S*)\s{2,}(.*)", text)
-    if step:
+    if step and not under:
         return leaf("step", done=step[1] == "x", text=step[2])
     if row:
         more = " ".join(u.strip() for u in under if u.strip())
         return leaf("row", name=row[1], text=f"{row[2]} {more}".strip())
     if under:
-        return node(text.removeprefix("- "), outline(under))
+        title = step[2] if step else text.removeprefix("- ")
+        return node(title, outline(under))
     if text.startswith("- "):
         return leaf("item", text=text[2:])
     if before and before[-1]["type"] == "para":
@@ -156,13 +172,15 @@ def read_dir(path):
         kids.append(kid)
     top = node(os.path.basename(os.path.abspath(path)), kids)
     lead = next((k for k in kids if k.get("name", "").lower() == "readme"), 0)
-    if lead:
+    if lead and lead["type"] == "node":
         for k in ("title", "state", "after", "tags"):
             if k in lead:
                 top[k] = lead[k]
         top["title"] = (
             lead["title"] if lead["title"] != lead["name"] else top["title"]
         )
+        # the folder's own text: it leads, and is no child as well
+        top["kids"] = lead["kids"] + [k for k in kids if k is not lead]
     return top
 
 

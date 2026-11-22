@@ -12,6 +12,10 @@ func (m *fm) spawn(cur, wait bool, args ...string) {
 	if len(cmd) == 0 {
 		return
 	}
+	if m.t == nil {
+		m.flash(cmd[0] + ": needs the terminal")
+		return
+	}
 	m.t.Suspend()
 	defer m.t.Resume()
 	tookInterrupt() // stale Ctrl-C; the child owns the next one

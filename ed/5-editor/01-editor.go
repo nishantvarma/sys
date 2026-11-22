@@ -1,11 +1,10 @@
 type editor struct {
 	t     *tty.Term
+	ui    outline.View // what shows ed and takes its keys: the terminal
 	b     *buffer
 	caret sel
 	ext   bool
 	goal  int // sought column: verticals aim at it, head writes record it
-	top   int
-	off   int
 	mode  mode
 	nor   mode
 	ins   mode

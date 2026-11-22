@@ -1,26 +1,18 @@
+// draw says what to show, as an outline: the buffer, a node for each line,
+// the mode, whether it is saved, and the status. How it looks, and which
+// lines show, are the view's.
 func (e *editor) draw() {
-	w, h := e.t.Size()
-	e.scroll(h-1, w)
 	a, c := e.rng()
 	mode := e.mode.name()
 	if e.ext {
 		mode = "extend"
 	}
-	e.t.Write(render(frame{
-		rows:  e.b.rows(),
-		line:  e.b.line,
-		a:     a,
-		c:     c,
-		head:  e.head(),
-		sel:   a != c,
-		top:   e.top,
-		off:   e.off,
-		w:     w,
-		h:     h,
-		mode:  mode,
-		path:  e.b.path,
-		dirty: e.b.dirty,
-		msg:   e.msg,
-	}))
-	e.t.Flush()
+	n := &outline.Node{Kind: "text", Text: e.b.path, Tags: []string{mode}}
+	if e.b.dirty {
+		n.Tags = append(n.Tags, "+")
+	}
+	for i := range e.b.rows() {
+		n.Kids = append(n.Kids, e.lineNode(i, a, c))
+	}
+	e.ui.Draw(n, e.msg, nil) // ed says no state yet
 }

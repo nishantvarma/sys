@@ -5,7 +5,8 @@
 func (e *editor) ask(msg string) (tty.Key, bool) {
 	e.msg = msg
 	e.draw()
-	k, ok := e.t.ReadKey()
+	ev, ok := e.ui.Key()
+	k := keyOf(ev)
 	e.msg = ""
 	e.typed = append(e.typed, k)
 	return k, ok

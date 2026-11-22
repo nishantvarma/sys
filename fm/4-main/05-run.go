@@ -1,3 +1,4 @@
+// run is fm on the terminal: tty is its view.
 func (m *fm) run() error {
 	if err := os.Chdir(m.cwd); err != nil {
 		return err
@@ -7,6 +8,7 @@ func (m *fm) run() error {
 		return err
 	}
 	m.t = t
+	m.ui = &term{t: t}
 	catchInterrupt()
 	t.Write(tty.AltOn + tty.Civis)
 	t.Flush()
@@ -19,30 +21,6 @@ func (m *fm) run() error {
 	}()
 	m.ls()
 	m.land(m.pos[m.cwd]) // the argument's own name, else past ..
-	for !m.done {
-		m.ls()
-		m.say()
-		m.draw()
-		k, ok := t.ReadKey()
-		if !ok || k.Name == tty.KInt {
-			return nil
-		}
-		if k.Name == tty.KResize { // redraw at the top of the loop
-			continue
-		}
-		if k.Name == tty.KFocus || k.Name == tty.KBlur {
-			m.on = k.Name == tty.KFocus
-			// a still row is silent, the eye coming back is
-			// not: another pane spoke while we were away.
-			m.said = ""
-			continue
-		}
-		m.msg = ""
-		if b, hit := m.keys[k.Token()]; hit {
-			b.act()
-		} else if k.Rune >= '0' && k.Rune <= '9' {
-			m.jump(k.Rune)
-		}
-	}
+	m.loop()
 	return nil
 }

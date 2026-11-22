@@ -1,28 +1,28 @@
-// paintLine expands line idx and clips it to the window [f.off, f.off+f.w)
-// of visual columns, highlighting the runes under the selection.
-func paintLine(f frame, idx int) string {
-	line := f.line(idx)
-	lo, hi, tail := selSpan(f, idx)
+// paintLine expands line ln and clips it to the window [v.off, v.off+w) of
+// visual columns, highlighting the runes under the selection.
+func (v *term) paintLine(ln *outline.Node, w int) string {
+	line := []rune(ln.Text)
+	lo, hi, tail := selSpan(ln)
 	var sb strings.Builder
 	vis, inSel := 0, false
 	for i, r := range line {
-		cell, w := " ", 1
+		cell, cw := " ", 1
 		if r == '\t' {
-			w = tabWidth - vis%tabWidth
-			cell = strings.Repeat(" ", w)
+			cw = tabWidth - vis%tabWidth
+			cell = strings.Repeat(" ", cw)
 		} else {
 			cell = string(r)
 		}
-		if vis >= f.off+f.w { // wholly right of the window
+		if vis >= v.off+w { // wholly right of the window
 			break
 		}
-		if vis+w <= f.off { // wholly left of the window
-			vis += w
+		if vis+cw <= v.off { // wholly left of the window
+			vis += cw
 			continue
 		}
-		if vis < f.off || vis+w > f.off+f.w { // a tab across an edge
+		if vis < v.off || vis+cw > v.off+w { // a tab across an edge
 			cell = strings.Repeat(" ",
-				min(vis+w, f.off+f.w)-max(vis, f.off))
+				min(vis+cw, v.off+w)-max(vis, v.off))
 		}
 		if sel := lo != -1 && i >= lo && i <= hi; sel != inSel {
 			if sel {
@@ -33,12 +33,12 @@ func paintLine(f frame, idx int) string {
 			inSel = sel
 		}
 		sb.WriteString(cell)
-		vis += w
+		vis += cw
 	}
 	if inSel {
 		sb.WriteString(tty.Sgr0)
 	}
-	if tail && vis >= f.off && vis < f.off+f.w {
+	if tail && vis >= v.off && vis < v.off+w {
 		sb.WriteString(
 			selBg + " " + tty.Sgr0,
 		) // the selected line break

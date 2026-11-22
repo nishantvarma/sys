@@ -1,8 +1,8 @@
-func hl(i int, f entry, v view) string {
+func hl(n *outline.Node) string {
 	switch {
-	case i == v.idx:
+	case n.Cur:
 		return curBg
-	case v.sel[f.path]:
+	case n.Sel:
 		return selBg
 	default:
 		return ""

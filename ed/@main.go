@@ -15,6 +15,7 @@ import (
 	"strings"
 	"unicode"
 
+	"sys/outline"
 	"sys/tty"
 )
 

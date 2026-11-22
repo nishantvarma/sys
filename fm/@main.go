@@ -17,16 +17,25 @@ import (
 	"syscall"
 	"time"
 
+	"sys/outline"
 	"sys/tty"
 )
 
 func main() {
+	args := os.Args[1:]
+	win := len(args) > 0 && args[0] == "-w" // a window, not the terminal
+	if win {
+		args = args[1:]
+	}
 	path := here() // with no argument, cur is the argument
-	if len(os.Args) > 1 {
-		path = os.Args[1]
+	if len(args) > 0 {
+		path = args[0]
 	}
 	m, err := newFM(path)
-	if err == nil {
+	switch {
+	case err == nil && win:
+		err = m.window()
+	case err == nil:
 		err = m.run()
 	}
 	if err != nil {

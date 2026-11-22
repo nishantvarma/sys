@@ -73,6 +73,28 @@ single `main.go`. Browse the outline in fm, edit the chunks in ed — no
 markup to learn. `tangle`, `fm`, and `ed` are each written this way; `tty`
 stays a plain Go package.
 
+The outline does not stop at a file. A note is an outline too, by its
+indent, so one tree runs from the root, the topmost thing, down through
+folders and files to a single item in a note. That tree is the central
+structure, and a person works it the same way at every level: go into an
+item, do something about it, and come back out, with no seam where a
+folder ends and a note begins. outline.Text reads every text file into
+that tree by its indent, as Python is read, and fm opens a file in place
+with it.
+
+## everything talks in messages
+
+The outline is what everything is; messages are how it talks, and the
+one is as much a foundation as the other. A program and its view, and one
+program and another, pass only messages: plain data, which crosses a
+channel, a pipe or a socket alike. So any piece can be another process,
+a view can be a terminal, a page or wish, and any program can drive
+another by sending it an idea. Nothing is shared but the messages; what a
+piece knows of another is what it was last told. `c` and the `m` log are
+messages already, a verb and the address it was said about, passed
+through files. The messages a program and its view pass are in
+`todo/studio/outline`.
+
 ## rule
 
 `rule/` is how the work is done — one rule per file, the name is the rule,

@@ -4,6 +4,7 @@ func (e *editor) run() error {
 		return err
 	}
 	e.t = t
+	e.ui = &term{t: t}
 	t.Write(tty.AltOn + tty.PasteOn)
 	t.Flush()
 	defer func() {
@@ -18,10 +19,11 @@ func (e *editor) run() error {
 		if !t.Pending() {
 			e.draw()
 		}
-		k, ok := t.ReadKey()
+		ev, ok := e.ui.Key()
 		if !ok {
 			break
 		}
+		k := keyOf(ev)
 		if k.Name == tty.KResize { // redraw at the top of the loop
 			continue
 		}

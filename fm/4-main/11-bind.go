@@ -13,7 +13,10 @@ func (m *fm) bind() {
 	b("f", "find by name", m.fzfind)
 	b("F", "format", func() { m.spawn(true, true, "lint", "-f") })
 	b("g", "first file", func() { m.land("") }) // past . and ..
-	b("G", "last file", func() { m.mv(len(m.files)) })
+	// G, the pages and t are the view's, listed here for help until the
+	// keys are settled
+	b("G", "last file", nil)
+	b("t", "layout: folder, tree, tiles", nil)
 	b("h", "", func() { m.cd(filepath.Dir(m.cwd)) })
 	b("i", "add file", func() { m.create("touch", touch) })
 	b(
@@ -25,8 +28,6 @@ func (m *fm) bind() {
 			})
 		},
 	)
-	b("j", "", func() { m.mv(1) })
-	b("k", "", func() { m.mv(-1) })
 	b("l", "link", m.link)
 	b("m", "repeat by memory", m.fzmemory)
 	b("n", "next", func() { m.find(1) })
@@ -63,9 +64,7 @@ func (m *fm) bind() {
 	b(tty.KEnter, "", m.enter)
 	b(tty.KRight, "", m.enter)
 	b(tty.KLeft, "", func() { m.cd(filepath.Dir(m.cwd)) })
-	b(tty.KUp, "", func() { m.mv(-1) })
-	b(tty.KDown, "", func() { m.mv(1) })
 	b(tty.KTab, "", m.tab)
-	b(tty.KPgDn, "page down", func() { _, h := m.t.Size(); m.mv(h - 3) })
-	b(tty.KPgUp, "page up", func() { _, h := m.t.Size(); m.mv(-(h - 3)) })
+	b(tty.KPgDn, "page down", nil)
+	b(tty.KPgUp, "page up", nil)
 }
