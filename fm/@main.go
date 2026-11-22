@@ -28,11 +28,11 @@ func main() {
 	if win {
 		args = args[1:]
 	}
-	path := here() // with no argument, cur is the argument
+	path, row := here() // with no argument, fm opens on cur
 	if len(args) > 0 {
-		path = args[0]
+		path, row = args[0], false
 	}
-	m, err := newFM(path)
+	m, err := newFM(path, row)
 	switch {
 	case err == nil && win:
 		err = m.window()

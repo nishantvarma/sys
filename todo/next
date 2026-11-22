@@ -14,7 +14,7 @@ below is written. What is left is the open list at the foot, and
 
 Landed
 
-fm opens on cur when argv is empty: a file is a row and not a place, so
+fm opens on cur when argv is empty: cur is a row and not a place, so
 its directory is where fm stands and its name is what it lands on, which
 is the pos map's own answer for a directory seen before. It writes cur
 after every ls, temp then rename, and only while the pane has the eye —
