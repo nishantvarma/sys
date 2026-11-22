@@ -95,9 +95,7 @@
               And x tick, n p next or previous file, / find, f full width,
               . show or hide names that start with a dot, shown at first,
               i flip a pdf between paper and dark, u a page and its
-              source, v the nearest .git/changes.diff above the row under the
-              cursor, or the file open, its keys in it, ? these keys, as does
-              ? keys atop the tree, esc close
+              source, ? these keys, as does ? keys atop the tree, esc close
      view     tab hands the view the keys if it has its own; shift+tab,
               esc, or h at its first heading hand them back, as do a tap
               in the tree and a new hash. an outline's are a page's: j k
@@ -2030,8 +2028,6 @@
       if (was !== location.hash) return;
       present(shown, nav);
       pair();
-      // as v asked: the view has the keys, as tab gives them
-      if (p === handing) ((handing = undefined), into());
     }
 
     // a page is its source too: u flips the view to the other, built the
@@ -2130,23 +2126,6 @@
       await enter(up, here.path);
       location.hash = up.path;
     }
-    // v: the nearest .git/changes.diff above the cursor's row, a folder's
-    // own or a file's folder, else the place; with a file open, its folder.
-    // a file name, never git; its outline handed the keys once it shows
-    let handing;
-    async function changes() {
-      const open = clean(decodeURIComponent(location.hash.slice(1))),
-        node = nodeof(focused),
-        row = node?.path && parent(node.path + (folds(node) ? '/' : ''));
-      let at = viewing() ? parent(open) : (row ?? here.path);
-      for (; ; at = parent(at)) {
-        const p = join(at, '.git/changes.diff');
-        if ((await library.stat(p).catch(() => null))?.kind === 'file')
-          return open === p ? into() : ((handing = p), (location.hash = p));
-        if (!at)
-          return (footer.textContent = 'No changes.diff above here, run v');
-      }
-    }
     // full width: its tool pressed, the corners turned in
     function widen() {
       const on = document.body.classList.toggle('wide');
@@ -2219,7 +2198,6 @@
         () => aside.querySelector('.pdf')?.classList.toggle('flip'),
       ],
       ['u', 'A page: its source, or the page again', () => flip()],
-      ['v', 'The nearest changes.diff above the cursor, keys in it', changes],
       [
         'tab',
         'The keys to the view, if it has its own; shift+tab, back',

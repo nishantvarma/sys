@@ -46,20 +46,6 @@ fn sync {
 	}
 }
 
-fn changes {
-	up=`{git rev-parse --show-cdup}
-	ifs='
-' {u=`{git -C $"up -c core.quotepath=off ls-files -o --exclude-standard}}
-	{
-		git -c core.quotepath=off diff $1
-		for (f in $u) git -C $"up diff --no-index -- /dev/null $f ||
-			~ $status 1
-	} >$"up^.git/changes.diff
-}
-
-~ $1 diff && {changes $2 HEAD; exit}
-changes HEAD
-
 step -b status
 git status -s
 

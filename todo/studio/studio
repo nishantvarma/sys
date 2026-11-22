@@ -11,15 +11,17 @@ page you visit can reach localhost. It makes the page an app.
 Name: keep shelf for the page. If the whole ever needs one (shelf, fm, v), call
 the whole studio and leave the pieces alone. Not pi: it means the Raspberry Pi.
 
-The diff, built: v diff writes .git/changes.diff; the shelf's v opens the one
-nearest the row under the cursor, in the shelf's outline (file a heading, hunk
-a subheading), keys at once. Written change pages stay page/diff's.
+The diff, retired for now: v wrote .git/changes.diff on every run, untracked
+files in full, and a 23 MB log made one 24 MB; the shelf's v opened it in its
+outline (file a heading, hunk a subheading). Both are gone. When it returns,
+studio writes the diff into .studio itself, not v into .git: a worktree's
+.git is a file, and v stays git's. Written change pages stay page/diff's.
 A page of its own, tried for diff, was retired: the outline was the component.
 Python's, page/py, is the case where the outline did not do: it needs the ast.
 Left open:
-- who runs v diff: you now; a watcher later (a separate process, a few lines)
-- the base is HEAD; v diff HEAD~1 is the same call
-- in a git worktree .git is a file, so nothing can be written there
+- who writes it: a watcher (a separate process, a few lines)
+- the base is HEAD; HEAD~1 is the same call
+- untracked files: name them, or cap them, never inline a log
 
 Components. The shelf already has the parts: outline, rows with fold and
 cursor, bar, tick, the keys. A page like diff.html must not grow its own;
