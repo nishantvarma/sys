@@ -22,5 +22,5 @@ ln -sf ../medium/shelf/shelf bin/shelf
 t=(tangle fm ed studio)
 [ $# -gt 0 ] && t=("$@")
 for x in "${t[@]}"; do
-	(cd "$x" && ../bin/tangle && go build -o "../bin/$x" main.go)
+	(cd "$x" && ../bin/tangle && go build -o "../bin/$x" main.go) || exit 1
 done
