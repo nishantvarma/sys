@@ -1,0 +1,12 @@
+studio: fm, the thing at its cursor in ed, and a shell
+  Lines stack down, the lines under one go across, and the lines under
+  those down again. Each line is a slot, and a share such as 70% is its
+  part of its parent; the rest of the line is what runs in it, and a
+  slot that names nothing keeps a shell. ed -f edits whatever fm's cursor
+  is on; a slot that runs studio show adds the lenses, outline, diff,
+  figure and run. A slot's name is how a program reaches it: studio send
+  shell make types make into the shell, and studio read shell reads it.
+top     70%
+  fm    40%  fm
+  ed         ed -f
+shell
