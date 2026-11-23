@@ -3,9 +3,10 @@
 // what it runs. First the window's own hooks are emptied, for a hook
 // that lays a window out after a split or a pane's end, as `tmux/conf`'s
 // do (`tmux/conf:/select-layout main-vertical/`), would undo the frame.
-// The window keeps each slot's pane by name, @studio-name, and the frame
-// it was laid out from, @studio-frame, and it becomes the studio a
-// program in another window reaches, @studio.
+// Its borders are drawn in the rule's colour, the palette's, as the
+// samples drew the frame. The window keeps each slot's pane by name,
+// @studio-name, and the frame it was laid out from, @studio-frame, and it
+// becomes the studio a program in another window reaches, @studio.
 func (f *frame) open(dir string, dry bool) error {
 	t := &tmux{dry: dry}
 	top, err := t.run("new-window", "-P", "-F", "#{pane_id}", "-c", dir,
@@ -39,6 +40,10 @@ func (f *frame) open(dir string, dry bool) error {
 			"@studio-" + s.name, panes[s]})
 	}
 	cmds = append(cmds,
+		[]string{"set", "-w", "-t", win, "pane-border-style",
+			"fg=" + tty.Rule},
+		[]string{"set", "-w", "-t", win, "pane-active-border-style",
+			"fg=" + tty.Rule},
 		[]string{"set", "-w", "-t", win, "@studio-frame", f.note},
 		[]string{"set", "-g", "@studio", win},
 		[]string{"select-pane", "-t", panes[leaves(f.slots)[0]]})

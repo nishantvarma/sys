@@ -48,5 +48,7 @@ func showVerb(args []string) error {
 		t.Close()
 	}()
 	home, _ := os.UserHomeDir()
-	return l.run(view.New(t, home, looks), t, wt)
+	v := view.New(t, home, looks)
+	v.Chips([2]string{"m", "next lens"})
+	return l.run(v, t, wt)
 }

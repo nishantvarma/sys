@@ -2,7 +2,8 @@
 // gone. A change to cur moves it there; a key on a node reaches it first
 // (see reach), and one on a node gone goes with it; m turns to the next
 // lens. Its drawing is a tree, the program's word what made it, and its
-// state the lens and its number among them.
+// state the lens and its number among them; a view that has tabs shows
+// the lenses as tabs (tabs).
 func (l *lensing) run(ui outline.View, t *tty.Term,
 	wt *watch.Watcher) error {
 	var keys chan keyed
@@ -44,7 +45,11 @@ func (l *lensing) run(ui outline.View, t *tty.Term,
 			word, l.msg = l.msg, ""
 		}
 		n := fmt.Sprintf("%s %d/%d", ln.name, i+1, len(lenses))
-		ui.Draw(tree(l.at, ln), word, []string{n})
+		t := tree(l.at, ln)
+		if tv, ok := ui.(interface{ Tabs([]view.Tab) }); ok {
+			tv.Tabs(tabs(i, t))
+		}
+		ui.Draw(t, word, []string{n})
 		ev, ok := take(ui, keys, wt)
 		if !ok {
 			return nil
