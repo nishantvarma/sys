@@ -10,9 +10,17 @@ import (
 	"sys/tty"
 )
 
-// looks is how the tests' program draws its kinds: a folder blue, with /
-// after its name.
-var looks = map[string]Look{"dir": {Color: tty.Blue, Mark: "/"}}
+// looks is how the tests' program draws its kinds: a folder in the
+// accent, / after its name, a card saying folder.
+var looks = map[string]Look{"dir": {Color: tty.Accent, Mark: "/",
+	Word: "folder"}}
+
+// sgr is a colour said in the terminal's words, for reading a screen
+// without its colours (plain).
+var sgr = regexp.MustCompile(`\x1b\[[0-9;]*m`)
+
+// plain is what a drawing says, without its colours.
+func plain(s string) string { return sgr.ReplaceAllString(s, "") }
 
 // tree is a folder a with a folder b, the cursor on it, and a file c.
 func tree() *outline.Node {
@@ -68,8 +76,8 @@ func TestRegion(t *testing.T) {
 			t.Errorf("row %d is %d wide, want 20", i, w)
 		}
 	}
-	for _, want := range []string{"/a", "b/", "c", "hi", "folder 1/2"} {
-		if !strings.Contains(out, want) {
+	for _, want := range []string{"/a / b", "b/", "c", "hi", "1/2"} {
+		if !strings.Contains(plain(out), want) {
 			t.Errorf("no %q in the region", want)
 		}
 	}
@@ -108,9 +116,8 @@ func TestPrintable(t *testing.T) {
 	}
 }
 
-// A tree marks only what hides something: a folder, or a node with kids,
-// shut gets ▸; an open one gets nothing, for its kids under it say so,
-// and a leaf gets nothing.
+// A tree marks what holds something: a folder, or a node with kids, gets
+// + while shut and - while open; a leaf gets a blank.
 func TestHints(t *testing.T) {
 	x := &outline.Node{ID: "/a/x", Kind: "file"}
 	root := &outline.Node{ID: "/", Kids: []*outline.Node{
@@ -119,11 +126,11 @@ func TestHints(t *testing.T) {
 		{ID: "/c", Kind: "item", Kids: []*outline.Node{{ID: "/c:2"}}},
 		{ID: "/d", Kind: "file"},
 	}}
-	want := map[string]string{"/a": "  ", "/a/x": "    ", "/b": shut,
-		"/c": shut, "/d": "  "}
+	want := map[string]string{"/a": "-", "/a/x": " ", "/b": "+",
+		"/c": "+", "/d": " "}
 	for _, r := range flat(root, 0, "") {
-		if r.lead != want[r.n.ID] {
-			t.Errorf("%s: hint %q, want %q", r.n.ID, r.lead,
+		if r.hint != want[r.n.ID] {
+			t.Errorf("%s: hint %q, want %q", r.n.ID, r.hint,
 				want[r.n.ID])
 		}
 	}
@@ -202,34 +209,37 @@ func TestTop(t *testing.T) {
 	}
 }
 
-// A cell names the node drawn there: as a list, a row's anywhere on its
-// line, and the header the place; as tiles, each tile's; as a figure, its
-// part or its message's word; nothing below the rows or off the view.
+// A cell names the node drawn there: the head the cursor's; as a list, a
+// row's anywhere on its line; as thumbs, a card's, not its margin or the
+// gap after it; as a figure, its part or its message's word; nothing in
+// the chrome, below the rows, or off the view.
 func TestAt(t *testing.T) {
-	_, list := region(tree(), 20, 6)
-	tiles := New(nil, "", looks)
-	tiles.In(0, 0, 20, 6)
-	tiles.last, tiles.lay = tree(), "tiles"
-	tiles.drawn("")
-	_, fig := region(pair(), 20, 16)
+	_, list := region(tree(), 40, 12)
+	thumbs := New(nil, "", looks)
+	thumbs.In(0, 0, 60, 12)
+	thumbs.last, thumbs.lay = tree(), "thumbs"
+	thumbs.drawn("")
+	_, fig := region(pair(), 20, 22)
 	for _, c := range []struct {
 		v    *Term
 		x, y int
 		want string
 	}{
-		{list, 0, 0, "/a"},
-		{list, 3, 1, "/a/b"},
-		{list, 19, 2, "/a/c"},
+		{list, 0, 0, "/a/b"},
 		{list, 3, 3, ""},
-		{list, 3, 5, ""},
-		{list, 3, 9, ""},
-		{tiles, 0, 1, "/a/b"},
-		{tiles, 6, 1, "/a/b"},
-		{tiles, 7, 1, "/a/c"},
+		{list, 3, 5, "/a/b"},
+		{list, 39, 6, "/a/c"},
+		{list, 3, 7, ""},
+		{list, 3, 30, ""},
+		{thumbs, 0, 5, ""},
+		{thumbs, 1, 5, "/a/b"},
+		{thumbs, 22, 6, "/a/b"},
+		{thumbs, 23, 6, ""},
+		{thumbs, 25, 5, "/a/c"},
 		{fig, 0, 0, "n"},
-		{fig, 9, 3, "n:3"},
-		{fig, 11, 7, "n:4"},
-		{fig, 9, 6, ""},
+		{fig, 9, 7, "n:3"},
+		{fig, 11, 11, "n:4"},
+		{fig, 9, 10, ""},
 	} {
 		if got := c.v.At(c.x, c.y); got != c.want {
 			t.Errorf("%d,%d: %q, want %q", c.x, c.y, got, c.want)
@@ -237,31 +247,66 @@ func TestAt(t *testing.T) {
 	}
 }
 
-// The three layouts of tree, each drawn in a region 24 by 6 and read
-// without its colours: the folder, its rows numbered; the tree, the shut
-// folder marked ▸; tiles, a grid of numbered names. The top line says
-// where, the home as ~, and the cursor's row is lit.
+// The three layouts of tree, each drawn in a region 40 by 12 and read
+// without its colours: the head says where the cursor is, from home, or,
+// as thumbs, the folder the cards are, and the keys; a rule; the layouts,
+// the one in use lit; then the folder, its rows numbered and + on what
+// holds more; the tree alike; thumbs, a card a thing, its kind's word
+// under its name. The cursor's row, or card, is on the bar, with the
+// accent's edge.
 func TestLayouts(t *testing.T) {
-	sgr := regexp.MustCompile(`\x1b\[[0-9;]*m`)
+	top := []string{
+		" b                            t  layout",
+		strings.Repeat("─", 40),
+		"",
+		" folder  tree  thumbs",
+		"",
+	}
+	rows := []string{"▌ 1  + b/", "  2    c", "", "", "", ""}
+	cards := []string{" ▌b/", "  folder", "", "  c", "  file", ""}
+	home := append([]string{" ~                            t  layout"},
+		top[1:5]...)
 	for lay, want := range map[string][]string{
-		"":      {"~", "  1  b/", "  2  c", "", ""},
-		"tree":  {"~", "  1  ▸ b/", "  2    c", "", ""},
-		"tiles": {"~", "  1 b/   2 c  ", "", "", ""},
+		"":       append(top[:5:5], rows...),
+		"tree":   append(top[:5:5], rows...),
+		"thumbs": append(home, cards...),
 	} {
 		v := New(nil, "/a", looks)
-		v.In(0, 0, 24, 6)
+		v.In(0, 0, 40, 12)
 		v.last, v.lay = tree(), lay
 		v.drawn("")
 		var got []string
 		for _, l := range v.drew {
-			got = append(got, sgr.ReplaceAllString(l.text, ""))
+			text := strings.TrimRight(plain(l.text), " ")
+			got = append(got, text)
 		}
 		if g, w := strings.Join(got, "\n"), strings.Join(want,
 			"\n"); g != w {
 			t.Errorf("%q:\n%s\nwant:\n%s", lay, g, w)
 		}
-		if !strings.Contains(v.drew[1].text, curBg) {
-			t.Errorf("%q: the cursor's row is not lit", lay)
+		lit := tty.Paint(v.layout(), tty.Accent, tty.Ground, true)
+		if !strings.Contains(v.drew[3].text, lit) {
+			t.Errorf("%q: the layout in use is not lit", lay)
+		}
+		if !strings.Contains(v.drew[5].text, "48;2;28;42;61") {
+			t.Errorf("%q: the cursor is not on the bar", lay)
+		}
+	}
+}
+
+// A thing's facts stand from column 46 when the row has room for them
+// whole, and not at all when it has not.
+func TestFacts(t *testing.T) {
+	for w, want := range map[int]bool{60: true, 40: false} {
+		v := New(nil, "/a", looks)
+		v.In(0, 0, w, 12)
+		v.last = tree()
+		v.last.Kids[1].Tags = []string{"640   1h"}
+		v.drawn("")
+		got := plain(v.drew[6].text)
+		at := strings.Index(got, "640   1h")
+		if want && at != 46 || !want && at >= 0 {
+			t.Errorf("%d wide: the facts at %d in %q", w, at, got)
 		}
 	}
 }

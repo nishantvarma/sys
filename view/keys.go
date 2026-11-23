@@ -26,16 +26,15 @@ func (v *Term) Key() (outline.Key, bool) {
 	}
 }
 
-// Handle is a key given to the view, as a host gives one, rather than
-// read by it. What is the view's own it does itself. In a figure, down
-// and up scroll it, a line or a page, and g and G to its top and its
-// bottom. Elsewhere, t turns to the next layout, the folder, the tree,
-// tiles; a move goes down, up, to the last row or a page on, and as tiles
-// right and left too; in the tree, a node opens and closes in place. The
-// program hears where the cursor landed, what the view wants to see
-// inside, and every other key, a digit too, for a row's number takes the
-// keys after it, and only Key reads keys; false when there is nothing for
-// it to hear.
+// Handle is a key given to the view, as a host gives one, rather than read by
+// it. What is the view's own it does itself. In a figure, down and up scroll
+// it, a line or a page, and g and G to its top and its bottom. Elsewhere, t
+// turns to the next layout, the folder, the tree, thumbs; a move goes down,
+// up, to the last row or a page on, and as thumbs right and left too; in the
+// tree, a node opens and closes in place. The program hears where the cursor
+// landed, what the view wants to see inside, and every other key, a digit too,
+// for a row's number takes the keys after it, and only Key reads keys; false
+// when there is nothing for it to hear.
 func (v *Term) Handle(k tty.Key) (outline.Key, bool) {
 	name := k.Token()
 	theirs := outline.Key{Name: name, Text: k.Text}
@@ -46,7 +45,7 @@ func (v *Term) Handle(k tty.Key) (outline.Key, bool) {
 		return theirs, true
 	}
 	if name == "t" {
-		next := map[string]string{"": "tree", "tree": "tiles"}
+		next := map[string]string{"": "tree", "tree": "thumbs"}
 		v.lay = next[v.lay]
 		v.show(v.status)
 		return outline.Key{}, false
@@ -73,7 +72,8 @@ func (v *Term) Ask(prompt, def string) (string, bool) {
 // the key is no scroll.
 func (v *Term) scroll(name string) bool {
 	_, h := v.Size()
-	page := max(1, h-3)
+	top, foot := chrome(h)
+	page := max(1, h-top-foot-1)
 	switch name {
 	case "j", tty.KDown:
 		v.top++
@@ -105,16 +105,19 @@ func digit(name string) bool {
 
 // move is the id of the row a key moves the cursor to, among those shown,
 // empty when there are none; moved is false when the key is no move. As
-// tiles, down and up go a line of tiles, and right and left one tile.
+// thumbs, down and up go a row of cards, and right and left one card.
 func (v *Term) move(name string) (to string, moved bool) {
 	if v.last == nil {
 		return "", false
 	}
 	_, rows := v.shown()
 	w, h := v.Size()
+	top, foot := chrome(h)
+	page := max(1, h-top-foot-1)
 	step := 1
-	if v.lay == "tiles" {
-		step, _ = v.grid(rows, w)
+	if v.lay == "thumbs" {
+		step = perRow(w)
+		page = max(1, (h-top-foot+1)/3)
 	}
 	d := 0
 	switch name {
@@ -123,13 +126,13 @@ func (v *Term) move(name string) (to string, moved bool) {
 	case "k", tty.KUp:
 		d = -step
 	case tty.KPgDn:
-		d = (h - 3) * step
+		d = page * step
 	case tty.KPgUp:
-		d = -(h - 3) * step
+		d = -page * step
 	case "G":
 		d = len(rows)
 	case tty.KRight, tty.KLeft:
-		if v.lay != "tiles" {
+		if v.lay != "thumbs" {
 			return "", false // in and out, not a move here
 		}
 		d = 1

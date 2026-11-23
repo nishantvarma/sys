@@ -2,6 +2,7 @@ package view
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"unicode"
 
@@ -10,27 +11,138 @@ import (
 	"sys/tty"
 )
 
+// The look's measures, as the samples drew it: what is said about a thing
+// stands from column 46, and a card is 22 columns wide, 2 from the next.
 const (
-	curBg = "\x1b[48;5;236m"
-	selBg = "\x1b[48;5;239m"
+	saidAt  = 46
+	cardW   = 22
+	cardGap = 2
 )
 
-// screen is the whole screen, w by h: the tree drawn last, laid out as the
-// view lays it out, in h-1 lines, and the bottom line, with word on its
-// left. Before any tree, only the bottom line.
+// layouts are the view's ways to lay a tree out, in the order t turns
+// through them: the folder the cursor is in, the tree from the top, and
+// the folder as thumbs, a card a thing.
+var layouts = []string{"folder", "tree", "thumbs"}
+
+// ink is a line as it is drawn: its runs, each in its look, and how many
+// columns they take.
+type ink struct {
+	runs []run
+	w    int
+}
+
+// run is text in one look: its colour and its ground, each from the
+// palette or "" for the view's own, and bold or not.
+type run struct {
+	s, fg, bg string
+	bold      bool
+}
+
+// add puts s at the end of the line, in fg on bg.
+func (k *ink) add(s, fg, bg string, bold bool) *ink {
+	k.runs = append(k.runs, run{s, fg, bg, bold})
+	k.w += tty.Width(s)
+	return k
+}
+
+// pad fills the line with blanks on bg up to column to.
+func (k *ink) pad(to int, bg string) *ink {
+	if k.w < to {
+		k.add(strings.Repeat(" ", to-k.w), "", bg, false)
+	}
+	return k
+}
+
+// clip cuts the line to n columns, its last one … when it was longer.
+func (k *ink) clip(n int) *ink {
+	if k.w <= n {
+		return k
+	}
+	var out []run
+	w := 0
+	for _, r := range k.runs {
+		var b strings.Builder
+		for _, c := range r.s {
+			cw := tty.Width(string(c))
+			if w+cw > n-1 {
+				if n > 0 {
+					b.WriteString(tty.Cut)
+					w++
+				}
+				cut := run{b.String(), r.fg, r.bg, r.bold}
+				k.runs, k.w = append(out, cut), w
+				return k
+			}
+			b.WriteRune(c)
+			w += cw
+		}
+		out = append(out, run{b.String(), r.fg, r.bg, r.bold})
+	}
+	k.runs, k.w = out, w
+	return k
+}
+
+// String is the line in the terminal's words: each run painted, the
+// view's own colour the palette's foreground on its ground.
+func (k *ink) String() string {
+	var b strings.Builder
+	for _, r := range k.runs {
+		fg, bg := r.fg, r.bg
+		if fg == "" {
+			fg = tty.Fore
+		}
+		if bg == "" {
+			bg = tty.Ground
+		}
+		b.WriteString(tty.Paint(r.s, fg, bg, r.bold))
+	}
+	return b.String()
+}
+
+// screen is the whole screen, w by h: all of it but the bottom line, and
+// the bottom line, the status, with word on its left. Above the body, the
+// head, and, where there is room, a rule and the switch (see chrome); then
+// the body, the tree laid out as the view lays it out.
 func (v *Term) screen(word string, w, h int) ([]line, string) {
-	bottom := tty.Clip(foot(word, v.state, v.words(), w), w)
-	switch {
-	case v.last == nil:
+	bottom := v.foot(word, w)
+	if v.last == nil {
 		return nil, bottom
+	}
+	top, foot := chrome(h)
+	room := max(0, h-top-foot)
+	lines := []line{v.head(w)}
+	if top > 1 {
+		lines = append(lines, rule(w), blank(w), v.switches(w),
+			blank(w))
+	}
+	var body []line
+	switch {
 	case v.figured():
-		return v.pictured(v.last, w, h), bottom
+		body = v.pictured(w, room)
+	case v.lay == "thumbs":
+		body = v.cards(w, room)
+	default:
+		body = v.listed(w, room)
 	}
-	head, rows := v.shown()
-	if v.lay == "tiles" {
-		return v.tiled(head, rows, w, h), bottom
+	for len(body) < room {
+		body = append(body, blank(w))
 	}
-	return v.render(head, rows, w, h), bottom
+	lines = append(lines, body[:room]...)
+	if foot > 1 {
+		lines = append(lines, blank(w))
+	}
+	return lines, bottom
+}
+
+// chrome is how many lines the view keeps above its body and below it, h
+// high: the head, a rule, a blank, the switch and a blank on top, and a
+// blank and the status below. A pane too short for that keeps the head
+// and the status alone.
+func chrome(h int) (top, foot int) {
+	if h < 12 {
+		return 1, 1
+	}
+	return 5, 2
 }
 
 // figured is whether the tree drawn last is a figure: a note whose kind
@@ -39,96 +151,351 @@ func (v *Term) figured() bool {
 	return v.last != nil && v.last.Kind == "figure"
 }
 
-// render is a screen of rows as a list: the header, as many rows as fit,
-// the cursor's kept in the middle when it can be, and a count of the rows
-// that did not fit, h-1 lines in all.
-func (v *Term) render(head *outline.Node, rows []row, w, h int) []line {
-	lines := []line{v.header(head, w)}
-	n := h - 2
+// where is the node the head names: the cursor's, else the folder shown;
+// as thumbs, the folder its cards are; a figure's, the note.
+func (v *Term) where() *outline.Node {
+	if v.figured() {
+		return v.last
+	}
+	head, rows := v.shown()
+	if len(rows) == 0 || v.lay == "thumbs" {
+		return head
+	}
+	return rows[curRow(rows)].n
+}
+
+// head is the top line: where the cursor is (where), with its keys at
+// the right (see Head).
+func (v *Term) head(w int) line {
+	n := v.where()
+	path, at := outline.Address(n.ID)
+	label := ""
+	if at > 0 {
+		label, _, _ = strings.Cut(printable(n.Text), "  ")
+	}
+	return line{v.headed(path, label, w).String(), []spot{{0, n.ID}}}
+}
+
+// Head is the head a program draws for itself the view's way, as ed
+// does, w wide: path from home in its parts, then label, the line it is
+// on, and keys at the right, each in a chip, when they fit.
+func Head(home, path, label string, keys [][2]string, w int) string {
+	v := &Term{home: home, keys: keys}
+	return v.headed(path, label, w).String()
+}
+
+// headed is a head line: path from home in its parts, the last of them
+// bold, or, given a label, the label bold after the file; cut from the
+// left when long, for its end names the place; then the keys at the right
+// (chips), when they fit.
+func (v *Term) headed(path, label string, w int) *ink {
+	parts, last := v.crumbs(path), label
+	if label == "" {
+		parts, last = parts[:len(parts)-1], parts[len(parts)-1]
+	}
+	k := crumb(parts, last, label != "")
+	for cut := 1; k.w > w-1 && cut <= len(parts); cut++ {
+		k = crumb(append([]string{"…"}, parts[cut:]...), last,
+			label != "")
+	}
+	if keys := v.chips(w - 1 - k.w - 2); keys.w > 0 {
+		k.pad(w-1-keys.w, "")
+		k.runs, k.w = append(k.runs, keys.runs...), k.w+keys.w
+	}
+	return k.clip(w).pad(w, "")
+}
+
+// crumb is the head's path: a margin, each part soft with a quiet / after
+// it, : after the file when the last is an item's label, then the last,
+// bold.
+func crumb(parts []string, last string, item bool) *ink {
+	k := (&ink{}).add(" ", "", "", false)
+	for i, p := range parts {
+		sep := " / "
+		if item && i == len(parts)-1 {
+			sep = " : "
+		}
+		k.add(printable(p), tty.Soft, "", false)
+		k.add(sep, tty.Quiet, "", false)
+	}
+	return k.add(printable(last), tty.Fore, "", true)
+}
+
+// crumbs is a path as the head says it, in its parts: from home when it is
+// under home, ~ for home itself, else from the root, / before the first.
+func (v *Term) crumbs(p string) []string {
+	h := v.home
+	switch {
+	case h != "" && p == h:
+		return []string{"~"}
+	case h != "" && strings.HasPrefix(p, h+"/"):
+		return strings.Split(p[len(h)+1:], "/")
+	case p == "/":
+		return []string{"/"}
+	}
+	parts := strings.Split(strings.TrimPrefix(p, "/"), "/")
+	if strings.HasPrefix(p, "/") {
+		parts[0] = "/" + parts[0]
+	}
+	return parts
+}
+
+// chips is the keys the head shows, at most room columns of them: the
+// program's (Chips), then the view's own, t for the layout, while the
+// view lays out a tree. Each key stands in a chip and what it does after it; a
+// range, 1..4, is its two ends in chips.
+func (v *Term) chips(room int) *ink {
+	keys := v.keys
+	if v.last != nil && !v.figured() {
+		own := [2]string{"t", "layout"}
+		keys = append(keys[:len(keys):len(keys)], own)
+	}
+	k := &ink{}
+	for i, c := range keys {
+		next := &ink{}
+		if i > 0 {
+			next.add("   ", "", "", false)
+		}
+		a, b, ranged := strings.Cut(c[0], "..")
+		next.add(" "+a+" ", tty.Fore, tty.Rule, false)
+		if ranged {
+			next.add("..", tty.Quiet, "", false)
+			next.add(" "+b+" ", tty.Fore, tty.Rule, false)
+		}
+		next.add(" "+c[1], tty.Soft, "", false)
+		if k.w+next.w > room {
+			break
+		}
+		k.runs, k.w = append(k.runs, next.runs...), k.w+next.w
+	}
+	return k
+}
+
+// switches is the line over the body: the program's tabs, when it has
+// some (Tabs), else the view's layouts, the one in use lit. A tab is its
+// name, in a chip while it is the one shown and dim while it waits to be
+// built, then its tally, a count or a diff's +2 −1, and its number.
+func (v *Term) switches(w int) line {
+	k := (&ink{}).add(" ", "", "", false)
+	switch {
+	case v.tabs != nil:
+		for i, t := range v.tabs {
+			fg, bg := tty.Soft, ""
+			switch {
+			case t.On:
+				fg, bg = tty.Fore, tty.Rule
+			case t.Waits:
+				fg = tty.Quiet
+			}
+			k.add(" "+printable(t.Name)+" ", fg, bg, t.On)
+			tally := strings.Fields(printable(t.Tally))
+			for _, word := range tally {
+				c := tty.Soft
+				switch {
+				case strings.HasPrefix(word, "+"):
+					c = tty.Plus
+				case strings.HasPrefix(word, "−"),
+					strings.HasPrefix(word, "-"):
+					c = tty.Minus
+				}
+				k.add(word+" ", c, "", false)
+			}
+			k.add(strconv.Itoa(i+1), tty.Quiet, "", false)
+			k.add("  ", "", "", false)
+		}
+	case !v.figured():
+		for _, name := range layouts {
+			on := name == v.layout()
+			c := tty.Quiet
+			if on {
+				c = tty.Accent
+			}
+			k.add(name, c, "", on).add("  ", "", "", false)
+		}
+	}
+	return line{text: k.clip(w).pad(w, "").String()}
+}
+
+// layout is the name of the view's layout: the folder until t turns it.
+func (v *Term) layout() string {
+	if v.lay == "" {
+		return "folder"
+	}
+	return v.lay
+}
+
+// listed is the body as rows, the folder's or the tree's: as many as fit
+// in room lines, the cursor's kept in the middle when it can be, and a
+// count of the rows that did not fit.
+func (v *Term) listed(w, room int) []line {
+	_, rows := v.shown()
+	n := room
 	if len(rows) > n {
 		n--
 	}
 	n = max(0, n)
-	off := max(0, min(curRow(rows)-n/2, len(rows)-n)) // cursor row centred
+	off := max(0, min(curRow(rows)-n/2, len(rows)-n))
 	vis := rows[off:min(off+n, len(rows))]
+	var lines []line
 	for i, r := range vis {
-		lines = append(lines, line{tty.Clip(v.paint(off+i, r), w),
+		lines = append(lines, line{v.paint(off+i, r, w).String(),
 			[]spot{{0, r.n.ID}}})
 	}
-	extra := n - len(vis)
-	if len(rows) > n {
+	if len(rows) > n && room > 0 {
 		lines = append(lines, more(len(rows)-n, w))
-		extra--
-	}
-	for i := 0; i < extra; i++ {
-		lines = append(lines, line{})
 	}
 	return lines
 }
 
-// tiled is a screen of rows as tiles, a grid read left to right: the
-// header, as many lines of tiles as fit, the cursor's line kept in the
-// middle when it can be, and a count of the tiles that did not fit, as
-// render is for a list.
-func (v *Term) tiled(head *outline.Node, rows []row, w, h int) []line {
-	cols, cw := v.grid(rows, w)
-	var strips []line // a line of tiles each
-	for i := 0; i < len(rows); i += cols {
-		var s strings.Builder
-		var spots []spot
-		for j := i; j < min(i+cols, len(rows)); j++ {
-			spots = append(spots, spot{tty.Width(s.String()),
-				rows[j].n.ID})
-			s.WriteString(v.tile(j, rows[j], cw))
-		}
-		strips = append(strips, line{tty.Clip(s.String(), w), spots})
+// paint is row r as line i, w wide: the cursor's edge, the row's number,
+// its lead and its hint, then its name in its kind's look and what is
+// said about it, an item's note or a thing's facts, when that fits whole.
+// The cursor's row is lit across, its name bold; numbers are quiet and
+// the scaffolding faint, so that names are the loudest thing. A note's
+// own top item with no note, its title, is bold too.
+func (v *Term) paint(i int, r row, w int) *ink {
+	on := r.n.Cur
+	bg, edge, num := "", " ", tty.Quiet
+	switch {
+	case on:
+		bg, edge, num = tty.Bar, "▌", tty.Soft
+	case r.n.Sel:
+		bg = tty.Rule
 	}
-	lines := []line{v.header(head, w)}
-	n := h - 2
-	if len(strips) > n {
-		n--
+	look := v.look(r.n.Kind)
+	k := &ink{}
+	k.add(edge, tty.Accent, bg, false)
+	k.add(fmt.Sprintf("%2d  ", i+1), num, bg, false)
+	k.add(r.lead+r.hint+" ", tty.Faint, bg, false)
+	text := printable(r.n.Text)
+	if r.n.Kind == "item" {
+		label, note, _ := strings.Cut(text, "  ")
+		note = strings.TrimSpace(note)
+		k.add(label, look.Color, bg, on || note == "" && r.first)
+		gap := strings.Repeat(" ", max(0, 8-tty.Width(label)))
+		said := "  " + gap + note
+		if note != "" && k.w+tty.Width(said) <= w-1 {
+			k.add(said, tty.Soft, bg, false)
+		}
+		return k.clip(w-1).pad(w, bg)
+	}
+	k.add(text, look.Color, bg, on)
+	k.add(look.Mark, tty.Faint, bg, false)
+	if said := printable(strings.Join(r.n.Tags, " ")); said != "" {
+		at := max(saidAt, k.w+2)
+		if at+tty.Width(said) <= w-1 {
+			k.pad(at, bg).add(said, look.Said, bg, false)
+		}
+	}
+	return k.clip(w-1).pad(w, bg)
+}
+
+// cards is the body as thumbs: the folder's things as cards, as many
+// across as fit (perRow), each its name in its kind's look, bold, and its
+// mark, and under it its kind's word and what is said of it; the cursor's
+// card lit, with its edge, the others raised. Rows of cards, a blank
+// between, keep the cursor's in the middle when they can, and a count
+// says how many cards did not fit.
+func (v *Term) cards(w, room int) []line {
+	_, rows := v.shown()
+	per := perRow(w)
+	total := (len(rows) + per - 1) / per
+	n := (room + 1) / 3
+	if total > n {
+		n = room / 3
 	}
 	n = max(0, n)
-	off := max(0, min(curRow(rows)/cols-n/2, len(strips)-n))
-	vis := strips[off:min(off+n, len(strips))]
-	lines = append(lines, vis...)
-	extra := n - len(vis)
-	if len(strips) > n {
-		seen := min(len(rows), (off+len(vis))*cols) - off*cols
-		lines = append(lines, more(len(rows)-seen, w))
-		extra--
+	off := max(0, min(curRow(rows)/per-n/2, total-n))
+	var lines []line
+	for s := off; s < min(off+n, total); s++ {
+		a, b, spots := v.card(rows, s*per, per, w)
+		lines = append(lines, line{a, spots}, line{b, spots}, blank(w))
 	}
-	for i := 0; i < extra; i++ {
-		lines = append(lines, line{})
+	if total > n && room > 0 {
+		seen := min(len(rows), (off+n)*per) - off*per
+		lines = append(lines[:min(len(lines), room-1)],
+			more(len(rows)-seen, w))
 	}
 	return lines
 }
 
-// pictured is a screen of a figure, a note whose kind is figure: the
-// header, then its items laid out as parts and messages (sys/figure) and
-// drawn in runes, from the line the view has scrolled to, as many as fit,
-// with a count of those below; a note that makes no figure says why. A
-// cell of the picture names what the figure says stands there.
-func (v *Term) pictured(n *outline.Node, w, h int) []line {
-	f, err := figure.New(n.Kids)
+// perRow is how many cards stand across w: a margin, then each card and
+// the gap after it, the last gap past the edge.
+func perRow(w int) int {
+	return max(1, (w-1+cardGap)/(cardW+cardGap))
+}
+
+// card is a row of cards, the rows from start, per of them, as its two
+// lines and where each card stands on them.
+func (v *Term) card(rows []row, start, per, w int) (string, string,
+	[]spot) {
+	a := (&ink{}).add(" ", "", "", false)
+	b := (&ink{}).add(" ", "", "", false)
+	var spots []spot
+	for i := start; i < min(start+per, len(rows)); i++ {
+		r := rows[i]
+		bg, edge := tty.Panel, " "
+		switch {
+		case r.n.Cur:
+			bg, edge = tty.Bar, "▌"
+		case r.n.Sel:
+			bg = tty.Rule
+		}
+		look := v.look(r.n.Kind)
+		name := printable(r.n.Text)
+		said := strings.Join(strings.Fields(printable(
+			strings.Join(r.n.Tags, " "))), " ")
+		if r.n.Kind == "item" {
+			label, note, _ := strings.Cut(name, "  ")
+			name, said = label, strings.TrimSpace(note)
+		}
+		word := look.Word
+		if word == "" {
+			word = r.n.Kind
+		}
+		a.add(edge, tty.Accent, bg, false)
+		a.add(name, look.Color, bg, true)
+		a.add(look.Mark, tty.Faint, bg, false)
+		b.add(" ", "", bg, false).add(word, tty.Soft, bg, false)
+		if said != "" {
+			b.add("  "+said, look.Said, bg, false)
+		}
+		x := 1 + (i-start)*(cardW+cardGap)
+		end := min(x+cardW, w)
+		for _, l := range []*ink{a, b} {
+			l.clip(end).pad(end, bg).pad(min(end+cardGap, w), "")
+		}
+		spots = append(spots, spot{x, r.n.ID}, spot{x + cardW, ""})
+	}
+	return a.clip(w).pad(w, "").String(), b.clip(w).pad(w, "").String(),
+		spots
+}
+
+// pictured is the body as a figure, a note whose kind is figure: its
+// items laid out as parts and messages (sys/figure) and drawn in runes,
+// from the line the view has scrolled to, as many as fit, with a count of
+// those below; a note that makes no figure says why. A cell of the
+// picture names what the figure says stands there.
+func (v *Term) pictured(w, room int) []line {
+	f, err := figure.New(v.last.Kids)
 	var pic []string
 	if err != nil {
-		pic = []string{tty.Dim(printable(err.Error()))}
+		pic = []string{printable(err.Error())}
 	} else {
 		for _, p := range f.Runes() {
 			pic = append(pic, printable(p))
 		}
 	}
-	rows := max(0, h-2)
-	v.top = max(0, min(v.top, len(pic)-rows))
-	vis := pic[v.top:min(len(pic), v.top+rows)]
+	v.top = max(0, min(v.top, len(pic)-room))
+	vis := pic[v.top:min(len(pic), v.top+room)]
 	below := len(pic) - v.top - len(vis)
 	if below > 0 && len(vis) > 0 {
 		vis, below = vis[:len(vis)-1], below+1
 	}
-	lines := []line{v.header(n, w)}
+	var lines []line
 	for i, p := range vis {
-		l := line{text: tty.Clip(" "+p, w)}
+		l := line{text: drawing(" "+p, err != nil).clip(w).pad(w,
+			"").String()}
 		if f != nil {
 			l.spots = parts(f, v.top+i, w)
 		}
@@ -137,10 +504,30 @@ func (v *Term) pictured(n *outline.Node, w, h int) []line {
 	if below > 0 {
 		lines = append(lines, more(below, w))
 	}
-	for len(lines) < h-1 {
-		lines = append(lines, line{})
-	}
 	return lines
+}
+
+// drawing is a line of a figure in its looks: a box's border and a
+// message's line faint, a message's head in the accent, words as words;
+// a note that made no figure, its why, faint whole.
+func drawing(s string, why bool) *ink {
+	k := &ink{}
+	for _, c := range s {
+		fg := tty.Fore
+		switch {
+		case why, strings.ContainsRune("─│╭╮╰╯┬┴├┤┼┌┐└┘", c):
+			fg = tty.Faint
+		case strings.ContainsRune("▼▲▶◀", c):
+			fg = tty.Accent
+		}
+		if n := len(k.runs); n > 0 && k.runs[n-1].fg == fg {
+			k.runs[n-1].s += string(c)
+			k.w += tty.Width(string(c))
+			continue
+		}
+		k.add(string(c), fg, "", false)
+	}
+	return k
 }
 
 // parts is where the parts of f stand on its line y, drawn from a
@@ -158,39 +545,34 @@ func parts(f *figure.Figure, y, w int) []spot {
 	return spots
 }
 
-// more is the line that counts the n that did not fit, dim, cut to w.
+// more is the line that counts the n that did not fit, quiet.
 func more(n, w int) line {
-	return line{text: tty.Clip(tty.Dim(fmt.Sprintf(" +%d", n)), w)}
+	k := (&ink{}).add(fmt.Sprintf(" +%d", n), tty.Quiet, "", false)
+	return line{text: k.clip(w).pad(w, "").String()}
 }
 
-// header is the top line: where the view is, a path or an item's address,
-// cut from the left when long, for its end names the place.
-func (v *Term) header(n *outline.Node, w int) line {
-	text := tty.Bold(tty.ClipLeft(printable(v.tilde(n.ID)), w))
-	return line{text, []spot{{0, n.ID}}}
+// blank is an empty line, w wide, on the ground.
+func blank(w int) line {
+	return line{text: (&ink{}).pad(w, "").String()}
 }
 
-// paint is row r as line i: its number, its hint in the tree, and its name
-// in its kind's look; outside the tree, where no hint says so, … after one
-// shut with more inside.
-func (v *Term) paint(i int, r row) string {
-	look := v.look(r.n.Kind)
-	num := tty.Yellow(fmt.Sprintf("%2d", i+1))
-	name := look.Color(printable(r.n.Text) + look.Mark)
-	lead := ""
-	if r.lead != "" {
-		lead = r.lead
-	} else if !r.n.Open && len(r.n.Kids) > 0 {
-		name += " …"
-	}
-	return fmt.Sprintf(" %s  %s%s%s", num, lead, hl(r.n), name)
+// rule is a line across, w wide, in the rule's colour.
+func rule(w int) line {
+	k := (&ink{}).add(strings.Repeat("─", max(0, w)), tty.Rule, "", false)
+	return line{text: k.String()}
 }
 
-// look is how the view draws a kind: as the program says, else plain.
+// look is how the view draws a kind: as the program says, a colour and a
+// mark, a word for a card, and a colour for what is said of it; a kind
+// the program says nothing of is the foreground's, and what is said of
+// it faint.
 func (v *Term) look(kind string) Look {
 	l := v.looks[kind]
-	if l.Color == nil {
-		l.Color = tty.Plain
+	if l.Color == "" {
+		l.Color = tty.Fore
+	}
+	if l.Said == "" {
+		l.Said = tty.Faint
 	}
 	return l
 }
@@ -210,89 +592,36 @@ func printable(s string) string {
 	}, s)
 }
 
-// hl is the background a row is on: the cursor's, the selection's, or none.
-func hl(n *outline.Node) string {
-	switch {
-	case n.Cur:
-		return curBg
-	case n.Sel:
-		return selBg
-	default:
+// foot is the bottom line, w wide: the program's word on its left, and
+// at its right the program's state, faint, then where the cursor is among
+// what the view shows, 12/34. Short of room, the word is cut, for the
+// state says what holds now.
+func (v *Term) foot(word string, w int) string {
+	right := &ink{}
+	if s := printable(strings.Join(v.state, " ")); s != "" {
+		right.add(s, tty.Faint, "", false)
+	}
+	if p := v.pos(); p != "" {
+		if right.w > 0 {
+			right.add("  ", "", "", false)
+		}
+		right.add(p, tty.Soft, "", false)
+	}
+	k := (&ink{}).add(" "+printable(word), tty.Fore, "", false)
+	k.clip(max(0, w-right.w-2)).pad(w-right.w-1, "")
+	k.runs, k.w = append(k.runs, right.runs...), k.w+right.w
+	return k.clip(w).pad(w, "").String()
+}
+
+// pos is where the cursor is among what the view shows, 12/34; nothing
+// for a figure, which has no cursor, or for no rows.
+func (v *Term) pos() string {
+	if v.last == nil || v.figured() {
 		return ""
-	}
-}
-
-// tilde is a path with the home it starts in said as ~.
-func (v *Term) tilde(p string) string {
-	h := v.home
-	if h != "" && (p == h || strings.HasPrefix(p, h+"/")) {
-		return "~" + p[len(h):]
-	}
-	return p
-}
-
-// tile is row r as tile i: its number, then its label in its kind's look,
-// cut or padded to cw so that the next tile lines up.
-func (v *Term) tile(i int, r row, cw int) string {
-	name := tty.Clip(v.label(r.n), cw)
-	pad := strings.Repeat(" ", max(0, cw-tty.Width(name)))
-	num := tty.Yellow(fmt.Sprintf("%2d", i+1))
-	color := v.look(r.n.Kind).Color
-	return " " + num + " " + hl(r.n) + color(name) + pad + " "
-}
-
-// grid is how many tiles fit across w, and how wide each tile's label is:
-// the widest, up to 24, so that the tiles line up in columns. A tile is a
-// space, its number, a space, its label and a space.
-func (v *Term) grid(rows []row, w int) (cols, cw int) {
-	for _, r := range rows {
-		cw = max(cw, tty.Width(v.label(r.n)))
-	}
-	cw = min(cw, 24)
-	return max(1, w/(cw+5)), cw
-}
-
-// label is how a node reads in a tile: its text and its kind's mark, and …
-// when it is shut with more inside.
-func (v *Term) label(n *outline.Node) string {
-	s := printable(n.Text) + v.look(n.Kind).Mark
-	if !n.Open && len(n.Kids) > 0 {
-		s += " …"
-	}
-	return s
-}
-
-// foot is the bottom line, w wide: the program's word on the left, and on
-// the right its state, then the view's, in the numbers' yellow. Short of
-// room, the word is cut, for the state says what holds now.
-func foot(word string, state, mine []string, w int) string {
-	right := strings.Join(mine, " ")
-	if len(state) > 0 {
-		right = strings.Join(state, " ") + " · " + right
-	}
-	right = tty.Clip(printable(right), w)
-	left := tty.Clip(printable(word), max(0, w-tty.Width(right)-1))
-	pad := max(0, w-tty.Width(left)-tty.Width(right))
-	return left + strings.Repeat(" ", pad) + tty.Yellow(right)
-}
-
-// words is what the view says of itself on the bottom line: its layout,
-// and where the cursor is among what it shows, 12/34; a figure, which has
-// no cursor, says only that it is one.
-func (v *Term) words() []string {
-	lay := v.lay
-	switch {
-	case v.figured():
-		return []string{"figure"}
-	case lay == "":
-		lay = "folder"
-	}
-	if v.last == nil {
-		return []string{lay}
 	}
 	_, rows := v.shown()
 	if len(rows) == 0 {
-		return []string{lay}
+		return ""
 	}
-	return []string{lay, fmt.Sprintf("%d/%d", curRow(rows)+1, len(rows))}
+	return fmt.Sprintf("%d/%d", curRow(rows)+1, len(rows))
 }

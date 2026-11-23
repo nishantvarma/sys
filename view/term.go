@@ -1,10 +1,13 @@
 // Package view is the outline drawn on a terminal: fm's view, lifted out
 // of fm so that a host, studio, draws it too. It lays the tree out itself,
 // as the folder the cursor is in, the tree from the top, or the folder as
-// tiles, and it moves the cursor among what it shows, telling the program
-// only where it landed (`todo/studio/outline:/Who holds what/`). It draws on
-// the whole terminal, or in a region of it that a host gives it, and it
-// knows which node each cell shows, for a click to name (At).
+// thumbs, and it moves the cursor among what it shows, telling the program
+// only where it landed (`todo/studio/outline:/Who holds what/`). It draws in
+// the palette, as the samples drew it: a head that says where the cursor
+// is, the layouts over the rows, names the loudest thing, the cursor's row
+// lit with a blue edge. It draws on the whole terminal, or in a region of
+// it that a host gives it, and it knows which node each cell shows, for a
+// click to name (At).
 package view
 
 import (
@@ -16,12 +19,21 @@ import (
 	"sys/tty"
 )
 
-// Look is how the terminal draws a kind: its colour, and the mark after
-// its name, as / after a folder's. The program says how its kinds look;
-// one it says nothing of, or a look with no colour, is drawn plain.
+// Look is how the terminal draws a kind: its colour, from tty's palette;
+// the mark after its name, as / after a folder's; the word a card says it
+// by, folder; and the colour of what is said beside it, its facts. The
+// program says how its kinds look; what it leaves out is the palette's
+// foreground, and facts faint.
 type Look struct {
-	Color func(string) string
-	Mark  string
+	Color, Mark, Word, Said string
+}
+
+// Tab is one of the program's ways to see its thing, the switch line's in
+// place of the view's layouts (Tabs): its name, a tally of what it shows,
+// whether it is the one shown, and whether it waits to be built.
+type Tab struct {
+	Name, Tally string
+	On, Waits   bool
 }
 
 // Term is the view: the tree drawn last, the program's word and state,
@@ -34,12 +46,14 @@ type Term struct {
 	last   *outline.Node   // the tree drawn last
 	status string
 	state  []string // the program's state, drawn last
-	lay    string   // "" the folder, "tree" or "tiles"
+	lay    string   // "" the folder, "tree" or "thumbs"
 	region bool     // in x, y, w, h, not the whole terminal
 	x, y   int
 	w, h   int
-	top    int    // a figure's first line shown
-	drew   []line // the lines drawn last, all but the bottom one
+	top    int         // a figure's first line shown
+	drew   []line      // the lines drawn last, all but the bottom one
+	keys   [][2]string // the program's keys the head shows (Chips)
+	tabs   []Tab       // the program's tabs (Tabs), nil for the layouts
 }
 
 // line is a line of the screen: its text, and where on it each node is
@@ -76,6 +90,18 @@ func (v *Term) Draw(n *outline.Node, status string, state []string) {
 	}
 	v.last, v.status, v.state = n, status, state
 	v.show(status)
+}
+
+// Chips are the keys the head shows at its right, each a key and what it
+// does, the program's before the view's own; a range, 1..4, is a key.
+func (v *Term) Chips(keys ...[2]string) {
+	v.keys = keys
+}
+
+// Tabs are the program's ways to see its thing, which the switch line
+// shows in place of the view's layouts; nil gives the layouts back.
+func (v *Term) Tabs(tabs []Tab) {
+	v.tabs = tabs
 }
 
 // Size is how much the view shows at once: the terminal, or its region.
