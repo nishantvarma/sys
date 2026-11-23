@@ -18,4 +18,9 @@ type editor struct {
 	again []tty.Key // the last typed that changed the text: what . types
 	fed   []tty.Key // what . put back, read ahead of the view
 	seen  int       // b.edits at that idle
+
+	// with -f, ed chases cur (see chase)
+	curf   string // the cur file; empty, ed does not chase
+	chased string // cur as ed last chased it
+	held   bool   // cur names another file, and an unsaved buffer waits
 }

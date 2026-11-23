@@ -7,6 +7,7 @@ func (e *editor) run() error {
 	}
 	e.t = t
 	e.ui = &term{t: t}
+	e.wake()
 	t.Write(tty.AltOn + tty.PasteOn)
 	t.Flush()
 	defer func() {

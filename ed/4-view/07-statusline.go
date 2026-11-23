@@ -1,5 +1,6 @@
 // statusLine: colour-coded mode + filename on the left, line:col on the right.
-// A transient message takes the filename's place.
+// After the filename, + while unsaved, and held while that keeps ed from
+// cur's file (chase). A transient message takes the filename's place.
 func statusLine(
 	n *outline.Node,
 	state []string,
@@ -10,6 +11,9 @@ func statusLine(
 	info := tilde(n.Text)
 	if slices.Contains(state[1:], "+") {
 		info += " +"
+	}
+	if slices.Contains(state[1:], "held") {
+		info += " held"
 	}
 	if status != "" {
 		info = status
