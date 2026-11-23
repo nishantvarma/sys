@@ -18,6 +18,8 @@
 //	studio show [-w | -s]           the lens: cur through the window's
 //	                                lens, as nodes a view draws; a slot
 //	                                runs it
+//	studio close [window]           end the frame, each slot as it ends
+//	                                itself; a slot's end runs it
 package main
 
 import (

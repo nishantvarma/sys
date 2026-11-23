@@ -7,4 +7,5 @@ var verbs = map[string]func(args []string) error{
 	"send":   sendVerb,
 	"read":   readVerb,
 	"show":   showVerb,
+	"close":  closeVerb,
 }

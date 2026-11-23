@@ -272,8 +272,10 @@ The plan, each step checked to change nothing it should not
        m, t, q    m is memory in fm and the bracket in ed, so the next
                   lens moves to gt and gT; t is till in ed, so the layout
                   turns by another key, and never in a figure or a text
-                  node; q in a slot ends its program, or the frame closes
-                  slots, as vim's Ctrl-W q does
+                  node. q is decided: a slot's q ends the frame, each
+                  slot ending itself by its own q, so ed keeps what is
+                  unsaved (`studio/5-verbs/10-closeverb.go:/closeVerb/`);
+                  closing one slot alone, vim's Ctrl-W q, is not
        the frame  Ctrl-W, vim's window prefix, which no slot binds: h j k
                   l move the eye, : opens the frame's words, q closes a
                   slot; the shell's word erase comes back as Ctrl-W .;

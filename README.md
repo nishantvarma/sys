@@ -17,7 +17,8 @@ rebuild away.
     studio    the frame: fm, ed on the thing at fm's cursor, and a shell,
               as tmux panes or as a page; `studio/frame` is the layout, a
               note, and a program reaches each pane by its name; `studio
-              show` is the lens, the thing at cur seen another way
+              show` is the lens, the thing at cur seen another way; q in
+              any pane ends the frame, ed keeping what is unsaved
     tangle    literate tangler: weaves a tree of code chunks into one main.go
 
 and the packages they share:

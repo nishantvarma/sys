@@ -1,8 +1,9 @@
 // open lays the frame out in a new tmux window in dir: its pane split
 // down among the slots, theirs across, and so on; then each slot starts
-// what it runs. First the window's own hooks are emptied, for a hook
-// that lays a window out after a split or a pane's end, as `tmux/conf`'s
-// do (`tmux/conf:/select-layout main-vertical/`), would undo the frame.
+// what it runs. First the window's own hooks are set: a split's and a
+// pane's kill do nothing, for a hook that lays a window out after them, as
+// `tmux/conf`'s do (`tmux/conf:/select-layout main-vertical/`), would undo
+// the frame; and a slot's end ends the frame (closeVerb).
 // Its borders are drawn in the rule's colour, the palette's, as the
 // samples drew the frame. The window keeps each slot's pane by name,
 // @studio-name, and the frame it was laid out from, @studio-frame, and it
@@ -18,10 +19,15 @@ func (f *frame) open(dir string, dry bool) error {
 	if err != nil {
 		return err
 	}
-	for _, h := range []string{"after-split-window", "after-kill-pane",
-		"pane-exited"} {
-		if _, err := t.run("set-hook", "-w", "-t", win, h,
-			""); err != nil {
+	self, err := os.Executable()
+	if err != nil {
+		return err
+	}
+	end := fmt.Sprintf("run-shell -b \"'%s' close %s\"", self, win)
+	for _, h := range [][2]string{{"after-split-window", ""},
+		{"after-kill-pane", ""}, {"pane-exited", end}} {
+		if _, err := t.run("set-hook", "-w", "-t", win, h[0],
+			h[1]); err != nil {
 			return err
 		}
 	}
