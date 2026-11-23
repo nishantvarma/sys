@@ -24,3 +24,5 @@ t=(tangle fm ed studio)
 for x in "${t[@]}"; do
 	(cd "$x" && ../bin/tangle && go build -o "../bin/$x" main.go) || exit 1
 done
+# design/arch drawn as a page, made by every build and never kept
+bin/studio figure design/arch > arch.html

@@ -1,0 +1,43 @@
+sys: its parts, and the messages between them
+  studio lays the pieces out from a note, studio/frame: fm, ed on what
+  fm's cursor is on, and a shell. fm says its row to cur; ed -f edits
+  what cur names, and a lens shows what is derived from it. Each piece
+  draws through outline, whose views are the terminal, Tk, and the page
+  next. A right-click is the word: tmux hands it to p, p asks c what it
+  names, and o opens it.
+tmux            the bus: your keys, the word under a click, the shell
+  → p           the word
+sh              the verbs: a script each, run by name
+  c             the pronoun: cur, what the last verb was about
+  p             text to the address it names
+    → c
+    → o
+  o             an address to its program, by kind
+    → e
+    → fm        a folder
+  e             ed in a pane, at the line
+    → ed        +line file
+pieces          studio, and what it lays out from a note, a slot each
+  studio        the frame: its slots, each reached by name
+  lens          what is derived from the thing: outline, diff, figure
+    → outline   draw
+  fm            moves between things; its row is cur
+    → outline   draw
+  ed            edits a thing; a save says c, -f follows cur instead
+    → outline   draw
+outline         the tree a view draws, in messages
+  → lens        key
+  → fm          key
+  → ed          key
+  view          the terminal: fm's layouts, and a figure
+  window        Tk at the end of a pipe, a JSON line each way
+  page          the browser; next
+libraries       what the pieces share, beside outline
+  state         a window's cur and lens: where, read, written whole
+  tty           raw mode, keys and clicks, escapes, and a wake
+  watch         when a file changes: how cur is followed
+  figure        a note as parts and messages: this one
+files           the tree: one outline, from the root to an item in a note
+  config        cur, the lens and c's log, in ~/.config/sys
+  notes         rule todo design
+  medium        pages, and the shelf: a folder in the browser
