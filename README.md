@@ -27,7 +27,7 @@ and the packages they share:
     tty       the shared terminal layer: raw mode, escape codes,
               key and click decoding, line input
     view      the outline drawn on a terminal: fm's layouts, folder, tree
-              and tiles, on the whole screen or in a region a host gives
+              and thumbs, on the whole screen or in a region a host gives
     watch     says when files change in a folder: how a program follows
               cur
     state     a tmux window's own files, cur and the lens: where each is
