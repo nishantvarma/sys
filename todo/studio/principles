@@ -35,8 +35,8 @@ Built on sys, not beside it
 
 The case, carried through: medium/page/py, node
   medium/page/ is the studio's own source: the renderers, their check, a
-  README. lenses.html draws it, made by todo/studio/lenses from the live
-  folder: five lenses on that one def, and the terminal below.
+  README. `studio show` draws the lenses on it in the terminal, and the
+  page will at step 8 (`todo/studio/outline:/a page view of fm and ed/`).
 
   thing     page/py : node                             the id
   source    node as written, lines 311..328            nothing makes it
@@ -62,5 +62,4 @@ Open
   - a trace needs something to run: a test, a script, a request.
 
 See outline (the goal, in Go), renderer (file -> nodes), terminal (the
-pane), studio (the whole, and the page it grew from), refactor (the build
-order).
+pane), shelf (the page the studio grew from), refactor (the build order).

@@ -1,18 +1,15 @@
-Not a terminal.
-
-The want was never the grid — it was text that opens: file:line, url,
-hash. tmux already hands over the word under the pointer, so owning the
-grid buys none of it. mouse_word, copy_cursor_word, mouse_hyperlink,
-copy-pipe; run-shell expands #{...}.
+Not a terminal, it was decided here: the want was never the grid but
+text that opens, file:line, url, hash, and tmux already hands over the
+word under the pointer (mouse_word, copy_cursor_word, mouse_hyperlink,
+copy-pipe; run-shell expands #{...}), so owning the grid bought none of
+it. studio's plan takes the grid all the same, drawing each slot itself
+and the shell through tmux's control mode:
+`todo/studio/outline:/the shell through tmux/`.
 
 Measured on next-3.8: word-separators splits on / : . — the word under
 ed/2-motion/04-fwd.go:12 comes back as `motion`. Set it to " " and the
 whole address comes back. That one line is the enabler; without it the
 extent has to be recomputed from mouse_x against the pattern.
-
-The blocker is not the terminal. ed reads os.Args[1] and nothing else,
-so `e +12 foo.go` opens a file named +12 — and a search hit has carried
-that form all along, so the jump has never worked. Four lines.
 
 Deferred, named:
   exec      the sibling verb — text that names an action, run it.

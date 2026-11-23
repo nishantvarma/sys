@@ -38,8 +38,9 @@ asking about the row under the cursor, the answer a file beside it.
 
 A bridge
 
-fm writes cur after every ls (`todo/next:/fm opens on cur/`). Shelf
-could follow it: fm acts, shelf shows where fm stands. A link, not a merge.
+fm writes cur after every ls
+(`fm/4-main/26-say.go:/say writes the row to cur/`). Shelf could follow
+it: fm acts, shelf shows where fm stands. A link, not a merge.
 
 The pane at the bottom, and full screen (an idea, nothing built)
 

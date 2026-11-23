@@ -1,6 +1,6 @@
 One row at the bottom, and what it costs elsewhere. Not the pronoun
-— impl is that — but what having one makes possible: a verb can be
-said with no noun, so the place you say it needs no width.
+— `design/pronoun` is that — but what having one makes possible: a
+verb can be said with no noun, so the place you say it needs no width.
 
 The row
 
@@ -53,11 +53,12 @@ The prompt is a row, not a process
 
 One terminal, one keyboard: two programs cannot both read it. A row
 still painted while ed owns the screen wants a multiplexer, or one
-program owning everything — and `todo/address:/Not a terminal/` turned
+program owning everything — and `design/address:/Not a terminal/` turned
 the second down.
 So the row is yielded, not owned. A key in fm and in ed hands the bottom
-line to tty.ReadLine, which fm's rename already uses
-(`fm/4-main/08-prompt.go`), runs the word on cur, and takes the row back.
+line to tty.ReadLine, which fm's prompts reach through the view
+(`view/keys.go:/tty.ReadLine/`), runs the word on cur, and takes the row
+back.
 Same row, same key, same function, same meaning — the last of those only
 because they all act on one this.
 Not always visible; one key away, which is what the bar was worth.
@@ -96,13 +97,11 @@ To hand back
 
 History in tty.ReadLine — a slice and two keys. The rest is there: left,
 right, backspace, tab, paste, esc.
-ed's status line is at the foot (`ed/4-view/07-statusline.go`), fm's header
-at the head. With no frame title a viewer's own is the only title there
-is, so they should agree: ed's to row 1, text from row 2.
 
-Deferred
+Owning the screen
 
-One program owning the screen, ed and fm as views inside it. That is
-acme, and it is a window system. `todo/address:/Not a terminal/` said
-no to owning the grid
-and nothing since has moved the price.
+One program owning the screen, ed and fm as views inside it, was
+deferred here as acme, a window system, after
+`design/address:/Not a terminal/` said no to owning the grid. studio's
+plan takes it: its frame draws each program in a slot,
+`todo/studio/outline:/studio hosts the slots/`.

@@ -26,7 +26,7 @@ or a whole note, as a figure is; how the terminal draws it, how the page
 draws it, and what can be done with it. It is a package of its own, as
 sys/figure is, and a view asks it by kind: no plugin system and no
 runtime library, as a page already carries its parts
-(`todo/studio/studio:/carries its parts by/`). A primitive earns its place
+(`todo/studio/shelf:/carries its parts by/`). A primitive earns its place
 when the notes keep needing what the reader cannot say, and it replaces a
 program, or two views need it.
 
@@ -60,7 +60,7 @@ The terminal is one view, behind an abstraction
   own queue, ahead of the view's.
   A page view still runs fm or ed here, as a process beside the files: the
   page is its screen and its keys, over localhost with a token. That is
-  the step studio puts off (`todo/studio/studio:/It makes the page an app/`),
+  the step studio puts off (`todo/studio/shelf:/It makes the page an app/`),
   and this goal takes it.
 
 Messages, not calls

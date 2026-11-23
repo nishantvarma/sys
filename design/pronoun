@@ -94,3 +94,67 @@ on the word under the pointer. The fourth here costs nothing: the ai
 is a speaker, not a view — the paste was its here because there was
 nothing to ask, and now it asks c. Kill every view and the words still
 work; bring one back and it stands where you were.
+
+Decided, so it is not decided twice
+
+One cur per tmux window — $home/.config/sys/cur/@3 — and one m for the
+machine. It is per workspace; memory is one.
+
+The pane is too small a unit: fm in one and the shell in another could
+tell each other nothing, which is the problem this started from. The
+machine is too big: two projects trade this between them. The window is
+already the unit and the layout says so — spawn splits into the current
+one, the shell holds its left, and everything beside it was spawned from
+there. Outside tmux the id is none and nothing else changes.
+
+The id costs c one fork, $TMUX_PANE names a pane and not its window. fm
+asks once at startup. Dead windows leave a stale file of one line each;
+not worth collecting.
+
+c prints a path, never an address. `{c} is how every tool not ours gets
+the pronoun — git add `{c}, wc -l `{c} — and it has to be a filename
+each of them will take. git add foo.go:12 is not one. The line stays in
+cur for the two verbs that read it, and the address whole is m 0, which
+is cur already and so costs no word.
+
+Not taken
+
+cp mv rm mkdir — bin/ is on $PATH, so those four names
+shadow coreutils for every script, Makefile and habit on the machine,
+and the wrappers would have to be flag-transparent to survive it. o e f
+s v p shadow nothing; these four shadow everything. The cell is not
+empty, though — fm is the tree-write verbs already (c C p l d r i I) and
+it knows what it made, so cur follows there and not at a prompt. The day
+that hurts: wrappers that exec /bin/x "$@" and then c the last argument,
+rm the parent (`design/pronoun:/rm, making nothing/`).
+
+ls — same shadow, same answer. fm is ls.
+
+A shell of our own. It is not a shell that is missing, it is a mode: fm
+is normal mode already, and a line at the bottom of a bare terminal is
+insert mode. What made those two programs was two heres; with one they
+are two modes of one sentence, and e typed is e pressed. The rest of it
+— the row, the bar, the discarding, the modes — is frame and not
+pronoun: `todo/frame`.
+
+fm's keys
+
+The rule, so it is not twelve taste calls: a letter that is a shell verb
+means that verb in fm — unless the row already does the verb's work.
+Only c and p qualify: the cursor is cur (`fm/4-main/26-say.go`), so c
+has nothing to say out loud, and enter dispatches, so p has nothing to
+plumb. f s m o have work in fm, so they cannot drift. Only lowercase can
+collide at all — C F M G V Y Z I N have no twin on $PATH and never have
+to move.
+
+What is left of the drift, and why each stays:
+
+    c p    fm means copy and paste, the prompt means cur and plumb. the
+           exception above — neither verb has work in fm, so nothing is
+           being said twice.
+    z      agrees today — zoxide's own shell function is z. if m ever
+           absorbs it the letter frees and the question comes back.
+    ed     exempt by kind and not by letter: c change, p paste, s save,
+           f find char, m match bracket, o open below, b word back. the
+           rule is about a view whose nouns are files; ed's nouns are
+           text, and its table is vi's, older than any of this.

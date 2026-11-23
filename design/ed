@@ -48,7 +48,7 @@ a b that cost:
 
 it is cur's rule one level down: rm, making nothing, retreats to the
 parent, as d leaves a caret where the text was —
-`todo/idea:/cur follows what the verb made/`. they part at inserts: cp
+`design/pronoun:/cur follows what the verb made/`. they part at inserts: cp
 moves cur to the copy, ed leaves a caret after what it put in.
 rejected, the insert selected: p over its own paste would replace it,
 and y p p p would be one paste.

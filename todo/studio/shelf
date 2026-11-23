@@ -8,27 +8,10 @@ MOVE, MKCOL) so the page could change state itself. It needs writes off unless
 asked (shelf -w), localhost only, and a header only the shelf sends, since any
 page you visit can reach localhost. It makes the page an app.
 
-Name: keep shelf for the page. If the whole ever needs one (shelf, fm, v), call
-the whole studio and leave the pieces alone. Not pi: it means the Raspberry Pi.
-
-The diff, retired for now: v wrote .git/changes.diff on every run, untracked
-files in full, and a 23 MB log made one 24 MB; the shelf's v opened it in its
-outline (file a heading, hunk a subheading). Both are gone. When it returns,
-studio writes the diff into .studio itself, not v into .git: a worktree's
-.git is a file, and v stays git's. Written change pages stay page/diff's.
-A page of its own, tried for diff, was retired: the outline was the component.
-Python's, page/py, is the case where the outline did not do: it needs the ast.
-Left open:
-- who writes it: a watcher (a separate process, a few lines)
-- the base is HEAD; HEAD~1 is the same call
-- untracked files: name them, or cap them, never inline a log
-
 Components. The shelf already has the parts: outline, rows with fold and
 cursor, bar, tick, the keys. A page like diff.html must not grow its own;
 it uses these. Each page stays one standalone file, and carries its parts by
 assembly (as tangle stitches Go), not by a runtime library.
-First reuse, done: a .diff opens in the shelf's outline: file is a heading,
-hunk a subheading, so every key already works. No page of its own.
 
 devtools (office) and sys (personal) stay coherent by copy, not by link. today
 the office calls ~/src/sys/medium/page/diff by absolute path (integration/
@@ -53,18 +36,11 @@ page, not into a server.
 
 Wait for an app only for what needs meaning across files: a call graph, "who
 uses this", go to definition. Those are a separate view
-(todo/studio/refactor, "not taken"), not the outline. Rail, strings, skyline,
-folds and ids are exact now.
+(todo/studio/refactor, "not taken"), not the outline. Strings, skyline
+and ids are exact now.
 
 Trigger to revisit: the made page going stale enough to hurt (nobody runs
 page/py), or cross-file links wanted. A second language then needs its own
 renderer in its own parser (tree-sitter if one covers them), not a lexer in the
 page. A lexer in the page was planned and dropped: the ast does what it could
 only approximate.
-
-Renderers: todo/studio/renderer. A kind that needs a parser gets its own page
-(page/py, page/diff, page/todo); text-only kinds stay in the outline above.
-
-Changed, 2026-10-28: the shelf is the studio. One name now for the page, the
-terminal pane and the folder's README (todo/studio/principles). The file shelf
-and its url stay as they are until the code moves; this note is the studio's.
