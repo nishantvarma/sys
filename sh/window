@@ -165,7 +165,7 @@ foreach {kind colour} $fg {
 }
 .t tag configure sel -background #e5e8e4
 .t tag configure inside -background #f8f6ef ;# a file's items, in the tree
-# tiles are drawn on a canvas, which takes the tree's place
+# thumbs are drawn on a canvas, which takes the tree's place
 canvas .c -background #ffffff -highlightthickness 0 -takefocus 1 \
     -yscrollincrement 24
 # a program's text, as ed's buffer, is drawn as text in the terminal's font
@@ -212,11 +212,11 @@ proc show {} {
     set ::here 0
     set ::on .t
     grid remove .x
-    if {$::lay eq "tiles"} {
+    if {$::lay eq "thumbs"} {
         set ::on .c
         grid remove .t
         grid .c -row 1 -column 0 -sticky nsew
-        tiles $in
+        thumbs $in
     } else {
         grid remove .c
         grid .t -row 1 -column 0 -sticky nsew
@@ -319,9 +319,9 @@ proc tilde {p} {
     return $p
 }
 
-# tiles lays out n's kids as a grid read left to right, each tile as wide
+# thumbs lays out n's kids as a grid read left to right, each card as wide
 # as the widest caption, up to 240 pixels, the cursor's line kept in sight
-proc tiles {n} {
+proc thumbs {n} {
     .c delete all
     set ::cw 0
     foreach k [get $n kids] {
@@ -426,14 +426,14 @@ proc zoom {n} {
 }
 
 set last {}
-set on .t  ;# the widget showing: .t the list, .c tiles, .x text
-set lay {} ;# the layout: {} the cursor's folder, tree, or tiles
+set on .t  ;# the widget showing: .t the list, .c thumbs, .x text
+set lay {} ;# the layout: {} the cursor's folder, tree, or thumbs
 set tree 0 ;# laid out as the tree
 set rows {}
 set cur 0
 set page 20
-set cols 1 ;# tiles a line
-set cw 1   ;# a tile's width
+set cols 1 ;# cards a line
+set cw 1   ;# a card's width
 
 set asking 0
 
@@ -479,11 +479,11 @@ proc pasted {which} {
 }
 
 # a move among the rows is the window's own: down, up, the last, a page,
-# and as tiles right and left, down and up going a line of tiles; the
+# and as thumbs right and left, down and up going a line of cards; the
 # program hears only where the cursor landed
 proc move {name} {
     set n [llength $::rows]
-    set step [expr {$::lay eq "tiles" ? $::cols : 1}]
+    set step [expr {$::lay eq "thumbs" ? $::cols : 1}]
     switch -- $name {
         j - DOWN {set d $step}
         k - UP {set d [expr {-$step}]}
@@ -491,7 +491,7 @@ proc move {name} {
         PGUP {set d [expr {-$::page * $step}]}
         G {set d $n}
         RIGHT - LEFT {
-            if {$::lay ne "tiles"} {
+            if {$::lay ne "thumbs"} {
                 return 0
             }
             set d [expr {$name eq "RIGHT" ? 1 : -1}]
@@ -550,7 +550,7 @@ proc turn {name} {
     return 1
 }
 
-# a key pressed: t turns to the next layout, the tree, tiles, the folder; a
+# a key pressed: t turns to the next layout, the tree, thumbs, the folder; a
 # move or a turn is the window's own, else the key is the program's. A
 # window shows no row numbers, so digits jump nowhere
 proc pressed {name} {
@@ -562,7 +562,7 @@ proc pressed {name} {
         return
     }
     if {$name eq "t"} {
-        set ::lay [dict get {{} tree tree tiles tiles {}} $::lay]
+        set ::lay [dict get {{} tree tree thumbs thumbs {}} $::lay]
         set ::tree [expr {$::lay eq "tree"}]
         show
     } elseif {![move $name] && ![turn $name] &&
@@ -600,7 +600,7 @@ proc clicked {x y name} {
     key $name [dict get $::ids $r]
 }
 
-# tapped is a click on the tiles: the cursor goes to the tile there, and a
+# tapped is a click on the thumbs: the cursor goes to the card there, and a
 # double click is enter on it
 proc tapped {x y name} {
     set x [.c canvasx $x]
@@ -618,7 +618,7 @@ bind .c <Double-1> {tapped %x %y ENTER}
 bind .c <Button-4> {.c yview scroll -1 units}
 bind .c <Button-5> {.c yview scroll 1 units}
 bind .c <MouseWheel> {.c yview scroll [expr {-%D / 120}] units}
-bind .c <Configure> {if {$lay eq "tiles"} show}
+bind .c <Configure> {if {$lay eq "thumbs"} show}
 
 # sized says how much the text shows, as a terminal would: columns, and
 # rows with one more for the bottom line
