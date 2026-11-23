@@ -9,21 +9,42 @@ rebuild away.
 ## programs
 
     ed        modal editor, kakoune-flavoured: select first,
-              then act on the selection
+              then act on the selection; `ed -f` edits whatever cur
+              names, and follows it while nothing is unsaved
     fm        single-pane file manager: vim keys, a remembered cursor per
               directory, and it shells out to your own tools instead of
               reimplementing them
-    tty       the shared terminal layer: raw mode, escape codes,
-              key decoding, line input
+    studio    the frame: fm, ed on the thing at fm's cursor, and a shell,
+              as tmux panes or as a page; `studio/frame` is the layout, a
+              note, and a program reaches each pane by its name; `studio
+              show` is the lens, the thing at cur seen another way
     tangle    literate tangler: weaves a tree of code chunks into one main.go
 
-ed and fm are what's built so far; tty and tangle are what they're built
-on. Nothing here is a fixed scope — a window manager, or whatever else
-earns its keep, can join the same way: small, and hardcoded like the rest.
+and the packages they share:
 
-Each has a cheatsheet beside it — `ed/cheatsheet`, `fm/cheatsheet`,
-`tmux/cheatsheet` — carrying the model, which is the half no key table
-generates.
+    outline   the tree a view draws, and the messages between a program
+              and its view; a note read into that tree by its indent
+    tty       the shared terminal layer: raw mode, escape codes,
+              key and click decoding, line input
+    view      the outline drawn on a terminal: fm's layouts, folder, tree
+              and tiles, on the whole screen or in a region a host gives
+    watch     says when files change in a folder: how a program follows
+              cur
+    state     a tmux window's own files, cur and the lens: where each is
+              kept, read, and written whole
+    figure    a note as its parts and the messages between them, laid
+              out in cells: SVG on a page, runes on a terminal;
+              `design/arch` is sys drawn that way, and `./build` makes
+              it `arch.html`
+
+ed, fm and studio are what's built so far; the packages are what they're
+built on, and tangle is how. Nothing here is a fixed scope — a window
+manager, or whatever else earns its keep, can join the same way: small,
+and hardcoded like the rest.
+
+ed, fm and tmux each have a cheatsheet beside them — `ed/cheatsheet`,
+`fm/cheatsheet`, `tmux/cheatsheet` — carrying the model, which is the half
+no key table generates.
 
 ## the source is the interface
 
@@ -54,8 +75,9 @@ file, `fm` with none opens on it, and everything that isn't ours takes
 it as `` `{c} `` — ``git add `{c}``, ``wc -l `{c}``.
 
 Everything that selects says it and nothing else does: fm's cursor as it
-moves, a left click on a word, ed on save — with the line it saved at, so
-`e` reopens there. One cur per tmux window, one log for the machine: each
+moves, and the lens's, a left click on a word, ed on save — with the line
+it saved at, so `e` reopens there; `ed -f` follows cur, and so says
+nothing. One cur per tmux window, one log for the machine: each
 line is a verb and the address it was said about, so `m` walks that log
 newest first — back is `` c `{m 1} ``, a line picked whole is that act
 again, and no view needs a back key.
@@ -70,8 +92,9 @@ outline, and a chunk's name is scoped by its path — normalmode/key and
 insertmode/key coexist, both under `ed/3-mode`; `<<name>>` takes any path
 suffix that names one chunk. tangle walks the tree and stitches it into a
 single `main.go`. Browse the outline in fm, edit the chunks in ed — no
-markup to learn. `tangle`, `fm`, and `ed` are each written this way; `tty`
-stays a plain Go package.
+markup to learn. `tangle`, `fm`, `ed` and `studio` are each written this
+way; `outline`, `tty`, `view`, `watch`, `state` and `figure` stay plain
+Go packages.
 
 The outline does not stop at a file. A note is an outline too, by its
 indent, so one tree runs from the root, the topmost thing, down through
@@ -165,5 +188,6 @@ Each target is tangled then compiled, so `bin/tangle` must already exist —
 it's tangled by itself. `build` also copies `sh/` into `bin/`, so the
 compiled programs and the scripts they call end up in one place — put
 `bin/` on your `$PATH` and that's the whole environment. No install step,
-no tests, no config — small enough to read in one sitting, and meant to
-stay that way.
+no config — small enough to read in one sitting, and meant to stay that
+way. `check` runs every check the tree ships, the packages' tests among
+them.

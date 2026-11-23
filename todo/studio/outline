@@ -1,32 +1,34 @@
 outline: the studio's goal, built in Go. One tree from the root, read once
-and drawn twice: on the terminal, and as a page in the browser. Proposed:
-grow fm into it rather than start a program beside it
-(principles:/Built on sys, not beside it/).
+and drawn twice: on the terminal, and as a page in the browser. Taken:
+studio, the frame, hosts fm and ed as they are
+(`todo/studio/outline:/The frame: studio hosts/`); it is the one new
+piece, for a frame fits none of the others
+(`todo/studio/principles:/Built on sys, not beside it/`).
 
-The shape, a tangle tree like fm's and ed's
-  1-outline  one Node: kind, name, text, kids; the root is ~
-  2-read     a folder, by fm's fs; a note, by page/list's rules in Go
-  3-kinds    the primitives, a folder each: task, mr, ticket, ref
-  4-term     the tree on sys/tty, one cursor: j k move, l in, h out
-  5-html     the same tree as page.html's nodes, so the page's keys and
-             folds work unchanged
-  6-verbs    e runs ed at the item's line, o runs sh/o, a move says c
+The shape, as built: pieces that pass messages, not one program
+  fm, ed     as they were, each a tangle tree, drawing through sys/outline,
+             and on the terminal through sys/view
+  studio     the frame, a tangle tree too: 1-frame 2-term 3-page 4-lens
+             5-verbs 6-main
+  packages   outline, tty, view, watch and state, and figure, the one
+             primitive built so far
 
 The structure is the tree, not a language
   Folders and files carry it down to the idea, and inside a file the
   note's own outline carries the rest: its indent, items and labels. A
   file per idea, not per field: field files cost a file per label, make a
   task slower to write, and change nothing on the page. An s-expression is
-  only a way to print the tree for a program, as medium/page/list --json
+  only a way to print the tree for a program, as `medium/page/list` --json
   does; no page language sits between the tree and a view.
 
-A primitive is a folder: the text it matches, such as !290, how the
-terminal draws it, how the page draws it, and what can be done with it.
-It registers itself, and tangle's <<others>> sweeps it in: no plugin
-system and no runtime library, as a page already carries its parts
-(studio:/carries its parts by/). ls 3-kinds is the list of primitives. A
-primitive earns its place when the notes keep needing what the reader
-cannot say, and it replaces a program, or two views need it.
+A primitive is a kind the views know: the text it matches, such as !290,
+or a whole note, as a figure is; how the terminal draws it, how the page
+draws it, and what can be done with it. It is a package of its own, as
+sys/figure is, and a view asks it by kind: no plugin system and no
+runtime library, as a page already carries its parts
+(`todo/studio/studio:/carries its parts by/`). A primitive earns its place
+when the notes keep needing what the reader cannot say, and it replaces a
+program, or two views need it.
 
 The terminal is one view, behind an abstraction
   fm does what a file manager does, and ed what an editor does; how either
@@ -40,6 +42,7 @@ The terminal is one view, behind an abstraction
         Key() (Key, bool)                            // what was pressed, where
         Ask(prompt, def string) (string, bool)       // a line typed in answer
         Size() (w, h int)                            // how much shows at once
+        Copy(text string)                            // text to the clipboard
     }
 
   Any system that implements View can show and work fm and ed: the
@@ -51,31 +54,73 @@ The terminal is one view, behind an abstraction
   The window is the view's own, so the terminal scrolls by itself and a
   page would scroll natively.
   fm and ed draw, take their keys, ask and copy through View, their screens
-  byte for byte what they were. Still on tty directly: fm's title and the
+  as they were. Still on tty directly: fm's title and the
   suspend around a spawned program or an fzf picker, and ed's check for
   keys still waiting. The keys . puts back to replay a change wait in ed's
   own queue, ahead of the view's.
   A page view still runs fm or ed here, as a process beside the files: the
   page is its screen and its keys, over localhost with a token. That is
-  the step studio puts off (studio:/It makes the page an app/), and this
-  goal takes it.
+  the step studio puts off (`todo/studio/studio:/It makes the page an app/`),
+  and this goal takes it.
 
 Messages, not calls
   A foundation of all of sys, as the outline is:
-  README:/everything talks in messages/. A program and its view pass only
-  plain data: in one process a call whose arguments are data; down a pipe
-  or a socket a JSON line each, as outline.Stream writes them. fm -w and
-  ed -w run the program with its view in another process, sh/window, which
-  Tk draws and outline.Window starts. It draws ed's text as text, in the
-  terminal's font, and hands ed every key.
+  `README.md:/everything talks in messages/`. A program and its view pass
+  only plain data: in one process a call whose arguments are data; down a
+  pipe or a socket a JSON line each, as outline.Stream writes them. fm -w
+  and ed -w run the program with its view in another process,
+  `sh/window`, which Tk draws and outline.Window starts. It draws ed's
+  text as text, in the terminal's font, and hands ed every key.
     to the view      draw: the tree, the program's word and its state;
                      ask: a prompt; copy: text for the clipboard
-    to the program   key: its name, the node it was said on and any text;
-                     answer: the line typed; size: how much the view shows
+    to the program   key: its name, the node it was said on, the rune a
+                     click fell on, and any text; answer: the line
+                     typed; size: how much the view shows
   A message joins when a view needs one, as a primitive does. ed sends
   every line, until a measure says lines must be read on demand. What only
-  a terminal can do stays with it: in a window fm says running another
-  program, a picker or help needs the terminal.
+  a terminal can do stays with it: in a window fm says so of a picker,
+  help, or a program run in its place; o and e open beside it, and run.
+
+The frame: studio hosts the pieces
+  studio is the frame, a tangle tree of its own; fm and ed stay as they
+  are. The frame is a note, `studio/frame`: its lines stack down, the
+  lines under one go across, and so on, turn about. Each line is a slot,
+  a pane or a split into slots; a share such as 40% is its part of its
+  parent, and the rest of the line is what runs in it.
+  Each slot is a process that speaks messages, so composing is the design
+  and not an accident of where it runs:
+    fm -s, ed -s  their view at the other end of stdin and stdout, the
+                  same JSON lines fm -w sends `sh/window`
+    ed -f         the thing at cur as written, and editable: source is
+                  ed, chasing cur; its lines are nodes named path:line
+    lens          a slot a frame may add: the views derived from the
+                  thing, outline, diff, figure and run, read-only
+    shell         the one slot that is a terminal: tmux in control mode
+                  runs it, and studio draws its screen in the slot
+  studio draws each slot's nodes in its region, keeps which slot has the
+  eye, and hands it the keys; a click goes to the slot under it, as a key
+  on the node there. The same note lays out on a page, each slot the
+  page's view of the same process, and in Tk. tmux is not the frame: it
+  runs the shell, and it is where studio was started, if it was.
+
+The socket: studio's words are tmux's, for slots
+  Programmable as tmux is: studio listens on a socket. list, the slots and
+  what runs in each; send, keys or text into one; read, its nodes, not a
+  scrape of its screen; focus; lens; and watch, a line for each thing that
+  happens, a draw, the eye moving, cur, as tmux -C streams its
+  notifications. studio send shell make is one line from any program, an
+  agent's too. Until the socket, send, read and lens are studio's verbs,
+  which tmux carries out.
+
+The look
+  The top line says where cur is; over the tree its layouts, folder, tree
+  and tiles, the one in use lit; beside it the thing itself, in ed; and in
+  a lens slot, when a frame has one, the derived views as tabs, each with
+  its number and its tally, a lens not built dim. What the cursor is on is
+  lit across its whole row, with a blue edge, and the scaffolding is dim,
+  so that names are the loudest thing. As tiles a folder is cards, each a
+  name, its kind and its facts. The palette is the page's tokens, dark or
+  light. None of it is built: sys/view draws fm's look today.
 
 Who holds what
   program  the data, the cursor and the selection: what its verbs act on.
@@ -92,8 +137,9 @@ Who holds what
            where the cursor landed. In the tree it goes in and out itself:
            a node opens or closes in place, the view saying open or close
            on it and the program sending what is inside, and out goes up to
-           the node a row is in. Its hints are its own: in the terminal ▾
-           on what is open, ▸ on what can open, depth by the indent alone,
+           the node a row is in. Its hints are its own: in the terminal a
+           dim ▸ on what is shut with something inside, and nothing on what
+           is open, for its kids under it say so; depth by the indent alone,
            and a bracket, ╭ to ╰, down a text file's items, which the window
            tints instead. In the other two, going in and out stays the
            program's, for it changes what is shown, and so does g, the
@@ -108,7 +154,7 @@ Who holds what
 What opening shows, and what a key does, go by kind
   Opening a node shows what its kind holds: a folder its rows, a text file
   its items, anything else nothing, for o opens it beside. That is a
-  format dispatcher in place, fm/4-main/35-inside.go, and a new format
+  format dispatcher in place, `fm/4-main/35-inside.go`, and a new format
   joins it as one more case. Every text file is read the same way, by
   outline.Text: by its indent, as Python is read, a line's kids being the
   lines indented under it, and a line that hangs under the text after a
@@ -127,32 +173,33 @@ The status line, at the bottom only, in every view
   view's, its layout and where the cursor is, 12/34. Short of room the
   word is cut, for the state says what holds now. The top line keeps
   where: the path, or an item's address. A prompt takes the bottom line
-  while it asks. ed says its mode, and + while unsaved; its views add
-  where the cursor is, line:col.
+  while it asks. ed says its mode, + while unsaved, and held while that
+  keeps it from cur's file; its views add where the cursor is, line:col.
 
 fm and ed as primitives, three ways
-  proposed  fm grows into the studio: it already is the outline at the
-            folder level, with one cursor, h and l. ed stays ed: the
+  taken     studio hosts fm and ed, each a process as it is, its view
+            at the other end of messages
+            (`todo/studio/outline:/The frame: studio hosts/`). fm does
+            not grow to hold the others, as was proposed. ed stays ed:
             studio never edits text itself, and e hands ed the item, in
             the terminal or on the page.
   later     fm and ed as Go packages, each a component with its keys and
             its views, their mains ten lines, so one process can host
             both on one page. A primitive is a Go interface from the
             start, so this stays open.
-  not       both stitched into one main.go: they share twelve top-level
-            names (binding cut draw help paste prompt render run search
-            tilde userHome yank), and tangle walks with WalkDir, which does
-            not follow a linked folder.
+  not       both stitched into one main.go: each has its own main, the
+            two share the top-level names binding and userHome, and
+            tangle walks with WalkDir, which does not follow a linked
+            folder.
 
-The check: outline/text_test.go carries one note through every rule, and
-over every text file in sys the nodes say, word for word and in order,
-what the file says.
+The check: `outline/text_test.go` carries one note through every rule,
+and over every text file in sys the nodes say, word for word and in
+order, what the file says.
 
 What retires once it holds: page/todo and page/list, the python that reads
-and draws notes (principles:/A piece that serves none of this/).
+and draws notes (`todo/studio/principles:/A piece that serves/`).
 
 Open
-  - grow fm, or a studio tree that hosts fm and ed
   - fm and ed on one page from one process, or a page each
   - select moves down within the cursor's folder only, so in the tree it
     stops at the folder's last row
@@ -161,15 +208,84 @@ Open
   - an item's id is its line, so an edit above it moves it; the cursor
     then goes back to the file's row
   - a text file is read on every key, so one over a megabyte stays shut
-  - the terminal view stays in fm, fm/2-view, while fm is the one program
-    that draws an outline on a terminal; a second lifts it out beside
-    outline, as the window already is
-    (programming/standalone:/one host, one call site/)
-  - ed in the window: a click does not move the cursor, for ed's lines
-    have no ids yet
   - fm's yank still runs xclip; the view's copy would carry it into a
     window too
+  - ed in the window: a click does not move the cursor, for the window
+    sends no click on ed's text
+  - in the window the lens's kinds are drawn plain, and a figure as its
+    items: the window knows fm's kinds alone
 
 The plan, each step checked to change nothing it should not
-  1  a page view of fm and ed.
-  2  the keys, decided last, once the ideas are settled.
+  1  fm -s and ed -s: the view at the other end of stdin and stdout.
+     Built.
+  2  fm's terminal view lifted out of fm into sys/view, beside outline,
+     drawing on the whole terminal or in a region a host gives it. It
+     stayed in fm while fm was the one program that drew an outline on
+     a terminal; studio is the second, which lifts it
+     (`programming/standalone:/no second reader/`). Built: fm's screens
+     as they were, in all three layouts, until step 3 changed the tree's
+     hint; a test holds the three (`view/view_test.go:/func TestLayouts/`).
+  3  the lens sends nodes, not escape codes. Built: studio show is a
+     program as fm is, its view sys/view on its pane, Tk with -w, where
+     its kinds are plain (Open), or a host's with -s; a line is a node
+     named path:line. The tree's one hint is a dim ▸ on what is shut. And
+     figure is a lens, not a program: sys/figure reads a note and lays it
+     out, in runes and as SVG, a test holding each
+     (`figure/figure_test.go:/func TestSVG/`); view draws a node of kind
+     figure in runes, and studio figure writes the page.
+  4  source is ed: the thing at cur is edited where it shows. Its source
+     is typed at rest, so ed edits it; outline, diff, figure and run are
+     derived in motion, so they stay lenses, read-only
+     (`todo/studio/aggregate:/typed at rest/`). Built: ed -f chases cur
+     in a slot, another file opening at cur's line, the same file moving
+     only the cursor, and an unsaved buffer holding, saying so, until a
+     save lets it go; ed's lines named path:line, ready for a click,
+     which no view sends yet; the frame fm and ed over the shell;
+     sys/watch, which the lens and ed share. Then: ed's terminal view
+     lifted out of ed, as fm's was, so a host draws it; the view then
+     hands a node of kind text every key, for an editor's keys are its
+     language.
+  5  studio hosts the slots: it starts each with pipes, draws each in
+     its region, and hands the eye, the keys and the clicks to the right
+     one. Ready for it: a stream starts without the eye; tty reads clicks
+     and Ctrl chords; view knows the node at each cell, and figure the
+     part (view.At, figure.At); a key carries the rune a click fell on.
+     Still to do: a prompt in a region, for Ask asks on the terminal's
+     bottom line, and a row's number typed to a host's view.
+  6  studio's socket: list, send, read, focus, lens, watch.
+  7  the shell through tmux's control mode. Until then the shell is a
+     tmux pane, as studio lays the frame out today.
+  8  a page view of fm and ed: the page hosts the same slots.
+  9  the keys, decided last, once the ideas are settled. The keys
+     review left these to decide here:
+       ideas      each binding names its idea beside its key, so a key, a
+                  click and a button say one thing, and the wire carries
+                  ideas; a click's landing says select, which fm logs
+                  through c as p -c does, where a move only says it to
+                  cur
+       vi         digits a count, 3j, and a row by :N or NG; g first and
+                  G last everywhere, a count before G its row; l in, as
+                  right is, and link to another letter
+       m, t, q    m is memory in fm and the bracket in ed, so the next
+                  lens moves to gt and gT; t is till in ed, so the layout
+                  turns by another key, and never in a figure or a text
+                  node; q in a slot ends its program, or the frame closes
+                  slots, as vim's Ctrl-W q does
+       the frame  Ctrl-W, vim's window prefix, which no slot binds: h j k
+                  l move the eye, : opens the frame's words, q closes a
+                  slot; the shell's word erase comes back as Ctrl-W .;
+                  on a page the browser keeps Ctrl-W, and a click moves
+                  the eye
+       one table  keys and gestures to ideas, read by view, `sh/window`,
+                  the page and `tmux/conf`, and listed by ?; today six
+                  places decide keys, and the two copies of the view's
+                  disagree on digits
+       the word   one function finds the word at a column, as tmux and p
+                  do, and p takes -w dir, for a program's own folder
+       text in    p -a and studio send paste with brackets, not typed
+                  keys, so that fm and ed take text and not commands
+       chords     tmux hands clicks through, but a chord only as one
+                  button's press and the other's release: acme's chords
+                  are read from that, or traded for keys
+       sweeps     a drag's end beside its start, once a view sends one
+       window     `sh/window` sends a click on ed's text, with its rune

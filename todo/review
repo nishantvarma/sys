@@ -17,7 +17,7 @@ Whether enter should replace at all is open, below.
 cur was keyed by window_index, per session and renumbering, so two
 sessions with a window 1 shared a pronoun and move-window orphaned the
 file. `sh/c:/window_id/`, `sh/m:/window_id/` and
-`fm/4-main/25-pane.go:/window_id/` ask for the id — unique per server,
+`state/state.go:/window_id/` ask for the id — unique per server,
 stable, and wearing its own @, so the file is cur/@0 as
 `todo/impl:/One cur per tmux window/` always said. The stale @1 and @2
 of the old key are not worth collecting.
@@ -70,10 +70,10 @@ and the test line is all most of the empties need. Otherwise
 leaf, and if the meaning survives it was noise.
 
 dry: one fact, three owners. Where cur lives — `sh/c:/$"id/`,
-`sh/m:/$"id/`, `fm/4-main/01-cmds.go:/curRel/` with
-`fm/4-main/04-newfm.go:/curRel, id/`; how to find the window — the
-three window_id lines above, which is why the fix above was three
-edits. `design/plumbing:/one owner/` is the answer already written. fm
+`sh/m:/$"id/`, and for fm, ed and studio
+`state/state.go:/Path is where a window's state/`; how to find the
+window — the three window_id lines above, which is why the fix above was
+three edits. `design/plumbing:/one owner/` is the answer already written. fm
 forks c once at startup, `fm/4-main/24-here.go`; a c -w that prints
 this window's cur path lets fm and m ask instead of recompute. fm still
 writes the file itself, so the fork per keystroke stays avoided.
@@ -107,7 +107,7 @@ The count replay still reaches keys that prompt: 5/ asks five times,
 5? shows help five times. A rep bit on the binding would stop it at a
 key that prompts; not worth the field until it bites.
 
-`fm/4-main/05-run.go:/for !m.done/` reads and sorts the directory on
+`fm/4-main/28-loop.go:/for !m.done/` reads and sorts the directory on
 every key, j included. It is what makes the cursor survive a rebuild
 for free; measure on a large directory before touching it.
 

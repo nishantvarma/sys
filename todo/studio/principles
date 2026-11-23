@@ -13,17 +13,19 @@ The goal, first: one outline, two renderers
   none of this goes.
 
 Built on sys, not beside it
-  The studio is ed, fm and the rest of sys, not a new program. ed edits a
-  thing, fm moves between things, tty is the terminal both stand on, and
-  tangle stitches a page from its parts. A lens is only what a browser
-  shows better than a terminal can.
+  The studio is ed, fm and the rest of sys; studio, the program, only lays
+  them out (studio/frame). ed edits a thing, fm moves between things, tty
+  is the terminal both stand on, and tangle stitches a page from its parts.
+  A lens shows what is derived from a thing, never what is typed, which is
+  ed's (todo/studio/aggregate:/typed at rest/).
   A need goes into one of those first, as a few lines, and becomes a new
   piece only when it fits none of them. The terminal pane runs fm and ed as
   they are (terminal:/fm, ed, c and tmux/); the thing every lens is on is
   fm's cur, which c names (README:/the word you are on/).
 
-  Target: today only the shelf (reads) and page/py (a lens) exist. The studio
-  is what they are for; nothing named studio runs yet.
+  Target: the shelf reads, and page/py is a lens on a page; studio lays
+  fm, ed and a shell out in tmux, and studio show is the lenses there. No
+  page holds them all yet.
 
   1  a thing is a file or a folder
   2  a lens shows a thing          source, outline, graph, run, diff
