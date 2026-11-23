@@ -1,4 +1,4 @@
-// run is fm on the terminal: tty is its view.
+// run is fm on the terminal: sys/view, on the whole of tty, is its view.
 func (m *fm) run() error {
 	if err := os.Chdir(m.cwd); err != nil {
 		return err
@@ -8,7 +8,7 @@ func (m *fm) run() error {
 		return err
 	}
 	m.t = t
-	m.ui = &term{t: t}
+	m.ui = view.New(t, userHome, looks)
 	catchInterrupt()
 	t.Write(tty.AltOn + tty.Civis)
 	t.Flush()

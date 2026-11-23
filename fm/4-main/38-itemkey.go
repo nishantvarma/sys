@@ -6,8 +6,8 @@
 func (m *fm) itemKey(k string) bool {
 	at := m.items[m.item]
 	edit := func() {
-		line := m.item[strings.LastIndex(m.item, ":")+1:]
-		m.spawn(true, false, cmdEdit, "+"+line)
+		_, line := outline.Address(m.item)
+		m.spawn(true, false, cmdEdit, "+"+strconv.Itoa(line))
 	}
 	switch k {
 	case "", "q", "?", ".":

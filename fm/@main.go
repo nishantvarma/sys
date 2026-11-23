@@ -5,7 +5,6 @@ package main
 
 import (
 	"bytes"
-	"encoding/base64"
 	"fmt"
 	"io"
 	"os"
@@ -19,14 +18,17 @@ import (
 	"time"
 
 	"sys/outline"
+	"sys/state"
 	"sys/tty"
+	"sys/view"
 )
 
 func main() {
 	args := os.Args[1:]
-	win := len(args) > 0 && args[0] == "-w" // a window, not the terminal
-	if win {
-		args = args[1:]
+	// -w is a window, -s a stream a host draws; else the terminal
+	mode := ""
+	if len(args) > 0 && (args[0] == "-w" || args[0] == "-s") {
+		mode, args = args[0], args[1:]
 	}
 	path, row := here() // with no argument, fm opens on cur
 	if len(args) > 0 {
@@ -34,8 +36,10 @@ func main() {
 	}
 	m, err := newFM(path, row)
 	switch {
-	case err == nil && win:
+	case err == nil && mode == "-w":
 		err = m.window()
+	case err == nil && mode == "-s":
+		err = m.stream()
 	case err == nil:
 		err = m.run()
 	}

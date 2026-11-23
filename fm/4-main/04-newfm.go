@@ -10,12 +10,12 @@ func newFM(path string, row bool) (*fm, error) {
 	if row || !isDir(cwd) {
 		cwd, name = filepath.Dir(cwd), filepath.Base(cwd)
 	}
-	id, on := pane()
+	win, on := state.Pane()
 	m := &fm{
 		cwd:  cwd,
 		root: cwd,
 		open: map[string]bool{},
-		this: filepath.Join(userHome, curRel, id),
+		this: state.Path("cur", win),
 		on:   on,
 		pos:  map[string]string{},
 		sel:  map[string]bool{},

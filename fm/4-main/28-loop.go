@@ -19,9 +19,12 @@ func (m *fm) loop() {
 			m.said = ""
 			continue
 		}
-		// a key on a row, as a click or a move, puts the cursor there
-		if ev.Node != "" {
-			m.reach(ev.Node)
+		// a key on a row, as a click or a move, puts the cursor there;
+		// one on a node gone since it was drawn goes with it, for it
+		// was meant for that node and not the cursor's
+		if ev.Node != "" && !m.reach(ev.Node) {
+			m.flash("gone: " + ev.Node)
+			continue
 		}
 		m.msg = ""
 		switch b, hit := m.keys[k]; {

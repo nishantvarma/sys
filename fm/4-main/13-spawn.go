@@ -1,4 +1,8 @@
 // spawn runs a child on our terminal, suspending the UI for its duration.
+// Off the terminal, in a window or a stream, only o and e run, for they
+// open what they are given beside fm, through `sh/spawn`, and return; they
+// run with nothing to read or write, and what else needs the terminal says
+// so.
 func (m *fm) spawn(cur, wait bool, args ...string) {
 	if cur {
 		args = append(args, m.cur())
@@ -12,8 +16,18 @@ func (m *fm) spawn(cur, wait bool, args ...string) {
 	if len(cmd) == 0 {
 		return
 	}
-	if m.t == nil {
+	if m.t == nil && cmd[0] != cmdOpen && cmd[0] != cmdEdit {
 		m.flash(cmd[0] + ": needs the terminal")
+		return
+	}
+	if m.t == nil {
+		c := exec.Command(cmd[0], cmd[1:]...)
+		c.Dir = m.cwd
+		if err := c.Start(); err != nil {
+			m.flash(cmd[0] + ": " + err.Error())
+			return
+		}
+		go c.Wait() // reap it, as detach does
 		return
 	}
 	m.t.Suspend()

@@ -1,5 +1,6 @@
 // window is fm in a window, its view the program window at the other end
-// of a pipe (outline.Window). What needs a terminal says so instead.
+// of a pipe (outline.Window). What needs a terminal says so instead (see
+// spawn).
 func (m *fm) window() error {
 	if err := os.Chdir(m.cwd); err != nil {
 		return err
