@@ -5,7 +5,8 @@
 # every check the tree ships, one run: references open (general/reference),
 # lines fit (layout/vertical), prose has no title case (general/naming/case), a
 # page holds together (general/addressability, layout/sections) and
-# carries a skeleton's style and engine (general/medium).
+# carries a skeleton's style and engine (general/medium), and a package's
+# tests pass, where a target holds them (general/check).
 # run from the tree root.
 #
 #	stdout	violations, path:line first. plumbable.
@@ -102,4 +103,8 @@ for f in $html; do
 		rc=1
 	done
 done
+# a package's tests are its own check. go speaks on stderr, so stdout
+# stays violations alone
+pkgs=$(echo "$files" | grep '_test\.go$' | sed 's|/[^/]*$||' | sort -u)
+[ -z "$pkgs" ] || go test $(printf './%s ' $pkgs) >&2 || rc=1
 exit $rc
