@@ -21,6 +21,7 @@ func (m *fm) tree(dir, text string) *outline.Node {
 			ID:   id(dir, f.name),
 			Kind: kind(f),
 			Text: f.name,
+			Tags: facts(f),
 			Cur:  dir == m.cwd && i == m.idx && m.item == "",
 			Sel:  m.sel[f.path],
 		}
