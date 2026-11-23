@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/signal"
 	"slices"
+	"strconv"
 	"strings"
 	"syscall"
 	"unicode/utf8"
@@ -40,14 +41,24 @@ const (
 	// arrive once a caller has asked with Focus.
 	KFocus = "FOCUS"
 	KBlur  = "BLUR"
+	// KMouse is a button pressed, or moved while held, and KMouseUp one
+	// let go, at Key.X, Key.Y. They only arrive once a caller has asked
+	// with Mouse; no program asks yet, for what a click means waits on
+	// the keys (`todo/studio/outline:/the keys, decided last/`).
+	KMouse   = "MOUSE"
+	KMouseUp = "MOUSEUP"
 )
 
 // Key is one decoded keystroke: a named special key, or a rune. A KPaste
-// carries the pasted block in Text — one burst, not a run of keys.
+// carries the pasted block in Text — one burst, not a run of keys. A
+// chord with Ctrl is named C- and its letter: C-r. A mouse key has its
+// cell, counted from 1 as the terminal counts, and its button with any
+// modifiers, as the terminal's report gives them.
 type Key struct {
-	Name string
-	Rune rune
-	Text string
+	Name         string
+	Rune         rune
+	Text         string
+	X, Y, Button int
 }
 
 // Token is the map key a binding table looks up: the special-key name, else
@@ -66,7 +77,9 @@ type Term struct {
 	queue []Key
 	rest  []byte
 	winch *os.File // read end of the self-pipe SIGWINCH is forwarded onto
+	wake  *os.File // its write end, for Wake
 	focus bool     // focus reporting asked for, so Suspend lends it out
+	mouse bool     // mouse reporting asked for, lent out the same way
 }
 
 // New puts stdin in raw mode and returns the driver.
@@ -93,7 +106,7 @@ func (t *Term) watchResize() {
 	if err != nil {
 		return // resize won't wake the loop; keystrokes still redraw
 	}
-	t.winch = r
+	t.winch, t.wake = r, w
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, syscall.SIGWINCH)
 	go func() {
@@ -125,6 +138,16 @@ func (t *Term) Focus() {
 	t.Flush()
 }
 
+// Mouse asks the terminal to report the mouse, so KMouse and KMouseUp
+// arrive as keys, at the cell they fell on. Like focus, Suspend lends it
+// to a child and Resume takes it back, and a program turns it off as it
+// ends, with MouseOff.
+func (t *Term) Mouse() {
+	t.mouse = true
+	t.Write(MouseOn)
+	t.Flush()
+}
+
 // Suspend hands the terminal back to a foreground child; Resume reclaims it.
 // The alt screen stays on, so the child scrolls there and not over the shell
 // we were started from — leaving it would put the child's output on the
@@ -133,6 +156,9 @@ func (t *Term) Focus() {
 func (t *Term) Suspend() {
 	if t.focus {
 		t.Write(FocusOff)
+	}
+	if t.mouse {
+		t.Write(MouseOff)
 	}
 	t.Write(Cnorm + Home + Clear)
 	t.Flush()
@@ -146,6 +172,9 @@ func (t *Term) Resume() {
 	if t.focus {
 		t.Write(FocusOn)
 	}
+	if t.mouse {
+		t.Write(MouseOn)
+	}
 	t.Flush()
 }
 
@@ -158,6 +187,15 @@ func (t *Term) Pending() bool { return len(t.queue) > 0 }
 // Feed queues ks to be read next, ahead of anything already waiting, as
 // though typed again — a replay runs through the very reads its keys did.
 func (t *Term) Feed(ks []Key) { t.queue = slices.Concat(ks, t.queue) }
+
+// Wake has ReadKey return as a resize does, from any goroutine: a program
+// blocked on keys hears that something it watches changed, and draws
+// again. Like the resize forwarder, it touches only the self-pipe.
+func (t *Term) Wake() {
+	if t.wake != nil {
+		t.wake.Write([]byte{0})
+	}
+}
 
 // ReadKey blocks for the next keystroke. A single terminal read delivers a
 // whole escape sequence, so decoding stays synchronous.
@@ -234,15 +272,29 @@ func (t *Term) waitInput(ms int) (resize, quiet, ok bool) {
 }
 
 // flushRest gives up on a block that stopped mid-arrival. A paste is worth
-// delivering short — only its closing marker went missing; a truncated
-// escape is not. Either way the hold ends, so the next keystroke reads as one.
+// delivering short — only its closing marker went missing; Esc then O,
+// with nothing after it yet, is the two keys vi means by it; any other
+// truncated escape is not worth delivering. Either way the hold ends, so
+// the next keystroke reads as one.
 func (t *Term) flushRest() {
 	b := t.rest
 	t.rest = nil
-	if !bytes.HasPrefix(b, []byte(pasteStart)) {
-		return
+	switch {
+	case bytes.HasPrefix(b, []byte(pasteStart)):
+		t.queue = append(t.queue, pasteKey(b[len(pasteStart):]))
+	case string(b) == "\x1bO":
+		t.queue = append(t.queue, Key{Name: KEsc}, Key{Rune: 'O'})
 	}
-	t.queue = append(t.queue, pasteKey(b[len(pasteStart):]))
+}
+
+// mouseKey is a mouse report as a key: a press, or a move with a button
+// held, or a release, at a cell counted from 1.
+func mouseKey(button, x, y int, up bool) Key {
+	name := KMouse
+	if up {
+		name = KMouseUp
+	}
+	return Key{Name: name, X: x, Y: y, Button: button}
 }
 
 func parseKeys(b []byte) ([]Key, []byte) {
@@ -251,37 +303,12 @@ func parseKeys(b []byte) ([]Key, []byte) {
 		c := b[i]
 		switch {
 		case c == 0x1b:
-			if i+1 >= len(b) {
-				ks = append(ks, Key{Name: KEsc})
-				i++
-			} else if b[i+1] == '[' || b[i+1] == 'O' {
-				j := i + 2
-				for j < len(b) && !csiFinal(b[j]) {
-					j++
-				}
-				if j >= len(b) {
-					return ks, b[i:] // incomplete sequence
-				}
-				params := string(b[i+2 : j])
-				if params == "200" && b[j] == '~' {
-					k, n, ok := pasted(b[j+1:])
-					if !ok {
-						// hold it all: the closing
-						// marker is still coming
-						return ks, b[i:]
-					}
-					ks = append(ks, k)
-					i = j + 1 + n
-					continue
-				}
-				if k, ok := csiKey(params, b[j]); ok {
-					ks = append(ks, k)
-				}
-				i = j + 1
-			} else {
-				ks = append(ks, Key{Name: KEsc})
-				i++
+			k, n := escKeys(b[i:])
+			if n == 0 {
+				return ks, b[i:] // held: not all here yet
 			}
+			ks = append(ks, k...)
+			i += n
 		case c == '\r' || c == '\n':
 			ks = append(ks, Key{Name: KEnter})
 			i++
@@ -293,6 +320,11 @@ func parseKeys(b []byte) ([]Key, []byte) {
 			i++
 		case c == 0x03:
 			ks = append(ks, Key{Name: KInt})
+			i++
+		case c >= 0x01 && c <= 0x1a:
+			// Ctrl and a letter, a chord, by name: C-r
+			name := "C-" + string(rune('a'+c-1))
+			ks = append(ks, Key{Name: name})
 			i++
 		case c < 0x20:
 			i++ // ignore other control bytes
@@ -306,6 +338,60 @@ func parseKeys(b []byte) ([]Key, []byte) {
 		}
 	}
 	return ks, nil
+}
+
+// escKeys decodes what starts at an escape, b[0]: the keys it makes and
+// the bytes they take; 0 bytes when it is not all here yet, to be held.
+// Esc alone, or before a byte no sequence starts with, is Esc. ESC O is
+// SS3 only before a terminal's own letter, an arrow, home, end or F1-F4
+// in application mode; before any other it is Esc then O, as vi types
+// them. ESC [ M is an X10 mouse report, three bytes after it each 32 past
+// its value, a button of 3 a release; any other ESC [ is a CSI sequence,
+// a bracketed paste among them.
+func escKeys(b []byte) ([]Key, int) {
+	switch {
+	case len(b) < 2:
+		return []Key{{Name: KEsc}}, 1
+	case b[1] == 'O':
+		if len(b) < 3 {
+			return nil, 0 // flushRest hands it back as two keys
+		}
+		if strings.IndexByte("ABCDHFPQRS", b[2]) < 0 {
+			return []Key{{Name: KEsc}}, 1
+		}
+		if k, ok := csiKey("", b[2]); ok {
+			return []Key{k}, 3
+		}
+		return nil, 3
+	case b[1] == '[' && len(b) > 2 && b[2] == 'M':
+		if len(b) < 6 {
+			return nil, 0
+		}
+		bt := int(b[3]) - 32
+		x, y := int(b[4])-32, int(b[5])-32
+		return []Key{mouseKey(bt, x, y, bt&3 == 3)}, 6
+	case b[1] == '[':
+		j := 2
+		for j < len(b) && !csiFinal(b[j]) {
+			j++
+		}
+		if j >= len(b) {
+			return nil, 0
+		}
+		params := string(b[2:j])
+		if params == "200" && b[j] == '~' {
+			k, n, ok := pasted(b[j+1:])
+			if !ok {
+				return nil, 0 // its closing marker is to come
+			}
+			return []Key{k}, j + 1 + n
+		}
+		if k, ok := csiKey(params, b[j]); ok {
+			return []Key{k}, j + 1
+		}
+		return nil, j + 1
+	}
+	return []Key{{Name: KEsc}}, 1
 }
 
 func csiFinal(c byte) bool { return c >= 0x40 && c <= 0x7e }
@@ -340,8 +426,24 @@ func pasteKey(b []byte) Key {
 
 // csiKey maps a CSI sequence's parameters and final byte to a named key.
 // Arrows end in A-D; Page Up/Down are the parametered "5~"/"6~"; focus in
-// and out are the bare I and O.
+// and out are the bare I and O; an SGR mouse report is <button;x;y, M for
+// a press or a move and m for a release.
 func csiKey(params string, final byte) (Key, bool) {
+	if p, ok := strings.CutPrefix(params, "<"); ok {
+		f := strings.Split(p, ";")
+		if len(f) != 3 || final != 'M' && final != 'm' {
+			return Key{}, false
+		}
+		var n [3]int
+		for i, s := range f {
+			v, err := strconv.Atoi(s)
+			if err != nil {
+				return Key{}, false
+			}
+			n[i] = v
+		}
+		return mouseKey(n[0], n[1], n[2], final == 'm'), true
+	}
 	switch final {
 	case 'I':
 		return Key{Name: KFocus}, true

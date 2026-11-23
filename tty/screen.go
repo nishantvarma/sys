@@ -31,6 +31,11 @@ const (
 	// the eye and CSI O when it loses it.
 	FocusOn  = "\x1b[?1004h"
 	FocusOff = "\x1b[?1004l"
+	// Mouse reporting, in SGR's form. On (Term.Mouse), the terminal
+	// reports a press, a move with a button held, and a release, as keys
+	// (KMouse, KMouseUp).
+	MouseOn  = "\x1b[?1000h\x1b[?1002h\x1b[?1006h"
+	MouseOff = "\x1b[?1006l\x1b[?1002l\x1b[?1000l"
 	MoveL    = "\x1b[D"
 	Sgr0     = "\x1b[0m"
 )
