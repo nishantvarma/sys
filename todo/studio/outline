@@ -124,8 +124,9 @@ The look, as the samples drew it, built
   whole. As thumbs a folder is cards, each a name, its kind and its
   facts. Beside the tree ed shows the thing as written, the cursor's item
   lit. The palette is the page's tokens in their dark form
-  (`tty/palette.go:/The palette/`), in 24-bit colour, and a tree's hints
-  are + and -, which every font draws alike.
+  (`tty/palette.go:/The palette/`), in 24-bit colour, on the terminal's
+  own black, as the shell beside them is (`tty/palette.go:/Ground is/`);
+  a tree's hints are + and -, which every font draws alike.
 
 Who holds what
   program  the data, the cursor and the selection: what its verbs act on.

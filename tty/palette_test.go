@@ -8,7 +8,7 @@ import (
 
 // The palette's page colours are the page's own tokens in their dark
 // form, as the skeleton writes them: a token changed there and not here
-// shows.
+// shows. The ground is the terminal's own, and no token.
 func TestPalette(t *testing.T) {
 	b, err := os.ReadFile("../medium/page.html")
 	if err != nil {
@@ -20,9 +20,9 @@ func TestPalette(t *testing.T) {
 	for _, m := range tok.FindAllStringSubmatch(string(b), -1) {
 		dark[m[1]] = m[2]
 	}
-	for token, ours := range map[string]string{"bg": Ground,
-		"panel": Panel, "fg": Fore, "dim": Soft, "line": Rule,
-		"accent": Accent, "plus": Plus, "minus": Minus} {
+	for token, ours := range map[string]string{"panel": Panel,
+		"fg": Fore, "dim": Soft, "line": Rule, "accent": Accent,
+		"plus": Plus, "minus": Minus} {
 		if dark[token] != ours {
 			t.Errorf("--%s: the page's %q, ours %q", token,
 				dark[token], ours)

@@ -6,6 +6,11 @@ import (
 	"strings"
 )
 
+// Ground is what the views draw on: "", the terminal's own, so that fm
+// and ed stand on the same black as the shell beside them. The page's own
+// ground is --bg, #111413; a ground the views paint is set here.
+const Ground = ""
+
 // The palette the views draw with: the page's tokens in their dark form,
 // so that the terminal and the page read as one thing
 // (`medium/page.html:/-- tokens --/`), and five a terminal needs that a
@@ -13,7 +18,6 @@ import (
 // the terminal draws in 24-bit colour, and tmux passes on to a terminal
 // that has it.
 const (
-	Ground = "#111413" // --bg: what all of it is drawn on
 	Panel  = "#181c1a" // --panel: a card, raised off the ground
 	Fore   = "#e3e7e4" // --fg: a name, the loudest thing
 	Soft   = "#9aa39e" // --dim: what is said about a thing
