@@ -1,7 +1,7 @@
 // Package outline is the tree a view draws. A program says what to show as
 // nodes; a view, on the terminal, in a window or on a page, says how, and
 // hands back what was pressed. All of it is plain data, so a view can be
-// at the other end of a pipe or a socket. The idea: todo/studio/outline.
+// at the other end of a pipe or a socket. The idea: `todo/studio/outline`.
 package outline
 
 import (
@@ -27,10 +27,13 @@ type Node struct {
 
 // Key is what the person did: a key's name, a letter or a name as tty
 // spells it; the id of the node it was said on, as a click names one, else
-// empty for the cursor's; and the text that came with it, as a paste brings.
+// empty for the cursor's, and the rune of its text the click fell on,
+// counted from 1, else 0; and the text that came with it, as a paste
+// brings.
 type Key struct {
 	Name string `json:"name"`
 	Node string `json:"node,omitempty"`
+	At   int    `json:"at,omitempty"`
 	Text string `json:"text,omitempty"`
 }
 

@@ -2,7 +2,6 @@ package outline
 
 import (
 	"bufio"
-	"fmt"
 	"io"
 	"strings"
 	"unicode/utf8"
@@ -41,7 +40,7 @@ func Text(r io.Reader, id string) []*Node {
 			n.Text += " " + body
 			continue
 		}
-		at := fmt.Sprintf("%s:%d", id, ln)
+		at := At(id, ln)
 		n := &Node{ID: at, Kind: "item", Text: body}
 		for len(up) > 0 && up[len(up)-1].in >= in {
 			up = up[:len(up)-1]
