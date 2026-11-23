@@ -1,6 +1,7 @@
-// statusLine: colour-coded mode + filename on the left, line:col on the right.
-// After the filename, + while unsaved, and held while that keeps ed from
-// cur's file (chase). A transient message takes the filename's place.
+// statusLine is the bottom line, row h, w wide: the mode in its colour,
+// bold, then the file, + while unsaved and held while that keeps ed from
+// cur's file (chase), or in their place a passing message; line:col at
+// the right.
 func statusLine(
 	n *outline.Node,
 	state []string,
@@ -8,7 +9,7 @@ func statusLine(
 	line, col, w, h int,
 ) string {
 	mode := state[0]
-	info := tilde(n.Text)
+	info, fg := tilde(n.Text), tty.Soft
 	if slices.Contains(state[1:], "+") {
 		info += " +"
 	}
@@ -16,25 +17,18 @@ func statusLine(
 		info += " held"
 	}
 	if status != "" {
-		info = status
+		info, fg = status, tty.Fore
 	}
-	right := fmt.Sprintf("%d:%d", line+1, col+1)
-	plain := mode + "  " + info
-	if keep := w - len([]rune(right)) - 1; len([]rune(plain)) > keep {
-		if keep < 0 {
-			keep = 0
-		}
-		plain = string([]rune(plain)[:keep])
+	right := fmt.Sprintf("%d:%d ", line+1, col+1)
+	room := max(0, w-tty.Width(right)-1-tty.Width(" "+mode+"  "))
+	if r := []rune(info); len(r) > room {
+		info = string(r[:room])
 	}
-	pad := w - len([]rune(plain)) - len([]rune(right))
-	if pad < 1 {
-		pad = 1
-	}
-	body := plain + strings.Repeat(" ", pad) + right
-	// Colour the mode word in place; escapes carry no width, so
-	// alignment holds.
-	if strings.HasPrefix(body, mode) {
-		body = modeColour(mode) + body[len(mode):]
-	}
+	used := tty.Width(" " + mode + "  " + info + right)
+	body := tty.Paint(" "+mode, modeColour(mode), tty.Ground, true) +
+		tty.Paint("  "+info, fg, tty.Ground, false) +
+		tty.Paint(strings.Repeat(" ", max(0, w-used)), "", tty.Ground,
+			false) +
+		tty.Paint(right, tty.Soft, tty.Ground, false)
 	return fmt.Sprintf("\x1b[%d;1H%s%s", h, tty.ClrEol, body)
 }
