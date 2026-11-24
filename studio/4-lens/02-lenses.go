@@ -1,6 +1,6 @@
 // lenses are the frame's, in order: what is derived from the thing at cur,
 // in motion, and so read, never typed. The thing as written is ed's, in a
-// slot of its own: source is ed (`todo/studio/aggregate:/typed at rest/`).
+// slot of its own: source is ed (`design/todo:/typed at rest/`).
 // outline, diff and figure show; run is a placeholder until what it waits
 // on is built.
 var lenses = []lens{

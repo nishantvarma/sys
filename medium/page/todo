@@ -1,34 +1,21 @@
 #!/usr/bin/env python3
-"""a page of a todo folder: each entry a node, its state a pill. the folder
-is the data and the page is made from it, never edited.
+"""a todo folder as a page, or as its walk. design/todo is the model: the
+folder is the data, and what this makes from it is never edited.
 
     medium/page/todo FOLDER [TEMPLATE] > page.html
-    medium/page/todo -w FOLDER [TEMPLATE]            writes FOLDER/index.html
+    medium/page/todo -w FOLDER [TEMPLATE]    writes the pages; a path a line
+    medium/page/todo -t FOLDER               the walk; a node a line
 
-TEMPLATE defaults to FOLDER/index.html, else the medium's page.html. -w reads
-and writes the same file, which a redirect cannot: the page this makes is a
-template again. a folder named todo is a project's own todo: its page is
-todo.html beside it — unless it has an index.html of its own, which stays
-its page — and it takes the parent's name and opens with the lead of the
-parent's readme.
+-w writes FOLDER's page, then remakes the page of each todo/ it reaches that
+has one already; a first page is made with -w on its own folder. a folder's
+page is its index.html if it has one, else, for a folder named todo,
+todo.html beside it, which takes the parent's name and opens with the lead
+of the parent's readme. TEMPLATE defaults to the page being written, else
+the medium's page.html.
 
-an entry is a file, a folder or a link, in name order. a leading NN- is only
-order: 04-lucky-instance is the node lucky-instance. dotfiles and index.html
-are not entries. the text is the file, or README in a folder, and in its first
-40 lines these lines are the entry's, not text:
-
-    title: ...                  else the first line of the text, else the name
-    state: todo|now|done|fail|open|blocked
-                                else todo. typed, never derived — but a link
-                                to a page takes its state and its tally from
-                                the page's own nodes
-    after: id id                the entries it waits on, as links
-
-a line `- [ ]` or `- [x]` is a step, counted above the text. a folder's files
-are the explorer's lens, not the todo's, and are not listed; a link to a
-page keeps its link, the link being the entry itself. a folder with a todo/
-of its own lends that folder's entries to its node as children, their ids
-prefixed by the path down: proj/task. the card's tally counts the same nodes.
+-t prints the nodes in the order they are done: the state, the title
+indented by depth, and the id, the path down, which is its address on the
+page.
 
 check: node medium/page/run.mjs page.html, on the page it made
 """
@@ -80,6 +67,7 @@ class Entry:
     tally: str = ""
     is_dir: bool = False
     children: list["Entry"] = field(default_factory=list)
+    todo: Path | None = None  # the folder the children come from
 
 
 # -- the entries --
@@ -130,7 +118,6 @@ def entry(path: Path, seen: set[Path]) -> Entry:
     target = path.resolve()
     if target.is_dir():
         text = lead(text)
-    held = states(target)
     # a folder with a todo/ of its own lends its entries to the card
     todo = target / "todo"
     children = (
@@ -138,6 +125,9 @@ def entry(path: Path, seen: set[Path]) -> Entry:
         if target.is_dir() and todo.is_dir() and todo.resolve() not in seen
         else []
     )
+    # a node with nodes counts them; only one without reads a page, its own
+    # or the one it names
+    held = counted(children) if children else states(target)
     return Entry(
         id=slug(name),
         title=meta.get("title") or first or re.sub(r"[-_]", " ", name),
@@ -149,6 +139,7 @@ def entry(path: Path, seen: set[Path]) -> Entry:
         tally=tally(held),
         is_dir=target.is_dir(),
         children=children,
+        todo=todo if children else None,
     )
 
 
@@ -185,6 +176,16 @@ def states(target: Path) -> Counter:
     if not page or not page.is_file():
         return Counter()
     return Counter(re.findall(r'data-state="(\w+)"', page.read_text()))
+
+
+def counted(children: list[Entry]) -> Counter:
+    """the states of the nodes under a node, at every depth: what its card
+    counts, taken from the folders and never from a page made of them."""
+    held: Counter = Counter()
+    for c in children:
+        held[c.state] += 1
+        held.update(counted(c.children))
+    return held
 
 
 def tally(held: Counter) -> str:
@@ -339,16 +340,14 @@ def lede(e: Entry) -> str:
     return f'<span class="lede">{esc(first[:110])}</span>' if first else ""
 
 
-def node(
-    e: Entry, folder: Path, found: dict[str, Entry], prefix: str = ""
-) -> str:
+def node(e: Entry, at: Path, found: dict[str, Entry], prefix: str = "") -> str:
     """an entry as a node: heading and pill, then body. a child's id and
-    after links are prefixed by the path down to it: proj/task."""
+    after links are prefixed by the path down to it: proj/task. at is the
+    folder the page is written in, which its links are relative to."""
     steps = STEP.findall(e.text)
     done = len(steps) - steps.count(" ")
     links = [
-        f'<a href="{os.path.relpath(f, folder)}">'
-        f"<code>{esc(f.name)}</code></a>"
+        f'<a href="{os.path.relpath(f, at)}"><code>{esc(f.name)}</code></a>'
         for f in e.files
     ]
     after = [
@@ -358,9 +357,7 @@ def node(
         for a in e.after
     ]
     sibs = {c.id: c for c in e.children}
-    children = [
-        node(c, folder, sibs, f"{prefix}{e.id}/") for c in ordered(e.children)
-    ]
+    children = [node(c, at, sibs, f"{prefix}{e.id}/") for c in e.children]
     # a folder's readme gives its lead, on top; a note's text is the body.
     # a folder's files are the explorer's lens, not the todo's: only a
     # link entry keeps its link, where the link is the entry itself
@@ -386,19 +383,27 @@ def node(
     )
 
 
-def ordered(found) -> list[Entry]:
-    """the entries by state, the ones to do first, then by name."""
-    rank = {s: n for n, s in enumerate(STATES)}
-    values = found.values() if isinstance(found, dict) else found
-    return sorted(values, key=lambda e: rank.get(e.state, len(rank)))
+def walk(found, prefix: str = "", depth: int = 0) -> list[str]:
+    """the nodes in the order they are done, a line each: the state, the
+    title indented by depth, the id, and the tally where there is one. the
+    order is the names'; a state marks a node and never moves it."""
+    lines = []
+    for e in found:
+        tally = f"  {e.tally}" if e.tally else ""
+        lines.append(
+            f"{e.state:<8}{'  ' * depth}{e.title}  ({prefix}{e.id}){tally}"
+        )
+        lines += walk(e.children, f"{prefix}{e.id}/", depth + 1)
+    return lines
 
 
 def page(folder: Path, template: str) -> str:
-    """the template, with the folder's entries as main. a folder named todo
-    is a project's own todo: the page takes the parent's name and opens with
-    the lead of the parent's readme."""
+    """the template, with the folder's entries as main, in the order of
+    their names. a folder named todo is a project's own todo: the page takes
+    the parent's name and opens with the lead of the parent's readme."""
     found = entries(folder)
     here = folder.resolve()
+    at = where(here).parent
     says = ""
     if here.name == "todo":
         title = f"{here.parent.name} todo"
@@ -421,8 +426,8 @@ def page(folder: Path, template: str) -> str:
         f'<main class="tiles">\n<h1>{esc(title)}</h1>\n'
         + lead_div
         + "\n".join(
-            '<div class="tile">\n' + node(e, folder, found) + "\n</div>"
-            for e in ordered(found)
+            '<div class="tile">\n' + node(e, at, found) + "\n</div>"
+            for e in found.values()
         )
         + "\n</main>"
     )
@@ -437,31 +442,57 @@ def page(folder: Path, template: str) -> str:
 # -- the files --
 
 
+def where(folder: Path) -> Path:
+    """a folder's page: its own index.html, else, for a folder named todo,
+    todo.html beside it."""
+    inside = folder / "index.html"
+    if folder.name == "todo" and not inside.exists():
+        return folder.with_name("todo.html")
+    return inside
+
+
+def homes(found) -> list[Path]:
+    """the todo/ folders the nodes take their children from, at every
+    depth."""
+    out = []
+    for e in found:
+        if e.todo:
+            out.append(e.todo)
+        out += homes(e.children)
+    return out
+
+
+def skeleton(out: Path, template: Path | None) -> str:
+    """what a page is made on: the template named, else the page itself,
+    else the medium's page.html."""
+    if template:
+        return template.read_text()
+    if out.exists():
+        return out.read_text()
+    return (Path(__file__).resolve().parent.parent / "page.html").read_text()
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("folder", type=Path)
     parser.add_argument("template", type=Path, nargs="?")
-    parser.add_argument(
-        "-w", action="store_true", help="write FOLDER/index.html"
-    )
+    parser.add_argument("-w", action="store_true", help="write the pages")
+    parser.add_argument("-t", action="store_true", help="print the walk")
     args = parser.parse_args()
     folder = args.folder.resolve()
-    inside = folder / "index.html"
-    here = (
-        folder.with_name("todo.html")
-        if folder.name == "todo" and not inside.exists()
-        else inside
-    )
-    template = args.template or (
-        here
-        if here.exists()
-        else Path(__file__).resolve().parent.parent / "page.html"
-    )
-    out = page(args.folder, template.read_text())
-    if args.w:
-        here.write_text(out)
-    else:
-        sys.stdout.write(out)
+    if args.t:
+        print("\n".join(walk(entries(folder).values())))
+        return
+    if not args.w:
+        out = where(folder)
+        sys.stdout.write(page(folder, skeleton(out, args.template)))
+        return
+    # the folder's page, then each page under it that is there already
+    under = homes(entries(folder).values())
+    for f in [folder, *(h for h in under if where(h).exists())]:
+        out = where(f)
+        out.write_text(page(f, skeleton(out, args.template)))
+        print(out)
 
 
 if __name__ == "__main__":

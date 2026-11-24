@@ -1,0 +1,38 @@
+#!/usr/bin/env -S 9 rc
+
+# todo is the entry point: the todo of the thing you are on, or of the one
+# named, which is the nearest folder named todo at or above it, or the
+# todo/ of one. so todo at the top is all of it, and todo on a project or
+# on an item is that part. design/todo is the model.
+#
+#	todo		the walk: a node a line, in the order they are done
+#	todo -w		writes its page, and remakes each page under it that
+#			there is one of; a path a line
+#	todo -c		writes them, then checks each with medium/page/run.mjs
+
+ifs='
+'
+m=`{dirname `{readlink -f $0}}^/../medium
+# -w and -c are todo's, not nouns: held aside, or c would resolve them.
+flag=()
+if (~ $1 -w -c) { flag=$1; shift }
+*=`{c -v todo $*}
+if (~ $#* 0) exit
+d=`{readlink -f $1}
+if (! test -d $d) d=`{dirname $d}
+while (! ~ $d */todo && ! test -d $d/todo) {
+	if (~ $d /) { echo 'todo: no todo at or above '^$1 >[1=2]; exit 1 }
+	d=`{dirname $d}
+}
+if (! ~ $d */todo) d=$d/todo
+
+if (~ $flag -w) exec $m/page/todo -w $d $m/page.html
+if (~ $flag -c) {
+	pages=`{$m/page/todo -w $d $m/page.html}
+	if (~ $#pages 0) exit 1
+	# a check that passes says nothing; the status is node's, not grep's
+	node $m/page/run.mjs $pages | grep -v '^(ok|-- |shots)'
+	~ $status '|'*
+	exit
+}
+exec $m/page/todo -t $d

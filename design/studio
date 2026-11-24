@@ -1,4 +1,4 @@
-principles: the studio, in five lines
+studio: the idea, in five lines
 
 The goal, first: one outline, two renderers
   sys has grown pieces that each read and draw notes their own way: three
@@ -17,11 +17,11 @@ Built on sys, not beside it
   them out (studio/frame). ed edits a thing, fm moves between things, tty
   is the terminal both stand on, and tangle stitches a page from its parts.
   A lens shows what is derived from a thing, never what is typed, which is
-  ed's (todo/studio/aggregate:/typed at rest/).
+  ed's (design/todo:/typed at rest/).
   A need goes into one of those first, as a few lines, and becomes a new
   piece only when it fits none of them. The terminal pane runs fm and ed as
-  they are (terminal:/fm, ed, c and tmux/); the thing every lens is on is
-  fm's cur, which c names (README:/the word you are on/).
+  they are (todo/studio/terminal:/fm, ed, c and tmux/); the thing every
+  lens is on is fm's cur, which c names (README:/the word you are on/).
 
   Target: the shelf reads, and page/py is a lens on a page; studio lays
   fm, ed and a shell out in tmux, and studio show is the lenses there. No
@@ -32,6 +32,12 @@ Built on sys, not beside it
   3  an id joins the lenses
   4  the shelf reads               list, show, flip, follow
   5  the terminal acts, and writes a file a lens shows
+
+The todo is where it starts (`design/todo`): the things you mean to do,
+as a tree, in the order you do them. All five lines hold there already:
+its nodes are files and folders, its page and its walk are lenses, an id
+is the path down, the page only reads, and ed types the state. What the
+studio can take from it, still open: `todo/studio/entry`.
 
 The case, carried through: medium/page/py, node
   medium/page/ is the studio's own source: the renderers, their check, a
@@ -61,5 +67,6 @@ Open
     it would bend.
   - a trace needs something to run: a test, a script, a request.
 
-See outline (the goal, in Go), renderer (file -> nodes), terminal (the
-pane), shelf (the page the studio grew from), refactor (the build order).
+See todo/studio/: outline (the goal, in Go), renderer (file -> nodes),
+terminal (the pane), shelf (the page the studio grew from), refactor (the
+build order).

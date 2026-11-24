@@ -119,6 +119,21 @@ messages already, a verb and the address it was said about, passed
 through files. The messages a program and its view pass are in
 `todo/studio/outline`.
 
+## the studio, and where it starts
+
+The studio is sys on one idea, in `design/studio`: a thing is a file or a
+folder, a lens shows it, an id joins the lenses, the page in the browser
+reads, and the terminal acts. `medium/` is the page side: `page.html`, the
+one page every lens is drawn on; the renderers that make it from a note, a
+folder, a python file or a diff, in `medium/page`; and the shelf that
+reads them.
+
+It starts at the todo, in `design/todo`: what you mean to do, as a tree of
+files, in the order you do it, so the order is the priority and you are
+the one who runs it. `todo` is its verb: bare it prints the walk of the
+todo you are on, `todo -w` writes its page, and `todo -c` checks it. The
+page and the walk are lenses on the folders, so neither is ever edited.
+
 ## rule
 
 `rule/` is how the work is done — one rule per file, the name is the rule,

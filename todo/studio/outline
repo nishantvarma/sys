@@ -3,7 +3,7 @@ and drawn twice: on the terminal, and as a page in the browser. Taken:
 studio, the frame, hosts fm and ed as they are
 (`todo/studio/outline:/The frame: studio hosts/`); it is the one new
 piece, for a frame fits none of the others
-(`todo/studio/principles:/Built on sys, not beside it/`).
+(`design/studio:/Built on sys, not beside it/`).
 
 The shape, as built: pieces that pass messages, not one program
   fm, ed     as they were, each a tangle tree, drawing through sys/outline,
@@ -201,7 +201,7 @@ and over every text file in sys the nodes say, word for word and in
 order, what the file says.
 
 What retires once it holds: page/todo and page/list, the python that reads
-and draws notes (`todo/studio/principles:/A piece that serves/`).
+and draws notes (`design/studio:/A piece that serves/`).
 
 Open
   - fm and ed on one page from one process, or a page each
@@ -239,7 +239,7 @@ The plan, each step checked to change nothing it should not
   4  source is ed: the thing at cur is edited where it shows. Its source
      is typed at rest, so ed edits it; outline, diff, figure and run are
      derived in motion, so they stay lenses, read-only
-     (`todo/studio/aggregate:/typed at rest/`). Built: ed -f chases cur
+     (`design/todo:/typed at rest/`). Built: ed -f chases cur
      in a slot, another file opening at cur's line, the same file moving
      only the cursor, and an unsaved buffer holding, saying so, until a
      save lets it go; ed's lines named path:line, ready for a click,

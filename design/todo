@@ -1,0 +1,81 @@
+todo: what you mean to do, as a tree, in the order you do it. it is the
+entry point: you start at its top, and it drives every other todo, for a
+project's own todo is one of its nodes. it is the program, and you are
+the machine: do what is next, type its state, and next moves on.
+
+  todo/                                the top, where you start
+    01-app -> ../app                   a project, linked whole
+      todo/01-login                1   next: the first not done
+      todo/02-signup               2
+    02-taxes                       3   a file: one item
+    03-move/                           an item that grew
+      README                           its text
+      todo/01-boxes                4
+      todo/02-van                  5
+    04-invoice -> ../shop/todo/03-invoice
+                                   6   one item, of a list not yours
+
+  the walk is 1 to 6: depth first, in the order of the names
+  next is the first leaf of the walk neither done nor blocked
+
+the grammar
+  node      a file, or a folder; a folder's text is its README, and its
+            other files are the explorer's, not the todo's
+  head      title:, state:, after:, on top of the text
+  order     the NN- of a name, in its own list: 01 is done first. it is
+            only order: 04-invoice is the node invoice
+  children  a folder's own todo/: its entries are the node's nodes
+  link      a symlink is a node that lives elsewhere: a link to a folder
+            brings its whole list, a link to a file the one item
+  step      a line "- [ ]" or "- [x]": counted on its card, not a node
+  id        the name without its NN-, and the path down from the top:
+            app/login, which on the page is todo.html#app/login
+
+state: now open fail blocked todo done
+  typed at rest, derived in motion
+    a note's state is typed: a person moves it by editing
+    a node with nodes and no state of its own takes the first of those
+    its nodes hold, and its card counts them: 1 of 6 done · 2 open
+    a link to a page takes its state from the page's own nodes
+    a run's state is derived: ls is the status
+  open is a decision for a human, at every level.
+
+each list is closed
+  a list orders and names only its own entries: a number is a place in
+  its own list, and after: names siblings. so a list reads the same alone
+  and linked into another, which is what makes lists compose.
+  to do a thing first, make it 01 where it lives, and its list 01 in the
+  list above. do not point at it from the top: a pointer is a second
+  place for one item, and the two drift. link one item only when the rest
+  of its list is not yours.
+  lists join by link, not by a scan: a scan finds every folder with a
+  todo, but it has no order, and the order is the program.
+
+where ideas come in
+  at the top, as a bare name, and they grow in place: a name, a line, a
+  README, a folder, a folder with its own todo. the node is the same at
+  every size; only the tally changes. when it is work, its text moves to
+  its project and the entry becomes a link.
+
+the studio, on its own data (`design/studio`)
+  thing     a node is a file or a folder
+  lens      the page and the walk, made from the folders. nothing reads
+            them back; a page is read only where a link names one
+  id        the path down joins the page, the walk and the files
+  shelf     the page reads. a card folded shows the tally; open, it holds
+            the project's nodes, and j k walk them as the walk does: into
+            a node's nodes where it has them, and off its end, folded, on
+  terminal  ed types a state, a rename reorders, and todo remakes
+  todo and pipeline are one structure with two evaluators, you or the
+  runner; the tree and the views do not differ. a gate is an open node,
+  a stage's reads are after:. what else the studio can take from it,
+  still open: `todo/studio/entry`.
+
+the verb: todo (`sh/todo`), with `medium/page/todo` making the views
+  todo        the walk of the todo you are on, a node a line
+  todo -w     its page, todo.html beside the folder, then each page
+              under it that is there already
+  todo -c     the same, checked by `medium/page/run.mjs`
+  it takes its noun from c, and finds the nearest todo at or above it:
+  todo at the top is all of it, and todo on a project or an item is
+  that part.
