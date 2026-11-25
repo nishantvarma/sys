@@ -1,6 +1,0 @@
-enter at a clash prompt overwrites
-
-`fm/3-actions/16-paste.go:/name == ""/` reads an empty answer as the
-default it shows, name [foo], as every prompt here does; it is also the
-one place a default destroys. overwrite as a typed name, and empty as
-cancel, would make it an act.

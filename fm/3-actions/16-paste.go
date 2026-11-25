@@ -4,17 +4,14 @@ func (m *fm) paste() {
 	for _, src := range m.clip {
 		dst := filepath.Join(m.cwd, filepath.Base(src))
 		if exists(dst) {
-			name, ok := m.prompt(
-				fmt.Sprintf("name [%s]: ", filepath.Base(src)),
-				"",
-			)
-			if !ok {
-				// cancelled: leave it pending
+			// a clash: a name typed is the act, the taken one
+			// typed again to write over it, for here a default
+			// would destroy; nothing typed leaves it pending
+			name, ok := m.prompt(filepath.Base(src)+
+				" is taken, name: ", "")
+			if !ok || name == "" {
 				kept = append(kept, src)
 				continue
-			}
-			if name == "" {
-				name = filepath.Base(src)
 			}
 			dst = filepath.Join(m.cwd, name)
 		}

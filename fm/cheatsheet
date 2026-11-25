@@ -56,7 +56,9 @@ both, as rm(1) does. A first visit lands past them.
 act
   space    select, then step down
   c x      copy, cut — both fill the clip and clear the selection
-  p        paste the clip here, asking a name on a clash
+  p        paste the clip here, asking a name on a clash: nothing
+           typed keeps it pending, and only the name typed again
+           writes over the one there
   L        symlink the clip here
   u        drop the clip
   d        delete, after a y

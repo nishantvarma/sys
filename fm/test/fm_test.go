@@ -41,7 +41,8 @@ const ended = "(ended)"
 
 // fm is fm -s on dir, env the last of its environment, and a way to press
 // a key on a row, by its name, or on the cursor's: it answers with what
-// fm shows next, its rows in order, the cursor's marked >, and its word.
+// fm shows next, its rows in order, the cursor's marked >, and its word. A
+// key that starts with = answers a prompt with the rest, typed.
 func fm(t *testing.T, dir string, env ...string) func(key,
 	row string) (string, string) {
 	return started(t, []string{"-s", dir}, dir, env...)
@@ -92,6 +93,11 @@ func started(t *testing.T, args []string, dir string, env ...string) func(
 	}
 	shown()
 	return func(key, row string) (string, string) {
+		if typed, ok := strings.CutPrefix(key, "="); ok {
+			enc.Encode(map[string]map[string]any{
+				"answer": {"text": typed, "ok": true}})
+			return shown()
+		}
 		k := outline.Key{Name: key}
 		if row != "" {
 			k.Node = filepath.Join(dir, row)
@@ -292,5 +298,36 @@ func TestFollow(t *testing.T) {
 	still := fm(t, dir, "HOME="+home)
 	if rows, _ := still("RESIZE", ""); strings.Contains(rows, ">b") {
 		t.Errorf("without -f, fm went to cur: %q", rows)
+	}
+}
+
+// A paste onto a name taken asks for another: nothing typed leaves the
+// clip pending and the taken file as it was, a new name is pasted to, and
+// only the taken name typed again writes over it.
+func TestClash(t *testing.T) {
+	dir := t.TempDir()
+	sub := filepath.Join(dir, "sub")
+	os.Mkdir(sub, 0o755)
+	os.WriteFile(filepath.Join(dir, "a"), []byte("old"), 0o644)
+	os.WriteFile(filepath.Join(sub, "a"), []byte("new"), 0o644)
+	holds := func(name string) string {
+		b, _ := os.ReadFile(filepath.Join(dir, name))
+		return string(b)
+	}
+	press := fm(t, sub)
+	press("", "a")
+	press("c", "")
+	press("BACKSPACE", "")
+	for _, c := range []struct{ typed, name, want string }{
+		{"", "a", "old"},
+		{"b", "b", "new"},
+		{"a", "a", "new"},
+	} {
+		press("p", "")
+		press("="+c.typed, "")
+		if got := holds(c.name); got != c.want {
+			t.Errorf("typed %q: %s holds %q, not %q", c.typed,
+				c.name, got, c.want)
+		}
 	}
 }
