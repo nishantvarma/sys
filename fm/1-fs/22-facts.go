@@ -11,6 +11,6 @@ func facts(f entry) []string {
 	case f.dir:
 		return nil
 	}
-	return []string{fmt.Sprintf("%-5s %s", size(f.size),
+	return []string{fmt.Sprintf("%5s %3s", size(f.size),
 		age(time.Since(f.mod)))}
 }

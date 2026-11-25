@@ -274,19 +274,41 @@ func TestLayouts(t *testing.T) {
 	}
 }
 
-// A thing's facts stand from column 46 when the row has room for them
-// whole, and not at all when it has not.
+// A folder's facts stand in one column: from 46, past the longest name
+// that has them while there is room, else left enough to fit, the name
+// cut short before them; not at all where no name would fit beside them.
 func TestFacts(t *testing.T) {
-	for w, want := range map[int]bool{60: true, 40: false} {
+	long := strings.Repeat("n", 50)
+	for _, c := range []struct {
+		w     int
+		name  string
+		at    int
+		whole bool
+	}{
+		{60, "c", 46, true},   // from column 46
+		{40, "c", 31, true},   // left enough to fit
+		{90, long, 57, true},  // past the longest name, which stays
+		{60, long, 51, false}, // the name cut short before them
+		{20, "c", -1, true},   // too narrow: the name alone
+	} {
 		v := New(nil, "/a", looks)
-		v.In(0, 0, w, 12)
+		v.In(0, 0, c.w, 12)
 		v.last = tree()
+		v.last.Kids[1].Text = c.name
 		v.last.Kids[1].Tags = []string{"640   1h"}
 		v.drawn("")
 		got := plain(v.drew[6].text())
 		at := strings.Index(got, "640   1h")
-		if want && at != 46 || !want && at >= 0 {
-			t.Errorf("%d wide: the facts at %d in %q", w, at, got)
+		if at >= 0 {
+			at = tty.Width(got[:at]) // a column, not a byte
+		}
+		if at != c.at {
+			t.Errorf("%d wide, a name of %d: facts at %d in %q",
+				c.w, len(c.name), at, got)
+		}
+		if strings.Contains(got, c.name) != c.whole {
+			t.Errorf("%d wide, a name of %d: whole is %v in %q",
+				c.w, len(c.name), !c.whole, got)
 		}
 	}
 }

@@ -12,9 +12,13 @@ import (
 )
 
 // The look's measures, as the samples drew it: what is said about a thing
-// stands from column 46, and a card is 22 columns wide, 2 from the next.
+// stands from column 46 at the least (factsAt), and takes at most 16 of
+// the columns at the right, a name at least 10 beside it; a card is 22
+// columns wide, 2 from the next.
 const (
 	saidAt  = 46
+	saidW   = 16
+	nameMin = 10
 	cardW   = 22
 	cardGap = 2
 )
@@ -324,9 +328,10 @@ func (v *Term) listed(w, room int) []line {
 	n = max(0, n)
 	off := max(0, min(curRow(rows)-n/2, len(rows)-n))
 	vis := rows[off:min(off+n, len(rows))]
+	at := v.factsAt(rows, w)
 	var lines []line
 	for i, r := range vis {
-		lines = append(lines, line{v.paint(off+i, r, w),
+		lines = append(lines, line{v.paint(off+i, r, w, at),
 			[]spot{{0, r.ID}}})
 	}
 	if len(rows) > n && room > 0 {
@@ -335,11 +340,35 @@ func (v *Term) listed(w, room int) []line {
 	return lines
 }
 
+// factsAt is the column the facts of a folder's things stand at, w wide:
+// past its longest name that has facts, so that no name is cut while the
+// view has room for it, and from saidAt at the least, so that facts line
+// up; but left enough for them to fit, the names then cut short before
+// them. 0 when the view is too narrow for a name and its facts both, and
+// shows the names alone.
+func (v *Term) factsAt(rows []*outline.Node, w int) int {
+	lead := 1 + tty.Width(fmt.Sprintf("%2d  ", len(rows)))
+	name, said := 0, 0
+	for _, n := range rows {
+		if s := printable(strings.Join(n.Tags, " ")); s != "" {
+			shown := printable(n.Text) + v.look(n.Kind).Mark
+			name = max(name, tty.Width(shown))
+			said = max(said, min(tty.Width(s), saidW))
+		}
+	}
+	at := min(max(saidAt, lead+name+2), w-1-said)
+	if at < lead+nameMin+2 {
+		return 0
+	}
+	return at
+}
+
 // paint is row n as line i, w wide: the cursor's edge, the row's number,
-// then its name in its kind's look and its facts, when they fit whole.
-// The cursor's row is lit across, its name bold; numbers are quiet and
-// marks faint, so that names are the loudest thing.
-func (v *Term) paint(i int, n *outline.Node, w int) *ink {
+// then its name in its kind's look and its facts from column at, the name
+// cut short before them when it is longer; no facts at 0. The cursor's
+// row is lit across, its name bold; numbers are quiet and marks faint,
+// so that names are the loudest thing.
+func (v *Term) paint(i int, n *outline.Node, w, at int) *ink {
 	on := n.Cur
 	bg, edge, num := "", " ", tty.Quiet
 	switch {
@@ -354,11 +383,8 @@ func (v *Term) paint(i int, n *outline.Node, w int) *ink {
 	k.add(fmt.Sprintf("%2d  ", i+1), num, bg, false)
 	k.add(printable(n.Text), look.Color, bg, on)
 	k.add(look.Mark, tty.Faint, bg, false)
-	if said := printable(strings.Join(n.Tags, " ")); said != "" {
-		at := max(saidAt, k.w+2)
-		if at+tty.Width(said) <= w-1 {
-			k.pad(at, bg).add(said, look.Said, bg, false)
-		}
+	if said := printable(strings.Join(n.Tags, " ")); said != "" && at > 0 {
+		k.clip(at-2).pad(at, bg).add(said, look.Said, bg, false)
 	}
 	return k.clip(w-1).pad(w, bg)
 }
