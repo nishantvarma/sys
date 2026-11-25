@@ -2,4 +2,7 @@ fm reads the folder on every key
 
 `fm/4-main/28-loop.go:/for !m.done/` reads and sorts the folder on each
 key, j too: it is what makes the cursor survive a rebuild for free.
-measure on a large folder before touching it.
+measured down a pipe, the read, the sort and the draw as json together:
+0.4 ms a key at 100 entries, 3.6 ms at 1000, 32 ms at 10000. a folder
+of thousands is the only place it shows, so it stays until one is lived
+in; then a key that only moves the cursor keeps the rows it has.
