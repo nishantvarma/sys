@@ -8,7 +8,18 @@ func (t *tangler) expand(src, dir, self string, stack []string) string {
 		if name == "others" {
 			return t.others(dir, self, stack)
 		}
+		// a name that names no chunk would be left in the output, to
+		// surface three steps on as a compile error: say it here. what
+		// is no name, <<%s>> in a format, stays as it is
 		key, ok := resolve(t.chunks, name)
+		if !ok && named.MatchString(name) {
+			in := "@main.go"
+			if c, ok := t.chunks[self]; ok {
+				in = c.path
+			}
+			check(fmt.Errorf("%s: <<%s>> names no chunk",
+				in, name))
+		}
 		if !ok {
 			return m
 		}

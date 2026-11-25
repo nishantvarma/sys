@@ -1,5 +1,5 @@
 // resolve maps a ref to a chunk key: the exact key when one matches,
-// else the one key having name as a path suffix — <<paste>> finds
+// else the one key having name as a path suffix — \<<paste>> finds
 // buffer/paste. Two candidates are an error, not a guess.
 func resolve(chunks map[string]chunk, name string) (string, bool) {
 	if _, ok := chunks[name]; ok {

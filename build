@@ -21,8 +21,11 @@ ln -sf ../medium/shelf/shelf bin/shelf
 [ -x bin/tangle ] || go build -o bin/tangle tangle/main.go
 t=(tangle fm ed studio)
 [ $# -gt 0 ] && t=("$@")
+# go's tools read the tangled main.go, never the chunks, which are no
+# package: go vet ./... chokes on them, so each target is vetted as made
 for x in "${t[@]}"; do
-	(cd "$x" && ../bin/tangle && go build -o "../bin/$x" main.go) || exit 1
+	(cd "$x" && ../bin/tangle && go vet main.go &&
+		go build -o "../bin/$x" main.go) || exit 1
 done
 # design/arch drawn as a page, made by every build and never kept
 bin/studio figure design/arch > arch.html
