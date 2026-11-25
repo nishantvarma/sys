@@ -1,7 +1,7 @@
 sys: its parts, and the messages between them
   studio lays the pieces out from a note, studio/frame: fm, ed on what
-  fm's cursor is on, and a shell. fm says its row to cur; ed -f edits
-  what cur names, and a lens shows what is derived from it. Each piece
+  fm's cursor is on, and a shell. fm says its row to cur, and fm -f and
+  ed -f follow it, as a lens shows what is derived from it. Each piece
   draws through outline, whose views are the terminal, gio's window,
   and the page next. A right-click is the word: tmux hands it to p, p
   asks c what it names, and o opens it.

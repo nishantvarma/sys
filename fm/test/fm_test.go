@@ -44,8 +44,20 @@ const ended = "(ended)"
 // fm shows next, its rows in order, the cursor's marked >, and its word.
 func fm(t *testing.T, dir string, env ...string) func(key,
 	row string) (string, string) {
-	c := exec.Command(built(t), "-s", dir)
-	c.Env = append(os.Environ(), "HOME="+t.TempDir(), "TMUX_PANE=")
+	return started(t, []string{"-s", dir}, dir, env...)
+}
+
+// started is fm run with args, its rows named from dir, as fm is. A cd
+// tells zoxide, which runs on after fm and would write in a home the test
+// is taking away: here it is a stand-in that writes nothing.
+func started(t *testing.T, args []string, dir string, env ...string) func(
+	key, row string) (string, string) {
+	c := exec.Command(built(t), args...)
+	bin := t.TempDir()
+	stand := []byte("#!/bin/sh\n")
+	os.WriteFile(filepath.Join(bin, "zoxide"), stand, 0o755)
+	c.Env = append(os.Environ(), "HOME="+t.TempDir(), "TMUX_PANE=",
+		"PATH="+bin+":"+os.Getenv("PATH"))
 	c.Env = append(c.Env, env...)
 	in, _ := c.StdinPipe()
 	out, _ := c.StdoutPipe()
@@ -227,5 +239,58 @@ func TestUp(t *testing.T) {
 	if rows, _ := press("", "../.."); rows != "0 >a" {
 		t.Errorf("a key on the folder two up shows %q, not 0 >a",
 			rows)
+	}
+}
+
+// With -f fm goes where cur is said: cur is a row, so a file's folder
+// with the cursor on it, and a folder's folder on the folder; cur naming
+// the row already, by a link's path, moves nothing, nor does cur that
+// names nothing. Given the eye, fm says its row only where cur does not
+// name it, so cur keeps its line. Without -f, fm stays.
+func TestFollow(t *testing.T) {
+	dir := t.TempDir()
+	sub := filepath.Join(dir, "sub")
+	os.MkdirAll(sub, 0o755)
+	for _, f := range []string{"a", "sub/b", "sub/c"} {
+		os.WriteFile(filepath.Join(dir, f), nil, 0o644)
+	}
+	os.Symlink("sub", filepath.Join(dir, "link"))
+	home := t.TempDir()
+	cur := filepath.Join(home, ".config", "sys", "cur", "none")
+	os.MkdirAll(filepath.Dir(cur), 0o755)
+	say := func(addr string) {
+		os.WriteFile(cur, []byte(addr+"\n"), 0o644)
+	}
+	said := func() string {
+		b, _ := os.ReadFile(cur)
+		return strings.TrimSpace(string(b))
+	}
+	press := started(t, []string{"-s", "-f", dir}, dir, "HOME="+home)
+	press("", "a")
+	for _, c := range []struct{ cur, want string }{
+		{filepath.Join(sub, "c") + ":3", "b >c"},
+		{sub, "link >sub a"},
+		{filepath.Join(dir, "link"), "link >sub a"},
+		{filepath.Join(dir, "gone"), "link >sub a"},
+	} {
+		say(c.cur)
+		if rows, _ := press("RESIZE", ""); rows != c.want {
+			t.Errorf("cur %s: %q, want %q", c.cur, rows, c.want)
+		}
+	}
+	press("FOCUS", "")
+	if got := said(); got != sub {
+		t.Errorf("the eye on sub, cur naming nothing: cur is %q", got)
+	}
+	say(filepath.Join(sub, "c") + ":3")
+	press("BLUR", "")
+	press("FOCUS", "")
+	if got := said(); got != filepath.Join(sub, "c")+":3" {
+		t.Errorf("the eye on c, cur naming c:3: cur is %q", got)
+	}
+	say(filepath.Join(sub, "b"))
+	still := fm(t, dir, "HOME="+home)
+	if rows, _ := still("RESIZE", ""); strings.Contains(rows, ">b") {
+		t.Errorf("without -f, fm went to cur: %q", rows)
 	}
 }

@@ -2,8 +2,8 @@ package view
 
 import (
 	"os/exec"
+	"path/filepath"
 	"strconv"
-	"strings"
 	"time"
 
 	"sys/figure"
@@ -112,12 +112,14 @@ var vi = map[string]string{"h": tty.KLeft, "j": tty.KDown, "k": tty.KUp,
 	"l": tty.KRight}
 
 // mouse is a mouse report as the view hears it, once the program asks for
-// the mouse (tty.Mouse): a left press names what it falls on (At), a row,
-// a card or a part of the head's path, as a click does in any view; a
-// right press, or a second left one soon after on the same cell, the
-// touchpad's right click, opens it (p), as in any pane
-// (`tmux/conf:/MouseDown3Pane/`); and the wheel moves, as down and up do.
-// A report comes at a cell counted from 1, of the whole terminal.
+// the mouse (tty.Mouse), the three buttons as in any pane
+// (`design/mouse`): a left press names what it falls on (At), a row, a
+// card or a part of the head's path; a right press, or a second left one
+// soon after on the same cell, the touchpad's right click, is enter on
+// it, the program's own open, but on the head, whose parts are places,
+// it goes there as a left press does; a middle press hands it to the
+// shell (send); and the wheel moves, as down and up do. A report comes at
+// a cell counted from 1, of the whole terminal.
 func (v *Term) mouse(k tty.Key) (outline.Key, bool) {
 	switch {
 	case k.Name == tty.KMouseUp:
@@ -135,6 +137,10 @@ func (v *Term) mouse(k tty.Key) (outline.Key, bool) {
 	if id == "" {
 		return outline.Key{}, false
 	}
+	open := outline.Key{Name: tty.KEnter, Node: id}
+	if y == 0 {
+		open.Name = ""
+	}
 	switch k.Button {
 	case tty.MLeft:
 		tap := x == v.px && y == v.py &&
@@ -143,18 +149,23 @@ func (v *Term) mouse(k tty.Key) (outline.Key, bool) {
 		if !tap {
 			return outline.Key{Node: id}, true
 		}
-		plumb(id)
+		return open, true
 	case tty.MRight:
-		plumb(id)
+		return open, true
+	case tty.MMiddle:
+		send(id)
 	}
 	return outline.Key{}, false
 }
 
-// plumb hands an address to p, which opens what it names, and does not
-// wait.
-func plumb(address string) {
-	c := exec.Command("p", "-")
-	c.Stdin = strings.NewReader(address)
+// send hands an address to the shell, at its prompt (p -a), and does not
+// wait; a node that names no place, a removed line's or a placeholder's,
+// is not sent.
+func send(id string) {
+	if p, _ := outline.Address(id); !filepath.IsAbs(p) {
+		return
+	}
+	c := exec.Command("p", "-a", id)
 	if c.Start() == nil {
 		go c.Wait() // reaped, as fm's detach does
 	}

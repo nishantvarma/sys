@@ -2,14 +2,16 @@ studio: fm, the thing at its cursor in ed, and a shell
   Lines stack down, the lines under one go across, and the lines under
   those down again. Each line is a slot, and a share such as 70% is its
   part of its parent; the rest of the line is what runs in it, and a
-  slot that names nothing keeps a shell. ed -f edits whatever fm's cursor
-  is on; a slot that runs studio show adds the lenses, diff, figure and
-  run. A slot's name is how a program reaches it: studio send shell make
-  types make into the shell, and studio read shell reads it. fm's slot
-  is the frame's face: its q ends the frame, asking first while ed holds
-  work unsaved; q in ed or a lens ends nothing, and a shell that exits
-  ends alone.
+  slot that names nothing keeps a shell. fm -f and ed -f follow cur, so
+  ed edits whatever fm's cursor is on, and both go where a click
+  anywhere says; a slot that runs studio show adds the lenses, diff,
+  figure and run. A slot's name is how a program reaches it: studio send
+  shell make pastes make into the shell, and studio read shell reads it;
+  e opens a text in ed, o a folder in fm, and a middle click hands a word
+  to shell (design/mouse). fm's slot is the frame's face: its q ends the
+  frame, asking first while ed holds work unsaved; q in ed or a lens
+  ends nothing, and a shell that exits ends alone.
 top     70%
-  fm    40%  fm
+  fm    40%  fm -f
   ed         ed -f
 shell

@@ -88,9 +88,9 @@ two-noun verbs — mv cp diff — still type their second noun. The day
 that hurts, that: a second file beside cur, t its word, c's grammar.
 mv alone is mv `{c} `{t}.
 
-Three diffs to what exists: fm reads c at start and on focus,
-writes it on every move; ed writes file:line on save; left click is c
-on the word under the pointer. The fourth here costs nothing: the ai
+Three diffs to what exists: fm reads c at start, writes it on every
+move, and with -f follows it; ed writes file:line on save; left click
+is c on the word under the pointer. The fourth here costs nothing: the ai
 is a speaker, not a view — the paste was its here because there was
 nothing to ask, and now it asks c. Kill every view and the words still
 work; bring one back and it stands where you were.

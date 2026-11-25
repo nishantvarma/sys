@@ -1,0 +1,64 @@
+mouse: acme's three buttons, said in sys's verbs
+
+A button means one thing in every pane: the shell's, ed's, fm's and the
+lens's. Each is a verb sys has already.
+
+	left     this     c       the text becomes cur, and every view on
+	                          cur goes there; the eye stays
+	right    look     p, o    open what it names, and the eye goes there
+	middle   do       p -a    hand it to the shell, at its prompt
+
+The case, carried through: the shell in a frame prints sh/o:24, as
+grep -n prints a hit.
+
+	left     cur is sh/o at line 24: ed -f shows the line, fm -f stands
+	         in sh on o, the lens turns to o's diff
+	right    the same, and the eye goes to ed, on line 24
+	middle   the path, whole, lands at the shell's prompt after what is
+	         typed there, git log -p; Return runs it
+
+In a frame, the frame is where it lands
+  A frame's slots are reached by name (`studio/frame`), and the three
+  verbs name theirs: e reaches ed, o a folder's fm, and p -a the shell
+  (`studio/5-verbs/15-paneverb.go`). ed and fm run with -f, following
+  cur, so opening a thing there is saying it and moving the eye: nothing
+  opens beside, and the frame keeps its shape. Outside a frame, or in
+  one with no slot by that name, a verb opens a pane beside, as before.
+
+Look never runs
+  o shows a thing, and the shell runs one: a script is text, so a right
+  click opens it in ed, and a middle click hands it to the prompt, where
+  only Return runs it. o ran what was executable until this, which made
+  a tap on ./w a run of sudo and rm -rf.
+
+The click is the word, or the selection it falls in
+  As in acme, a right or a middle click inside a selection takes the
+  selection: ed's, or one copy mode holds. One word is resolved to what
+  it names, its punctuation stripped; several are a phrase, which p -a
+  hands on as it came, for it is a command, not a name.
+
+The text goes in as a paste
+  p -a pastes rather than types: a selection's lines come joined, and a
+  program that asks for brackets, bash among them, takes the paste as
+  text and never as its keys, so nothing in it runs. It goes only to a
+  shell at its prompt, unless the pane is the one you marked: a program
+  there would read typed text as its keys.
+
+What is where
+	gesture    tmux/conf, ed's view, sys/view    which text, which button
+	resolve    sh/c                              text to an address
+	dispatch   sh/o, sh/e, sh/p -a               an address to a program,
+	                                             or to the frame's slot
+	views      ed -f, fm -f, the lens            follow cur
+  Nothing new runs: no plumber, no socket, no table but o's
+  (`design/plumbing`). A view hands its clicks on as ideas: fm hears a
+  right click as enter, its own open, which goes into a folder and opens
+  a file.
+
+Given up
+  ed's middle click no longer pastes X's selection: shift and a middle
+  click is the terminal's own paste, under any program, and ctrl-v
+  pastes the clipboard. acme's chords, 1-2 cut and 1-3 paste, are not
+  here: tmux hands a chord only as one button's press and the other's
+  release (`todo/03-studio/05-keys`). Nor is look's search for a word
+  that names nothing: p ends at its git check.

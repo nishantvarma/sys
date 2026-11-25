@@ -7,13 +7,20 @@ if (~ $#EDITOR 0) EDITOR=ed
 # the flag stays ed's: a caller holding a line of its own keeps saying it,
 # and with none cur's line is the line — but only while cur is this file,
 # or a name that resolved to nothing would open at someone else's number.
+# a caller's line is said with the name, so that cur carries it too.
 at=()
 if (~ $1 +*) { at=$1; shift }
+if (! ~ $#at 0 && ~ $#* 1) *=$1^:^`{echo $at | sed 's,^.,,'}
 
 n=`{c -v e $*}
 if (~ $#n 0) exit
-if (~ $#at 0) {
-	a=`{m 0}
-	if (~ $"a $"n^:*) at='+'^`{echo $"a | sed 's,.*:,,'}
+a=`{m 0}
+
+# in a frame the slot named ed edits cur, for it runs ed -f: while cur is
+# this file, the eye goes there and nothing opens beside (design/mouse).
+if (~ $"a $"n $"n^:*) {
+	ed=`{studio pane ed >[2]/dev/null}
+	if (! ~ $#ed 0) if (tmux select-pane -t $ed >[2]/dev/null) exit
 }
+if (~ $#at 0 && ~ $"a $"n^:*) at='+'^`{echo $"a | sed 's,.*:,,'}
 spawn -t $EDITOR $at $"n

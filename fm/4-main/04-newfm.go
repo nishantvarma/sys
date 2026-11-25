@@ -1,4 +1,4 @@
-func newFM(path string, row bool) (*fm, error) {
+func newFM(path string, row, follows bool) (*fm, error) {
 	cwd, err := filepath.Abs(path)
 	if err != nil {
 		return nil, err
@@ -20,6 +20,11 @@ func newFM(path string, row bool) (*fm, error) {
 	}
 	if name != "" {
 		m.pos[cwd] = name
+	}
+	// following, fm goes where cur is said from now on: cur as it starts
+	// is heard already, so a folder given stays given
+	if follows {
+		m.follows, m.heard = true, state.Read(m.this)
 	}
 	// in a frame's slot fm is the frame's face, and its q asks first
 	// while ed holds work unsaved (quit)

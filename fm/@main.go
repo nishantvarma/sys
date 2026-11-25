@@ -21,20 +21,35 @@ import (
 	"sys/state"
 	"sys/tty"
 	"sys/view"
+	"sys/watch"
 )
 
 func main() {
-	args := os.Args[1:]
-	// -w is a window, -s a stream a host draws; else the terminal
-	mode := ""
-	if len(args) > 0 && (args[0] == "-w" || args[0] == "-s") {
-		mode, args = args[0], args[1:]
+	// -w is a window, -s a stream a host draws; else the terminal. -f
+	// follows cur (follow), as ed -f does, which needs a waking when cur
+	// changes: the terminal gives one and a host down a pipe can, and a
+	// window cannot, so -f is not for -w.
+	args, mode, follows := os.Args[1:], "", false
+	for len(args) > 0 {
+		if args[0] == "-f" {
+			follows = true
+		} else if args[0] == "-w" || args[0] == "-s" {
+			mode = args[0]
+		} else {
+			break
+		}
+		args = args[1:]
+	}
+	if follows && mode == "-w" {
+		fmt.Fprintln(os.Stderr, "usage: fm [-w | -s] [path]\n"+
+			"       fm [-s] -f [path]")
+		os.Exit(1)
 	}
 	path, row := here() // with no argument, fm opens on cur
 	if len(args) > 0 {
 		path, row = args[0], false
 	}
-	m, err := newFM(path, row)
+	m, err := newFM(path, row, follows)
 	switch {
 	case err == nil && mode == "-w":
 		err = m.window()

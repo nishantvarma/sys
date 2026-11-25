@@ -15,9 +15,10 @@ set -g word-separators " "
 set -g focus-events on
 
 # left click is select and nothing else — p -c stops at cur. acme's three
-# buttons, and the two beside it were already here. the guard is
-# DoubleClick1Pane's: a mode with a table of its own and a mouse-reading
-# program keep theirs, and the drag that selects text still runs after this.
+# buttons, and the two beside it were already here (design/mouse). the
+# guard is DoubleClick1Pane's: a mode with a table of its own and a
+# mouse-reading program keep theirs, and the drag that selects text still
+# runs after this.
 bind-key -n MouseDown1Pane {
 	select-pane -t =
 	if-shell -F "#{||:#{pane_in_mode},#{mouse_any_flag}}" "send-keys -M" {
@@ -91,8 +92,9 @@ bind-key p run-shell -b "p #{pane_id}"
 bind-key a run-shell -b "p #{pane_id} -a"
 
 # the same word as an argument, not a destination: it lands at the prompt
-# of the marked pane, or the last one, and waits. no Enter is sent, so
-# screen text still becomes a command only when you say so.
+# of the marked pane, else the frame's shell, else the last one, and
+# waits. no Enter is sent, so screen text still becomes a command only
+# when you say so (design/mouse).
 bind-key -n MouseDown2Pane if-shell -F "#{mouse_any_flag}" "send-keys -M" {
 	set-option -pF @p "#{mouse_word}"
 	run-shell -b "p #{pane_id} -a"

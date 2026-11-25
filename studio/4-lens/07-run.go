@@ -1,7 +1,8 @@
 // run draws the lens and takes its keys until it is quit, outside a frame,
 // for in one q is fm's, or its view is gone. A change to cur moves it
 // there; a key on a node reaches it first (see reach), and one on a node
-// gone goes with it; m turns to the next lens. Its drawing is a tree, the
+// gone goes with it; m turns to the next lens, and enter, a right click's
+// too, opens what the row names (plumb). Its drawing is a tree, the
 // program's word what made it, and its state the lens and its number
 // among them; a view that has tabs shows the lenses as tabs (tabs).
 func (l *lensing) run(ui outline.View, t *tty.Term,
@@ -71,6 +72,8 @@ func (l *lensing) run(ui outline.View, t *tty.Term,
 			if err := state.Write(l.lensf, next); err != nil {
 				l.msg = err.Error()
 			}
+		case tty.KEnter:
+			plumb(l.at)
 		}
 	}
 }

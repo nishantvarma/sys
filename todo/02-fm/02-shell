@@ -8,7 +8,9 @@ v, w and F borrow fm's own pane and pause on it
   fm       f s m z: a pick fm acts on, so fm runs it
   itself   e o a V: a program with a screen, beside
 the shell is the window's, and studio names its slot
-(`studio/5-verbs/06-sendverb.go`). parked, for it is not clean: fm has
+(`studio/5-verbs/06-sendverb.go`). a middle click on a row is the half
+that is yours: it waits at the shell's prompt for Return
+(`design/mouse`). parked, for it is not clean: fm has
 never typed at the shell, on purpose (the readme's "the directory you are
 in"); the shell stands in a folder of its own, where v wants cur's; and a
 shell busy with a program, or a line half typed, takes the keys as its

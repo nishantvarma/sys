@@ -177,3 +177,143 @@ func TestEnd(t *testing.T) {
 		t.Error("the window left is still the frame's")
 	}
 }
+
+// mouse is a frame whose slots are named as the verbs reach them, ed, fm
+// and shell, with stand-ins for fm and ed.
+const mouse = `a frame of stand-ins, its slots named as the verbs reach them
+top  70%
+  fm  50%  fm
+  ed       ed
+shell
+`
+
+// TestMouse: in a frame a right click on a text gives ed's slot the eye,
+// one on a folder fm's, and one on a script opens it there and runs
+// nothing, each with no pane opened beside; a middle click pastes the
+// word, whole, at the shell's prompt and gives the shell the eye, but
+// not while the shell runs a program; outside a frame a right click on
+// a text opens ed beside. sys's own p, c, o, e and m, which a click
+// runs, are rc, and the test skips without it.
+func TestMouse(t *testing.T) {
+	for _, b := range []string{"tmux", "9"} {
+		if _, err := exec.LookPath(b); err != nil {
+			t.Skip("no " + b)
+		}
+	}
+	studio := built(t)
+	home, bin, work := t.TempDir(), t.TempDir(), t.TempDir()
+	for _, f := range []string{"p", "c", "o", "e", "m", "spawn"} {
+		b, err := os.ReadFile(filepath.Join("..", "..", "sh", f))
+		if err != nil {
+			t.Fatal(err)
+		}
+		os.WriteFile(filepath.Join(bin, f), b, 0o755)
+	}
+	os.Symlink(studio, filepath.Join(bin, "studio"))
+	stand := []byte("#!/bin/sh\necho in $STUDIO\nexec cat\n")
+	for _, f := range []string{"fm", "ed"} {
+		os.WriteFile(filepath.Join(bin, f), stand, 0o755)
+	}
+	os.WriteFile(filepath.Join(work, "a.txt"), []byte("a\n"), 0o644)
+	os.Mkdir(filepath.Join(work, "sub"), 0o755)
+	ran := filepath.Join(work, "ran")
+	os.WriteFile(filepath.Join(work, "run.sh"),
+		[]byte("#!/bin/sh\ntouch "+ran+"\n"), 0o755)
+	sock := fmt.Sprintf("sys-mouse-%d", os.Getpid())
+	env := append(os.Environ(), "TMUX_PANE=", "HOME="+home,
+		"PROMPT_COMMAND=", "PS1=$ ", "EDITOR=ed",
+		"PATH="+bin+":"+os.Getenv("PATH"))
+	tm := func(args ...string) string {
+		t.Helper()
+		c := exec.Command("tmux", append([]string{"-L", sock, "-f",
+			"/dev/null"}, args...)...)
+		c.Env, c.Dir = append(env, "TMUX="), work
+		out, err := c.CombinedOutput()
+		if err != nil {
+			t.Fatalf("tmux %s: %v: %s", strings.Join(args, " "),
+				err, out)
+		}
+		return strings.TrimSpace(string(out))
+	}
+	tm("new-session", "-d", "-x", "200", "-y", "50", "-c", work,
+		"sleep 100")
+	t.Cleanup(func() { tm("kill-server") })
+	server := tm("display", "-p", "#{socket_path},#{pid},0")
+	note := filepath.Join(t.TempDir(), "frame")
+	os.WriteFile(note, []byte(mouse), 0o644)
+	c := exec.Command(studio, note)
+	c.Dir, c.Env = work, append(env, "TMUX="+server)
+	if out, err := c.CombinedOutput(); err != nil {
+		t.Fatalf("studio: %v: %s", err, out)
+	}
+	w := tm("show", "-gv", "@studio")
+	slot := map[string]string{}
+	for _, n := range []string{"fm", "ed", "shell"} {
+		slot[n] = tm("show", "-wv", "-t", w, "@studio-"+n)
+	}
+	shows := func(p, s string) bool {
+		return strings.Contains(tm("capture-pane", "-pJ", "-t", p), s)
+	}
+	if !settle(func() bool { return shows(slot["shell"], "$") }) {
+		t.Fatal("the shell shows no prompt")
+	}
+	// click is a button on a word in pane p, as tmux/conf hands it on
+	click := func(p, word string, mode ...string) {
+		tm("set-option", "-p", "-t", p, "@p", word)
+		tm("run-shell", strings.Join(append([]string{"p", p},
+			mode...), " "))
+	}
+	eye := func() string { return tm("display", "-p", "-t", w,
+		"#{pane_id}") }
+	count := func(w string) string { return tm("display", "-p", "-t",
+		w, "#{window_panes}") }
+
+	for _, c := range []struct{ word, eye string }{
+		{"a.txt", "ed"}, {"sub,", "fm"}, {"./run.sh", "ed"},
+	} {
+		tm("select-pane", "-t", slot["shell"])
+		click(slot["shell"], c.word)
+		if got := eye(); got != slot[c.eye] {
+			t.Errorf("a right click on %s: the eye on %s,"+
+				" not %s's", c.word, got, c.eye)
+		}
+		if n := count(w); n != "3" {
+			t.Errorf("a right click on %s: the frame is %s panes",
+				c.word, n)
+		}
+	}
+	time.Sleep(200 * time.Millisecond)
+	if _, err := os.Stat(ran); err == nil {
+		t.Error("a right click on a script ran it")
+	}
+
+	click(slot["ed"], "a.txt", "-a")
+	path := filepath.Join(work, "a.txt")
+	if !settle(func() bool { return shows(slot["shell"], path) }) {
+		t.Errorf("a middle click: the shell shows no %s", path)
+	}
+	if got := eye(); got != slot["shell"] {
+		t.Errorf("a middle click: the eye on %s, not the shell", got)
+	}
+	tm("send-keys", "-t", slot["shell"], "C-u", "clear", "Enter")
+	tm("send-keys", "-t", slot["shell"], "sleep 100", "Enter")
+	if !settle(func() bool {
+		return tm("display", "-p", "-t", slot["shell"],
+			"#{pane_current_command}") == "sleep"
+	}) {
+		t.Fatal("the shell runs no command")
+	}
+	click(slot["ed"], "a.txt", "-a")
+	time.Sleep(200 * time.Millisecond)
+	if shows(slot["shell"], path) {
+		t.Error("a middle click typed into the shell's program")
+	}
+
+	plain := tm("new-window", "-P", "-F", "#{window_id}", "-c", work)
+	p := tm("display", "-p", "-t", plain, "#{pane_id}")
+	click(p, "a.txt")
+	if !settle(func() bool { return count(plain) == "2" }) {
+		t.Errorf("outside a frame, a right click on a text opened"+
+			" %s panes, not ed beside", count(plain))
+	}
+}

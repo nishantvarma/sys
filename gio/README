@@ -35,5 +35,5 @@ not here yet
     - a shell: its slot says so. the plan runs it through tmux's control
       mode (`todo/03-studio/03-shell`)
     - help and the pickers (`todo/04-gio/02-term`)
-    - a drag in ed's text, the wheel, a middle click's paste and a right
-      click's open, as on the terminal
+    - a drag in ed's text, the wheel, and the right and middle clicks,
+      as on the terminal (`design/mouse`)

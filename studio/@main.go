@@ -15,7 +15,7 @@
 //	studio figure note [page.html]  a note's figure as a page, on the
 //	                                skeleton given, or sys's own
 //	studio lens [name]              the window's lens, or set it
-//	studio send slot text...        type text into a slot, then enter
+//	studio send slot text...        paste text into a slot, then enter
 //	studio read slot                a slot's screen, as text
 //	studio show [-w | -s]           the lens: cur through the window's
 //	                                lens, as nodes a view draws; a slot
@@ -25,6 +25,8 @@
 //	                                face, fm, the frame ends with it
 //	studio slots [frame]            the frame's slots as JSON, for a
 //	                                host that lays them out itself
+//	studio pane slot                the pane of a slot of this window's
+//	                                frame: where e, o and p -a land
 package main
 
 import (

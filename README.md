@@ -13,18 +13,18 @@ rebuild away.
               names, and follows it while nothing is unsaved
     fm        single-pane file manager: vim keys, a remembered cursor per
               directory, and it shells out to your own tools instead of
-              reimplementing them
+              reimplementing them; `fm -f` goes where cur is said
     gio       sys's views in a window, drawn by gio: studio's frame, fm
               and ed in it as they are; its own module, built apart
               (`gio/README`)
     studio    the frame: fm, ed on the thing at fm's cursor, and a shell,
               as tmux panes or as a page; `studio/frame` is the layout, a
-              note, and a program reaches each pane by its name; `studio
-              show` is the lens, the thing at cur seen another way; run
-              from a shell alone in its window it lays the frame out
-              there, the shell its shell; q in fm ends the frame,
-              asking first while ed holds work unsaved, and a shell that
-              exits ends alone
+              note, and a program reaches each pane by its name, as the
+              mouse's three buttons do (`design/mouse`); `studio show` is
+              the lens, the thing at cur seen another way; run from a
+              shell alone in its window it lays the frame out there, the
+              shell its shell; q in fm ends the frame, asking first while
+              ed holds work unsaved, and a shell that exits ends alone
     tangle    literate tangler: weaves a tree of code chunks into one main.go
 
 and the packages they share:
@@ -66,8 +66,10 @@ and the drift between them.
 
 `o` opens it, `q` closes it. With no argument `o` takes the directory you
 are in, and a directory is what it dispatches to fm. Nothing in
-`tmux/conf` names fm, so changing `sh/o` changes what `o`, right-click and
-`` `p `` open. fm's `o` runs it too, handing it the row under the cursor.
+`tmux/conf` names fm, so changing `sh/o` changes what `o`, a right click
+and `` `p `` open. fm's `o` runs it too, handing it the row under the
+cursor. `o` opens and never runs: a script is text, and running is the
+shell's.
 
 There is no key for this, because there is nothing a key would know that
 the shell does not. fm splits in beside the shell and never moves it or
@@ -85,11 +87,17 @@ it as `` `{c} `` — ``git add `{c}``, ``wc -l `{c}``.
 Everything that selects says it and nothing else does: fm's cursor as it
 moves, and the lens's, a click moving either; a left click on a word in
 any pane but theirs and ed's, which take the mouse for themselves; and ed
-on save — with the line it saved at, so `e` reopens there; `ed -f` follows cur, and so says
-nothing. One cur per tmux window, one log for the machine: each
-line is a verb and the address it was said about, so `m` walks that log
-newest first — back is `` c `{m 1} ``, a line picked whole is that act
-again, and no view needs a back key.
+on save — with the line it saved at, so `e` reopens there. `ed -f` and
+`fm -f` follow cur, and so a frame goes where anything says. One cur per
+tmux window, one log for the machine: each line is a verb and the
+address it was said about, so `m` walks that log newest first — back is
+`` c `{m 1} ``, a line picked whole is that act again, and no view needs
+a back key.
+
+The mouse is acme's three buttons on these verbs, the same in every
+pane: left is this, `c`; right is look, `p`, which opens what the word
+names; middle is do, `p -a`, which hands it to the shell's prompt, where
+Return runs it (`design/mouse`).
 
 ## the filesystem is the outline
 
@@ -193,12 +201,13 @@ them into bin/ next to the compiled programs; edit or replace them like
 anything else here.
 
 `tmux/` is the same idea one layer out: the bindings that run those
-scripts — right-click to open what a word names, middle-click to send it
-to a prompt — kept beside them rather than in your dotfiles, so a trigger
-and its program can't drift apart. The layout is here for the same reason:
-`spawn` asks for a pane and never says where, so where one goes is a
-line of tmux and not a branch in a script. Everything else about tmux
-stays yours; your own tmux.conf reaches this with
+scripts — a left click to say a word, a right click to open what it
+names, a middle click to hand it to the shell — kept beside them rather
+than in your dotfiles, so a trigger and its program can't drift apart.
+The layout is here for the same reason: `spawn` asks for a pane and
+never says where, so where one goes is a line of tmux and not a branch
+in a script. Everything else about tmux stays yours; your own tmux.conf
+reaches this with
 
     source-file ~/src/sys/tmux/conf
 

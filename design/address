@@ -13,10 +13,13 @@ extent has to be recomputed from mouse_x against the pattern.
 
 Deferred, named:
   exec      the sibling verb — text that names an action, run it.
+            answered by the middle button, which hands it to the
+            shell's prompt, where Return runs it (`design/mouse`).
   relative  a path is relative to the cwd that printed it, not the cwd
             now. pane_current_path is right until a cd. acme solves it
             by owning the window — the price of not writing one.
-  ed        third front end, text in a buffer. only if it earns it.
+  ed        third front end, text in a buffer: built, its right and
+            middle clicks hand their word to p.
 
 What a terminal would still buy is an editable output window. That is a
 different want, and capture-pane -p | ed is the cheap half of it.

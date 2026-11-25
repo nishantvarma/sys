@@ -9,6 +9,7 @@ func (m *fm) run() error {
 	}
 	m.t = t
 	m.ui = view.New(t, userHome, looks)
+	m.wake()
 	catchInterrupt()
 	t.Write(tty.AltOn + tty.Civis)
 	t.Flush()

@@ -5,6 +5,17 @@ ifs='
 *=`{c -v o $*}
 if (~ $#* 0) exit
 
+# o shows a thing and never runs one: a script is text, which e opens, and
+# running is the shell's, where a middle click hands it (design/mouse).
+#
+# a folder, in a frame, is the slot named fm's: it runs fm -f, on cur
+# already, so the eye goes there; else an fm opens beside.
+fn folder {
+	fm=`{studio pane fm >[2]/dev/null}
+	if (~ $#fm 0 || ! tmux select-pane -t $fm >[2]/dev/null)
+		spawn -t fm `{readlink -f $1}
+}
+
 file=`{file $1 >[2]/dev/null}
 mime=`{file -m $1 >[2]/dev/null}
 
@@ -28,6 +39,5 @@ if not if (~ $1 *.tgz) spawn -t tar -xf $1
 if not if (~ $1 *.url) spawn microsoft-edge `{cat $1}
 if not if (~ $1 *.webm) spawn mpv $1
 if not if (~ $1 *.xz) spawn -t tar -xf $1
-if not if (~ $file *directory*) spawn -t fm `{readlink -f $1}
-if not if (test -x $1) spawn -t `{readlink -f $1}
+if not if (~ $file *directory*) folder $1
 if not if (~ $mime *text*) e `{m 0}

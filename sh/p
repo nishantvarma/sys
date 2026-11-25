@@ -6,6 +6,11 @@
 # passes the word in a pane option, never in the command, so screen text is
 # never parsed as a shell command, and a word arriving any other way is
 # written back to that option: what was last said is where a click left it.
+#
+#	p [%pane] [-a | -c] [- | text]
+#	p	look: open what the text names, a right click (design/mouse)
+#	p -c	this: say it, and stop at cur, a left click
+#	p -a	do: hand it to the shell, at its prompt, a middle click
 
 pane=()
 if (~ $1 %*) { pane=(-t $1); TMUX_PANE=$1; shift }
@@ -30,16 +35,38 @@ if (! ~ $#pane 0) {
 
 # the strip is the screen's, not the resolver's: a word torn out of a line
 # arrives wearing its punctuation. a url is no file, so it is not said;
-# everything else is, and c is where the file system and git get asked.
+# everything else is, and c is where the file system and git get asked. a
+# phrase handed to the shell is a command and no name: it goes as it came,
+# and c is not asked.
 text=`{echo $"* | sed 's,^[^/~._a-zA-Z0-9]*,,; s,[^/~_a-zA-Z0-9]*$,,'}
 if (~ $#text 0) exit
 n=$"text
-if (! ~ $"text http://* https://*) n=`{c $"text}
+if (~ $mode -a && ~ $"* *' '*) n=$"*
+if not if (! ~ $"text http://* https://*) n=`{c $"text}
 
+# the shell takes it at its prompt: the pane you marked, else the frame's
+# shell, the eye going with it, else the last pane. a pane found so takes
+# it only while a shell waits at its prompt, for a program there would
+# read the text as its keys. it goes as a paste, not keys, bracketed for a
+# program that asks, so nothing in it runs: Return is yours.
 if (~ $mode -a) {
+	eye=()
 	dst='{marked}'
-	if (~ `{tmux display -p '#{pane_marked_set}'} 0) dst='{last}'
-	tmux send -t $dst -l ' '^$"n
+	if (~ `{tmux display -p '#{pane_marked_set}'} 0) {
+		dst=`{studio pane shell >[2]/dev/null}
+		if (~ $#dst 0) dst='{last}'
+		if not eye=$dst
+		sh=`{tmux show -gv default-shell | sed 's,.*/,,'}
+		at=`{tmux display -p -t $dst '#{pane_current_command}'}
+		if (! ~ $"at $"sh) {
+			tmux display-message 'p -a: no shell at its prompt'
+			exit
+		}
+	}
+	tmux copy-mode -q -t $dst
+	tmux set-buffer -b p -- ' '^$"n
+	tmux paste-buffer -d -p -b p -t $dst
+	if (! ~ $#eye 0) tmux select-pane -t $eye
 	exit
 }
 if (~ $mode -c) exit

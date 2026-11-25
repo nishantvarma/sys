@@ -21,6 +21,8 @@ type fm struct {
 	done    bool
 	armed   bool   // a q said ed holds work unsaved: the next ends anyway
 	unsaved string // in a frame's slot, where ed names what it holds
+	follows bool   // -f: fm goes where cur is said (follow)
+	heard   string // cur as fm last read it, following
 	keys    map[string]*binding
 	order   []*binding
 }

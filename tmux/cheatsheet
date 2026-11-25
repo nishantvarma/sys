@@ -1,52 +1,61 @@
 tmux — cheatsheet
 
-The half of tmux that is sys's: three bindings that run sh/p, the two
-options that make them work, the layout every pane lands in, the pointer
-that follows it, and a selection that is X's too. The prefix and the
-status line are your own tmux.conf. Nothing here is unbound, so every
+The half of tmux that is sys's: the three buttons, which run sh/p, the
+two options that make them work, the layout every pane lands in, the
+pointer that follows it, and a selection that is X's too. The prefix and
+the status line are your own tmux.conf. Nothing here is unbound, so every
 tmux default still works underneath.
 
 Only what tmux can see is here. p's input is a word on the screen, which
 no command can reach; the directory you are in is not, so opening it is
 o at the prompt and needs no key at all.
 
-the layer — unprefixed first, then the prefix and what takes it
-  left-click    say the word under the pointer and stop there — it
-                becomes cur, and nothing runs (p -c)
-  right-click   open what the word under the pointer names (p)
-  middle-click  send it to a prompt instead, as an argument (p -a)
-  `             your prefix; press it twice to type one
-  `p            in copy mode, the same for the cursor word; with a
-                selection, for the selection
-  `a            in copy mode, the same, sending instead of opening
+the buttons — acme's three, one meaning each in every pane (design/mouse)
+  left      this: the word under the pointer becomes cur, and nothing
+            runs (p -c); in a frame, ed and fm go there
+  right     look: open what the word names (p); in a frame, ed or fm
+            shows it and takes the eye; a double tap, the touchpad's
+            right click, does the same
+  middle    do: hand the word to the shell, at its prompt (p -a)
+  drag      select, then say the selection as a left click says a word
 
-A pane whose program asks for the mouse, ed among them, takes the
-buttons itself: a click is its cursor, and its right-click still opens
-the word, ed handing it to p. A drag in any other pane selects for X
-too, its primary selection, and a copy in copy mode is X's clipboard:
-both through xclip, for st takes no OSC 52 from tmux as it is built.
+the keys — ` is your prefix; press it twice to type one
+  `p `a     the last word said, again: open it, or hand it to the shell
+  p a       in copy mode: the same for the cursor's word, or for the
+            selection when there is one
+  ` Enter   this pane to master, swapped with the one there
 
-Nothing here names fm, so changing sh/o changes what right-click and `p
-open, as it changes o. fm's keys are in fm/cheatsheet.
+A pane whose program asks for the mouse, ed, fm and the lens among them,
+takes the buttons itself and means the same by them: ed hands its word,
+or its selection when the click falls in it, to p, and fm hears a right
+click as enter. A drag in any other pane selects for X too, its primary
+selection, and a copy in copy mode is X's clipboard: both through xclip,
+for st takes no OSC 52 from tmux as it is built.
+
+Nothing here names fm, so changing sh/o changes what a right click and
+`p open, as it changes o. fm's keys are in fm/cheatsheet.
 
 p asks the file system, then git, and never lets screen text become a
 command — the word travels in a pane option, not on a command line.
 
   file:line     ed at that line
-  a path        o, which dispatches on the extension
+  a path        o, which dispatches on the extension; o never runs one
   a url         browser
   a hash        git show
-  none of it    search the pane backward for the text
+  none of it    nothing
 
 p -c stops earlier than any of it: the word is resolved, said, and left
 in cur, and the verb is whatever you type next — o, e, git add `{c}. A
 left click is also what raises a pane, so every click says this; that is
 the price of select being a click, and m is the refund.
 
-p -a stops before that table and sends the path it resolved — absolute,
-so it survives the trip — to the prompt of the marked pane (select-pane
--m), or the last one. No Enter, so the chord is: type wc -l, click the
-word, press Return.
+p -a stops before that table. One word goes as the path it resolved —
+absolute, so it survives the trip — and several, a selection, as they
+are. It lands at the prompt of the marked pane (select-pane -m), else
+the frame's shell, which takes the eye, else the last pane; one found so
+takes it only while a shell waits at its prompt. It goes in as a paste,
+and no Enter, so the chord is: type wc -l, middle-click the word, press
+Return.
 
 A path is one word only because word-separators is " ". With the
 default set, the word under ed/2-motion/04-fwd.go:12 comes back as
@@ -66,7 +75,7 @@ the layout — main-vertical, re-applied when a window's panes change
   main-pane-width 50%. spawn asks for a pane and never says where one
   goes, so there is no side to get wrong and nothing to keep in sync.
   Your own splits land the same way, which is why ` % and ` " no
-  longer pick a side; ` { and ` } promote a stack pane to master.
+  longer pick a side; ` Enter makes this pane the master.
   Only the window whose panes changed is laid out again, a split, a
   kill or a pane ending in it, so a pane resized by hand stays as it
   is while other windows come and go. A studio frame keeps its own.

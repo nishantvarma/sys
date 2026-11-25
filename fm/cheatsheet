@@ -12,7 +12,8 @@ move — h j k l are the arrows
   l enter      into it, or open the file; as thumbs, l is a card on
   j k          step; as thumbs, a row of cards
   click        the row, the card, or a folder of the path on top, the
-               way up; a right click or a double tap opens it
+               way up; a right click or a double tap is enter on it, and
+               a middle click hands its path to the shell's prompt
   g G          first file, last file
   pgup pgdn    page
   z            zoxide query
@@ -38,8 +39,9 @@ where fm already stands. The address is whole, so the verb carries its
 own place and the pane does not follow it; the pick is the act, not the
 trip. Only a c line moves the cursor — c was a select, and a select done
 again is the landing — so pick one of those when going there was the
-point. Only c writes that log, so m finds what was said out loud, and b
-is how a row you merely browsed gets in.
+point; fm -f, which follows cur, goes wherever the verb said. Only c
+writes that log, so m finds what was said out loud, and b is how a row
+you merely browsed gets in.
 
 A name that starts with a number, 01-a, is in an order: numbered rows
 stand first and in it, a folder among files, for the number is the order
@@ -87,12 +89,18 @@ the pronoun
 
   Only the pane you are looking at says it. A background fm — scrolled,
   or woken by a resize — would take the shell's this, so it keeps quiet
-  until the pane has the eye and says its row when it gets it back. The
-  log m walks is c's alone: what was said out loud, not every j.
+  until the pane has the eye and says its row when it gets it back,
+  unless cur names that row already, perhaps with a line. The log m
+  walks is c's alone: what was said out loud, not every j.
+
+  fm -f follows cur as well, as ed -f does, and a frame runs it so: when
+  another pane says cur, a click, a verb at the prompt, fm stands in the
+  folder that holds it, on it — a folder too, for cur is a row — and a
+  file's line rides along for e.
 
 the shell — both directions
-  o     from a prompt: open the directory you are in, in a pane
-        beside you
+  o     from a prompt: open cur, the row fm is on, in a pane beside
+        you; the directory you are in while nothing is said
   ;     from fm: a shell in a pane beside you, in the directory fm
         is in
 
@@ -100,12 +108,14 @@ q closes the pane and the shell keeps the line you were typing. fm does
 not move the shell or type at it.
 
 o is the same word on both sides: the command with no argument takes
-the directory you are in, and the key hands it the row — a directory
-row is another fm in a pane beside you, a file row its app.
+cur, and the key hands it the row — a directory row is another fm in a
+pane beside you, a file row its app, a text ed. In a frame the frame's
+own take them: a text opens in its ed, and a directory is this fm's,
+already on it. o never runs a row; a script is text, and opens in ed.
 
 tools — every one a script in sh/, replaceable
   e      edit (e)
-  o      open the row in a pane beside you (o)
+  o      open the row beside you, or in the frame's ed (o)
   w      wipe, at home (w)
   F      format (lint -f)
   f s m  the finders (f, s, m — each piped through fzy)

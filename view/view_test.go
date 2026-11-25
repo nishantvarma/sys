@@ -374,23 +374,35 @@ func TestVi(t *testing.T) {
 
 // A left press names what it falls on, at a cell the terminal counts from
 // 1 and the view, in its region, from its own corner; a second soon after
-// on the same cell opens it instead, and says nothing to the program; the
-// wheel moves the cursor.
+// on the same cell, as a right press does, is enter on it, the program's
+// open, but on the head's path a right press goes there as a left one
+// does; a middle press hands it to the shell and says nothing to the
+// program; the wheel moves the cursor.
 func TestMouse(t *testing.T) {
-	t.Setenv("PATH", "") // no p to open anything with
+	t.Setenv("PATH", "") // no p to send anything with
 	v := New(nil, "", looks)
 	v.In(0, 2, 40, 12)
 	v.last = tree()
 	v.drawn("")
-	press := tty.Key{Name: tty.KMouse, Button: tty.MLeft, X: 4, Y: 9}
-	if ev, ok := v.mouse(press); !ok || ev.Node != "/a/c" {
-		t.Errorf("a press on c's row names %q", ev.Node)
+	at := func(b, x, y int) tty.Key {
+		return tty.Key{Name: tty.KMouse, Button: b, X: x, Y: y}
 	}
-	if ev, ok := v.mouse(press); ok {
-		t.Errorf("a second press soon after names %q", ev.Node)
-	}
-	wheel := tty.Key{Name: tty.KMouse, Button: tty.MWheelDown}
-	if ev, _ := v.mouse(wheel); ev.Node != "/a/c" {
-		t.Errorf("the wheel down goes to %q, not /a/c", ev.Node)
+	for i, c := range []struct {
+		k          tty.Key
+		said       bool
+		name, node string
+	}{
+		{at(tty.MLeft, 4, 9), true, "", "/a/c"},
+		{at(tty.MLeft, 4, 9), true, tty.KEnter, "/a/c"},
+		{at(tty.MRight, 4, 8), true, tty.KEnter, "/a/b"},
+		{at(tty.MRight, 3, 3), true, "", "/a"},
+		{at(tty.MMiddle, 4, 9), false, "", ""},
+		{at(tty.MWheelDown, 0, 0), true, "", "/a/c"},
+	} {
+		ev, said := v.mouse(c.k)
+		if said != c.said || ev.Name != c.name || ev.Node != c.node {
+			t.Errorf("%d: %v %q on %q, want %v %q on %q", i, said,
+				ev.Name, ev.Node, c.said, c.name, c.node)
+		}
 	}
 }

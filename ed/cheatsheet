@@ -66,22 +66,30 @@ insert
   esc          leave
 Tab, enter, backspace, arrows work.
 
-mouse and X — as in any editor on X, in either mode
+mouse and X — the buttons as in any pane (design/mouse), in either mode
   click        the cursor there
   drag         select, and go into insert, so typing replaces it and
                backspace takes it; esc keeps it selected for the verbs.
                what it selects is X's primary selection
   the mode     click the status line's first word to switch: insert
                back to normal, normal into insert
-  middle       paste the primary selection where it falls
-  right        open the word there, as in any pane (p); a double tap,
-               the touchpad's right click, does the same
+  right        open what the word there names (p): in a frame a file
+               opens here, at its line. a double tap, the touchpad's
+               right click, does the same
+  middle       hand the word to the shell, at its prompt (p -a), where
+               Return runs it
   wheel        three lines down or up
   ctrl-c       copy the selection to X's clipboard, as y does
   ctrl-x       cut it there, as d does
   ctrl-v       paste X's clipboard, as a terminal's paste does
   ctrl-z       undo, as u does, and ctrl-y redo, as U does
   ctrl-s       save, as s does
+A right or a middle click inside the selection takes the selection, as
+acme's buttons do: x on a line of commands, then a middle click on it,
+and the line waits at the shell's prompt. X's primary selection pastes
+with shift and a middle click, the terminal's own, and ctrl-v pastes
+the clipboard.
+
 Insert is a plain editor, with these and the mouse: a person on the
 mouse need not leave it. ctrl-c copies, and q quits, but in a frame q is
 fm's. . types no change a drag was part of, nor an insert that undid.

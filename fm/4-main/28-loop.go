@@ -1,7 +1,8 @@
-// loop draws, takes a key and acts on it, until a quit or the view is gone.
-// ctrl-c is q.
+// loop draws, takes a key and acts on it, until a quit or the view is gone;
+// following, it goes where cur was said first (follow). ctrl-c is q.
 func (m *fm) loop() {
 	for !m.done {
+		m.follow()
 		m.ls()
 		m.say()
 		m.draw()
@@ -19,7 +20,8 @@ func (m *fm) loop() {
 		if k == tty.KFocus || k == tty.KBlur {
 			m.on = k == tty.KFocus
 			// a still row is silent, the eye coming back is
-			// not: another pane spoke while we were away.
+			// not: another pane spoke while we were away, and
+			// unless fm followed it there, the row is said again.
 			m.said = ""
 			continue
 		}

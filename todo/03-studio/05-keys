@@ -14,6 +14,5 @@ the keys, decided last, once the ideas are settled
              `tmux/conf`, and listed by ?; six places decide keys today
   the word   one function finds the word at a column, as tmux, p and ed
              each do (`ed/4-view/28-wordat.go`), and p takes -w dir
-  text in    p -a and studio send paste with brackets, not typed keys
   chords     tmux hands a chord only as one button's press and the
              other's release: acme's chords read from that, or keys
