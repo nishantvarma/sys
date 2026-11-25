@@ -27,8 +27,9 @@ what is where
 keys: ctrl-w the next pane; ctrl-v paste; f11 full screen; the other
 chords, ctrl-c, -x, -z, -y and -s, are ed's, as on the terminal.
 
-careful: closing the window drops what ed has not saved. q in fm keeps
-it.
+careful: closing the window drops what ed has not saved. q in fm asks
+first, as in tmux: while ed holds work unsaved it says so, and a second q
+ends the frame anyway.
 
 not here yet
     - a shell: its slot says so. the plan runs it through tmux's control

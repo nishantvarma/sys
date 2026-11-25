@@ -1,16 +1,17 @@
 // open lays the frame out in dir: in a new tmux window, or, given here, in
 // that pane's window, where it is a shell alone and stays, the frame's
 // shell (shell). The window's pane is split down among the slots, theirs
-// across, and so on; then each slot starts what it runs. First the
-// window's own hooks are set: its layout changing does nothing, for
-// `tmux/conf:/window-layout-changed/` lays a window out again when its
-// panes change in number, which would undo the frame; and a slot's end
-// ends the frame (closeVerb).
+// across, and so on; then each slot starts what it runs, told its slot,
+// $STUDIO (state.Slot). First the window's own hooks are set: its layout
+// changing does nothing, for `tmux/conf:/window-layout-changed/` lays a
+// window out again when its panes change in number, which would undo the
+// frame; and a pane's end runs closeVerb, which ends the frame when the
+// pane was its face, the first slot, where the eye starts.
 // Its borders are drawn in the rule's colour, the palette's, as the
 // samples drew the frame. The window keeps each slot's pane by name,
-// @studio-name, the frame it was laid out from, @studio-frame, and the
-// shell it was laid out around, @studio-here; and it becomes the studio a
-// program in another window reaches, @studio.
+// @studio-name, the frame it was laid out from, @studio-frame, its face,
+// @studio-face, and the shell it was laid out around, @studio-here; and it
+// becomes the studio a program in another window reaches, @studio.
 func (f *frame) open(dir, here string, dry bool) error {
 	t := &tmux{dry: dry}
 	top, err := here, error(nil)
@@ -29,7 +30,8 @@ func (f *frame) open(dir, here string, dry bool) error {
 	if err != nil {
 		return err
 	}
-	end := fmt.Sprintf("run-shell -b \"'%s' close %s\"", self, win)
+	end := fmt.Sprintf("run-shell -b \"'%s' close %s #{hook_pane}\"",
+		self, win)
 	for _, h := range hooks(end) {
 		if _, err := t.run("set-hook", "-w", "-t", win, h[0],
 			h[1]); err != nil {
@@ -56,7 +58,7 @@ func (f *frame) open(dir, here string, dry bool) error {
 	for _, s := range leaves(f.slots) {
 		if s.cmd != "" {
 			run := []string{"respawn-pane", "-k", "-t", panes[s],
-				"-c", dir, s.cmd}
+				"-e", "STUDIO=" + s.name, "-c", dir, s.cmd}
 			cmds = append(cmds, run)
 		}
 		cmds = append(cmds, []string{"set", "-w", "-t", win,
@@ -68,6 +70,7 @@ func (f *frame) open(dir, here string, dry bool) error {
 	}
 	cmds = append(cmds,
 		[]string{"set", "-w", "-t", win, "@studio-frame", f.note},
+		[]string{"set", "-w", "-t", win, "@studio-face", panes[first]},
 		[]string{"set", "-g", "@studio", win},
 		[]string{"select-pane", "-t", panes[first]})
 	for _, c := range cmds {

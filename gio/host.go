@@ -53,8 +53,9 @@ type studio struct {
 }
 
 // start lays studio/frame out on dir: each slot that runs something runs
-// it with -s, its view this window, and a shell slot waits, for a shell
-// needs a terminal. cur is watched for the programs that follow it
+// it with -s, its view this window, told its slot ($STUDIO), and a shell
+// slot waits, for a shell needs a terminal. cur is watched for the
+// programs that follow it
 func start(dir string) (*studio, error) {
 	out, err := exec.Command("studio", "slots").Output()
 	if err != nil {
@@ -84,7 +85,8 @@ func start(dir string) (*studio, error) {
 		}
 		args := append(strings.Fields(sl.Run), "-s")
 		c := exec.Command(args[0], args[1:]...)
-		c.Env, c.Dir, c.Stderr = env, dir, os.Stderr
+		c.Env = append(slices.Clip(env), "STUDIO="+sl.Name)
+		c.Dir, c.Stderr = dir, os.Stderr
 		to, err := c.StdinPipe()
 		if err != nil {
 			return nil, err
@@ -164,18 +166,17 @@ func (s *studio) handle(e news) (copied string, done bool) {
 			}
 		}
 	case e.ended:
-		// one q ends the frame, each slot ending itself, so that ed
-		// keeps what is unsaved
+		// the face's end, fm's, ends the frame, for its q asked first
+		// while ed held work unsaved: the window goes, and with it
+		// each program's view, so each ends. Another's end is its
+		// own, the eye moving on from it
 		e.p.gone = true
-		live := false
-		for i, p := range s.order {
-			if !p.gone {
-				live, s.eye = true, i
-				p.key(tty.KEsc, "")
-				p.key("q", "")
-			}
+		if e.p == s.order[0] {
+			return "", true
 		}
-		return "", !live
+		if s.order[s.eye] == e.p {
+			s.focus(s.eye)
+		}
 	case e.m.Draw != nil:
 		d := e.m.Draw
 		e.p.tree, e.p.status, e.p.state = d.Tree, d.Status, d.State

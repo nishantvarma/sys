@@ -19,6 +19,8 @@ type fm struct {
 	on      bool // this pane has the eye, so the row is worth saying
 	hidden  bool
 	done    bool
+	armed   bool   // a q said ed holds work unsaved: the next ends anyway
+	unsaved string // in a frame's slot, where ed names what it holds
 	keys    map[string]*binding
 	order   []*binding
 }

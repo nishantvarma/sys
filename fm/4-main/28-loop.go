@@ -1,4 +1,5 @@
 // loop draws, takes a key and acts on it, until a quit or the view is gone.
+// ctrl-c is q.
 func (m *fm) loop() {
 	for !m.done {
 		m.ls()
@@ -6,8 +7,11 @@ func (m *fm) loop() {
 		m.draw()
 		ev, ok := m.ui.Key()
 		k := ev.Name
-		if !ok || k == tty.KInt {
+		if !ok {
 			return
+		}
+		if k == tty.KInt {
+			k = "q"
 		}
 		if k == tty.KResize { // redraw at the top of the loop
 			continue
@@ -27,6 +31,7 @@ func (m *fm) loop() {
 			continue
 		}
 		m.msg = ""
+		m.armed = m.armed && k == "q" // another key takes a q back
 		if b, hit := m.keys[k]; hit && b.act != nil {
 			b.act()
 		}

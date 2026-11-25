@@ -29,4 +29,9 @@ type editor struct {
 	curf   string // the cur file; empty, ed does not chase
 	chased string // cur as ed last chased it
 	held   bool   // cur names another file, and an unsaved buffer waits
+
+	// in a frame's slot, the window's unsaved file, which names ed's
+	// file while it is unsaved (mark); empty outside a frame
+	unsaved string
+	marked  bool // the unsaved file names ed's
 }

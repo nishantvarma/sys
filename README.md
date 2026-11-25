@@ -22,8 +22,9 @@ rebuild away.
               note, and a program reaches each pane by its name; `studio
               show` is the lens, the thing at cur seen another way; run
               from a shell alone in its window it lays the frame out
-              there, the shell its shell; q in any pane ends the frame,
-              ed keeping what is unsaved, the shell staying
+              there, the shell its shell; q in fm ends the frame,
+              asking first while ed holds work unsaved, and a shell that
+              exits ends alone
     tangle    literate tangler: weaves a tree of code chunks into one main.go
 
 and the packages they share:

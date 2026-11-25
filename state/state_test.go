@@ -33,6 +33,17 @@ func TestState(t *testing.T) {
 	}
 }
 
+// A slot's program reads its slot once, and what it starts reads none.
+func TestSlot(t *testing.T) {
+	t.Setenv("STUDIO", "ed")
+	if s := Slot(); s != "ed" {
+		t.Errorf("slot: %q, want ed", s)
+	}
+	if s, ok := os.LookupEnv("STUDIO"); ok {
+		t.Errorf("STUDIO is still %q", s)
+	}
+}
+
 // Outside tmux the window is none and the eye is here.
 func TestPane(t *testing.T) {
 	t.Setenv("TMUX_PANE", "")

@@ -83,8 +83,8 @@ mouse and X — as in any editor on X, in either mode
   ctrl-z       undo, as u does, and ctrl-y redo, as U does
   ctrl-s       save, as s does
 Insert is a plain editor, with these and the mouse: a person on the
-mouse need not leave it. ctrl-c copies, and q quits. . types no change a
-drag was part of, nor an insert that undid.
+mouse need not leave it. ctrl-c copies, and q quits, but in a frame q is
+fm's. . types no change a drag was part of, nor an insert that undid.
 
 find
   /            literal search
@@ -93,7 +93,7 @@ find
 
 file
   s R          save, reload
-  q            quit, 2x discards
+  q            quit, 2x discards; in a frame q is fm's, and ends it
   ?            help, generated from the key table
 
 s writes only over what ed last read or wrote. If the file has

@@ -14,7 +14,8 @@ func showVerb(args []string) error {
 	}
 	win, eye := state.Pane()
 	l := &lensing{curf: state.Path("cur", win),
-		lensf: state.Path("lens", win), on: eye && mode != "-s"}
+		lensf: state.Path("lens", win), on: eye && mode != "-s",
+		framed: state.Slot() != ""}
 	for _, p := range []string{l.curf, l.lensf} {
 		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
 			return err

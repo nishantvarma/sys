@@ -1,8 +1,8 @@
 // slotOf is the slot an item says, and the slots under it: a name, then
 // a share such as 40%, then what runs there. A name is one word (word),
 // and none of the names studio keeps its own by beside the slots', frame,
-// here and asked (open, closeVerb); no two slots share one, for a name is
-// how a program finds a slot. A slot split into others runs nothing
+// face and here (open); no two slots share one, for a name is how a
+// program finds a slot. A slot split into others runs nothing
 // itself.
 func slotOf(n *outline.Node, named map[string]bool) (*slot, error) {
 	name, rest := split(n.Text)
@@ -11,7 +11,7 @@ func slotOf(n *outline.Node, named map[string]bool) (*slot, error) {
 	switch {
 	case !word(name):
 		why = "a slot's name is one word: letters, digits, - and _"
-	case name == "frame" || name == "here" || name == "asked":
+	case name == "frame" || name == "face" || name == "here":
 		why = "studio keeps its own by that name"
 	case named[name]:
 		why = "a second slot by that name"

@@ -1,9 +1,9 @@
-// run draws the lens and takes its keys until it is quit or its view is
-// gone. A change to cur moves it there; a key on a node reaches it first
-// (see reach), and one on a node gone goes with it; m turns to the next
-// lens. Its drawing is a tree, the program's word what made it, and its
-// state the lens and its number among them; a view that has tabs shows
-// the lenses as tabs (tabs).
+// run draws the lens and takes its keys until it is quit, outside a frame,
+// for in one q is fm's, or its view is gone. A change to cur moves it
+// there; a key on a node reaches it first (see reach), and one on a node
+// gone goes with it; m turns to the next lens. Its drawing is a tree, the
+// program's word what made it, and its state the lens and its number
+// among them; a view that has tabs shows the lenses as tabs (tabs).
 func (l *lensing) run(ui outline.View, t *tty.Term,
 	wt *watch.Watcher) error {
 	var keys chan keyed
@@ -60,7 +60,10 @@ func (l *lensing) run(ui outline.View, t *tty.Term,
 		}
 		switch ev.Name {
 		case "q":
-			return nil
+			if !l.framed {
+				return nil
+			}
+			l.msg = "q in fm ends the frame"
 		case tty.KFocus, tty.KBlur:
 			l.on = ev.Name == tty.KFocus
 		case "m":

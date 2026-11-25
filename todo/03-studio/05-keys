@@ -6,7 +6,7 @@ the keys, decided last, once the ideas are settled
              last everywhere; l in, as right is
   m and t    m is memory in fm and the bracket in ed, so the next lens
              moves to gt and gT; t is till in ed, so the layout turns by
-             another key. q is decided: a slot's q ends the frame
+             another key. q is decided: fm's q ends the frame
              (`studio/5-verbs/10-closeverb.go:/closeVerb/`)
   the frame  ctrl-w, vim's window prefix, which no slot binds: h j k l
              move the eye, : the frame's words, q closes a slot

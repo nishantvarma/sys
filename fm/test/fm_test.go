@@ -7,6 +7,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -35,12 +36,17 @@ func built(t *testing.T) string {
 	return filepath.Join(dir, "fm")
 }
 
-// fm is fm -s on dir, and a way to press a key on a row, by its name, or
-// on the cursor's: it answers with what fm shows next, its rows in order,
-// the cursor's marked >, and its word.
-func fm(t *testing.T, dir string) func(key, row string) (string, string) {
+// ended is fm's word once it has ended, and shows nothing more.
+const ended = "(ended)"
+
+// fm is fm -s on dir, env the last of its environment, and a way to press
+// a key on a row, by its name, or on the cursor's: it answers with what
+// fm shows next, its rows in order, the cursor's marked >, and its word.
+func fm(t *testing.T, dir string, env ...string) func(key,
+	row string) (string, string) {
 	c := exec.Command(built(t), "-s", dir)
 	c.Env = append(os.Environ(), "HOME="+t.TempDir(), "TMUX_PANE=")
+	c.Env = append(c.Env, env...)
 	in, _ := c.StdinPipe()
 	out, _ := c.StdoutPipe()
 	if err := c.Start(); err != nil {
@@ -56,7 +62,10 @@ func fm(t *testing.T, dir string) func(key, row string) (string, string) {
 				Status string
 			}
 		}
-		if err := dec.Decode(&m); err != nil {
+		switch err := dec.Decode(&m); {
+		case err == io.EOF:
+			return "", ended
+		case err != nil:
 			t.Fatal(err)
 		}
 		var rows []string
@@ -160,5 +169,35 @@ func TestReorderNames(t *testing.T) {
 		if _, err := os.Lstat(taken); err != nil {
 			t.Errorf("link %v: 02-z is gone", link)
 		}
+	}
+}
+
+// In a frame's slot fm's q ends the frame: while ed names a file it holds
+// unsaved, the first q says so and ends nothing, a key between takes it
+// back, and a second q ends fm; with nothing unsaved one q ends it, and
+// outside a frame the file is not read.
+func TestQuit(t *testing.T) {
+	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, "a"), nil, 0o644)
+	home := t.TempDir()
+	mark := filepath.Join(home, ".config", "sys", "unsaved", "none")
+	os.MkdirAll(filepath.Dir(mark), 0o755)
+	os.WriteFile(mark, []byte("/x/note.go\n"), 0o644)
+	asks := "unsaved in ed: note.go — q again to discard"
+	press := fm(t, dir, "HOME="+home, "STUDIO=fm")
+	for i, k := range []string{"q", "j", "q", "q"} {
+		want := []string{asks, "", asks, ended}[i]
+		if _, said := press(k, ""); said != want {
+			t.Errorf("%d: %s says %q, not %q", i+1, k, said, want)
+		}
+	}
+	press = fm(t, dir, "HOME="+home)
+	if _, said := press("q", ""); said != ended {
+		t.Errorf("outside a frame, q says %q and ends nothing", said)
+	}
+	os.Remove(mark)
+	press = fm(t, dir, "HOME="+home, "STUDIO=fm")
+	if _, said := press("q", ""); said != ended {
+		t.Errorf("nothing unsaved, and q says %q", said)
 	}
 }

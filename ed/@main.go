@@ -50,11 +50,18 @@ func main() {
 			"       ed [-s] -f [+line] [file]")
 		os.Exit(1)
 	}
-	path, curf, at := "", "", ""
-	if chasing {
+	// in a frame's slot ed keeps the window's unsaved file (mark)
+	slot := state.Slot()
+	path, curf, at, unsaved := "", "", "", ""
+	if chasing || slot != "" {
 		win, _ := state.Pane()
-		curf = state.Path("cur", win)
-		at = state.Read(curf)
+		if chasing {
+			curf = state.Path("cur", win)
+			at = state.Read(curf)
+		}
+		if slot != "" {
+			unsaved = state.Path("unsaved", win)
+		}
 	}
 	if len(args) > 0 {
 		path = args[0]
@@ -67,7 +74,10 @@ func main() {
 	b, err := load(path)
 	if err == nil {
 		e := newEditor(b)
-		e.curf, e.chased = curf, at
+		e.curf, e.chased, e.unsaved = curf, at, unsaved
+		if unsaved != "" {
+			os.Remove(unsaved) // an ed's that was killed unsaved
+		}
 		if chasing && path == "" {
 			e.msg = "cur names nothing ed edits"
 		}

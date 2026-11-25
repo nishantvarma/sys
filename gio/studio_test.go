@@ -202,9 +202,13 @@ func TestStudio(t *testing.T) {
 	picture("studio-held.png")
 	char('q')
 	has(
-		"q in fm leaves ed, unsaved",
-		s.panes["fm"].gone && !s.panes["ed"].gone && !done,
+		"q in fm, ed unsaved, ends nothing and says so",
+		!s.panes["fm"].gone && !s.panes["ed"].gone && !done &&
+			strings.HasPrefix(s.panes["fm"].status,
+				"unsaved in ed: a.txt"),
 	)
+	char('q')
+	has("a second q ends the frame", s.panes["fm"].gone && done)
 	b, _ := os.ReadFile(filepath.Join(dir, "a.txt"))
 	has("the file is untouched", strings.HasPrefix(string(b), "alpha"))
 }

@@ -1,7 +1,8 @@
 // Package state is the files a tmux window keeps in ~/.config/sys: its cur,
 // the address the last verb, view or click was about, which `sh/c` keeps and
-// fm, ed and the lens say; and its lens, which studio's verbs set. Each file
-// holds one line, written whole.
+// fm, ed and the lens say; its lens, which studio's verbs set; and its
+// unsaved, the file ed in the window's frame holds unsaved, which fm's q
+// reads. Each file holds one line, written whole.
 package state
 
 import (
@@ -30,6 +31,16 @@ func Pane() (window string, eye bool) {
 		return "none", true
 	}
 	return f[0], f[1] == "1"
+}
+
+// Slot is the frame's slot a program runs in, as $STUDIO names it: a
+// frame's host, studio in tmux or gio, sets it for each program it starts
+// in a slot. Empty outside a frame. It is taken out of the environment, so
+// that what the program starts is in no frame.
+func Slot() string {
+	s := os.Getenv("STUDIO")
+	os.Unsetenv("STUDIO")
+	return s
 }
 
 // Path is where a window's state of a kind is kept: Path("cur", "@3") is

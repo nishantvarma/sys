@@ -1,10 +1,13 @@
 // loop reads a key at a time, the keys . put back first, else the view's,
-// and hands each to the mode, until ed is done or the view is gone.
+// and hands each to the mode, until ed is done or the view is gone; in a
+// frame it marks, as it goes, what it holds unsaved (mark).
 func (e *editor) loop() {
+	defer e.mark(false)
 	for !e.done {
 		if e.curf != "" {
 			e.chase()
 		}
+		e.mark(e.b.dirty)
 		// Only the last frame of a burst is worth painting, and a
 		// paste is a long burst: draw once the queue has run dry.
 		if len(e.fed) == 0 && (e.t == nil || !e.t.Pending()) {

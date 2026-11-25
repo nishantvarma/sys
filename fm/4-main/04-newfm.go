@@ -21,6 +21,11 @@ func newFM(path string, row bool) (*fm, error) {
 	if name != "" {
 		m.pos[cwd] = name
 	}
+	// in a frame's slot fm is the frame's face, and its q asks first
+	// while ed holds work unsaved (quit)
+	if state.Slot() != "" {
+		m.unsaved = state.Path("unsaved", win)
+	}
 	m.bind()
 	return m, nil
 }

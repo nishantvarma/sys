@@ -34,7 +34,7 @@ func (m *fm) bind() {
 	b("N", "prev", func() { m.find(-1) })
 	b("o", "open beside", func() { m.spawn(true, false, cmdOpen) })
 	b("p", "paste", m.paste)
-	b("q", "quit", func() { m.done = true })
+	b("q", "quit", m.quit)
 	b("r", "rename", m.rename)
 	b("s", "find by content", m.fzsearch)
 	b("u", "drop the clip", func() { m.clip = nil })

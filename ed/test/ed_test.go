@@ -40,13 +40,16 @@ type shown struct {
 	mode, said string
 }
 
-// ed is ed -s on a file holding text, and a way to send it a key: it
-// answers with what ed shows next. A key on a line names it from 1.
-func ed(t *testing.T, text string) (string, func(outline.Key) shown) {
+// ed is ed -s on a file holding text, env the last of its environment,
+// and a way to send it a key: it answers with what ed shows next. A key
+// on a line names it from 1.
+func ed(t *testing.T, text string, env ...string) (string,
+	func(outline.Key) shown) {
 	file := filepath.Join(t.TempDir(), "note")
 	os.WriteFile(file, []byte(text), 0o644)
 	c := exec.Command(built(t), "-s", file)
 	c.Env = append(os.Environ(), "HOME="+t.TempDir(), "TMUX_PANE=")
+	c.Env = append(c.Env, env...)
 	in, _ := c.StdinPipe()
 	out, _ := c.StdoutPipe()
 	if err := c.Start(); err != nil {
@@ -159,5 +162,42 @@ func TestPasteWhereItFalls(t *testing.T) {
 		Text: "ZZ"})
 	if s.lines[0] != "hello worldZZ" {
 		t.Errorf("pasted past the end: %q", s.lines[0])
+	}
+}
+
+// In a frame's slot q ends nothing, for it is fm's; and ed names its file
+// in the window's unsaved file while it holds it unsaved, for fm's q to
+// ask about: from an edit until a save, and until ed ends as its view
+// goes. One that an ed killed unsaved left goes as ed starts.
+func TestFrame(t *testing.T) {
+	home := t.TempDir()
+	mark := filepath.Join(home, ".config", "sys", "unsaved", "none")
+	os.MkdirAll(filepath.Dir(mark), 0o755)
+	os.WriteFile(mark, []byte("/left/by/a/killed/ed\n"), 0o644)
+	named := func() string {
+		b, _ := os.ReadFile(mark)
+		return strings.TrimSpace(string(b))
+	}
+	t.Run("slot", func(t *testing.T) {
+		file, press := ed(t, "abc\n", "HOME="+home, "STUDIO=ed")
+		if s := keys(press, "q"); s.said != "q in fm ends the frame" {
+			t.Errorf("q in a slot says %q", s.said)
+		}
+		if got := named(); got != "" {
+			t.Errorf("ed started, and the file names %q", got)
+		}
+		keys(press, "i", "x", "ESC")
+		if got := named(); got != file {
+			t.Errorf("an edit: the file names %q, not %s",
+				got, file)
+		}
+		keys(press, "s")
+		if got := named(); got != "" {
+			t.Errorf("saved, and the file names %q", got)
+		}
+		keys(press, "i", "y", "ESC") // left unsaved as the view goes
+	})
+	if got := named(); got != "" {
+		t.Errorf("ed ended, and the file names %q", got)
 	}
 }

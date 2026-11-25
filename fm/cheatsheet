@@ -116,7 +116,8 @@ The rest borrow the screen until they exit; F and w hold it after, so
 what they printed survives the redraw.
 
 file
-  q    quit
+  q    quit; in a frame, the frame, asking first while ed holds work
+       unsaved
   ?    help, generated from the key table
 
 What a key runs is a name, never a path — bin/ is on $PATH, so any of
