@@ -7,7 +7,7 @@ import (
 
 // ReadLine edits a line at the status bar: msg as the prompt, def as
 // the initial text, Tab through complete when given. ok is false when
-// cancelled.
+// cancelled. A resize paints it again on the new bottom line.
 func ReadLine(
 	t *Term,
 	msg string,
@@ -51,6 +51,8 @@ func ReadLine(
 				buf = append(buf[:pos-1], buf[pos:]...)
 				pos--
 			}
+		case k.Name == KResize:
+			_, h = t.Size()
 		case k.Name == KTab && complete != nil:
 			buf = []rune(complete(string(buf)))
 			pos = len(buf)

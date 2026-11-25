@@ -11,8 +11,10 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"sys/outline"
 )
@@ -329,5 +331,66 @@ func TestClash(t *testing.T) {
 			t.Errorf("typed %q: %s holds %q, not %q", c.typed,
 				c.name, got, c.want)
 		}
+	}
+}
+
+// A prompt asked when the pane is resized is painted again on its new
+// bottom line, where it used to stay on the old one: fm on a terminal of
+// tmux's own, its / asking, the window then made taller, for a shorter
+// one tmux scrolls to keep the prompt's line in sight.
+func TestPromptResize(t *testing.T) {
+	if _, err := exec.LookPath("tmux"); err != nil {
+		t.Skip("no tmux")
+	}
+	fm, dir := built(t), t.TempDir()
+	os.WriteFile(filepath.Join(dir, "a"), nil, 0o644)
+	bin := t.TempDir()
+	os.WriteFile(filepath.Join(bin, "zoxide"), []byte("#!/bin/sh\n"),
+		0o755)
+	sock := fmt.Sprintf("sys-fm-%d", os.Getpid())
+	tm := func(args ...string) string {
+		t.Helper()
+		c := exec.Command("tmux", append([]string{"-L", sock, "-f",
+			"/dev/null"}, args...)...)
+		c.Env = append(os.Environ(), "TMUX=", "TMUX_PANE=",
+			"HOME="+t.TempDir(), "PATH="+bin+":"+os.Getenv("PATH"))
+		out, err := c.CombinedOutput()
+		if err != nil {
+			t.Fatalf("tmux %s: %v: %s", strings.Join(args, " "),
+				err, out)
+		}
+		return strings.TrimRight(string(out), "\n ")
+	}
+	tm("new-session", "-d", "-x", "80", "-y", "12", fm+" "+dir)
+	t.Cleanup(func() { tm("kill-server") })
+	bottom := func() string { // the pane's last row, blank or not
+		h, _ := strconv.Atoi(tm("display", "-p", "#{pane_height}"))
+		at := strconv.Itoa(h - 1)
+		return strings.TrimSpace(tm("capture-pane", "-p", "-S", at,
+			"-E", at))
+	}
+	asks := func() bool { return strings.HasPrefix(bottom(), "/") }
+	until := func(ok func() bool) bool {
+		for end := time.Now().Add(5 * time.Second); time.Now().
+			Before(end); time.Sleep(20 * time.Millisecond) {
+			if ok() {
+				return true
+			}
+		}
+		return false
+	}
+	if !until(func() bool {
+		return strings.Contains(tm("capture-pane", "-p"), " a")
+	}) {
+		t.Fatal("fm never drew its folder")
+	}
+	tm("send-keys", "/")
+	if !until(asks) {
+		t.Fatalf("/ asks nothing: the bottom line is %q", bottom())
+	}
+	tm("resize-window", "-y", "24")
+	if !until(asks) {
+		t.Errorf("resized, the bottom line is %q, not the prompt",
+			bottom())
 	}
 }

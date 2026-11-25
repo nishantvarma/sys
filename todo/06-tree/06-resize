@@ -1,5 +1,0 @@
-a resize mid-prompt
-
-`tty/line.go:/t.Size()/` takes the height once, so a resize while a
-prompt asks paints it on the old row; the resize key falls through
-default.
