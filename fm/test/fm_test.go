@@ -209,3 +209,23 @@ func TestQuit(t *testing.T) {
 		t.Errorf("nothing unsaved, and q says %q", said)
 	}
 }
+
+// Backspace goes up a folder, and a key on a folder above, as a click on
+// a part of the head's path names one, goes up there; either lands on
+// the folder it came up from, not on the first row.
+func TestUp(t *testing.T) {
+	dir := t.TempDir()
+	deep := filepath.Join(dir, "a", "b")
+	for _, d := range []string{deep, filepath.Join(dir, "0"),
+		filepath.Join(dir, "a", "0")} {
+		os.MkdirAll(d, 0o755)
+	}
+	press := fm(t, deep)
+	if rows, _ := press("BACKSPACE", ""); rows != "0 >b" {
+		t.Errorf("backspace in a/b shows %q, not a's 0 >b", rows)
+	}
+	if rows, _ := press("", "../.."); rows != "0 >a" {
+		t.Errorf("a key on the folder two up shows %q, not 0 >a",
+			rows)
+	}
+}

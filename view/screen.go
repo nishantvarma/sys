@@ -2,6 +2,7 @@ package view
 
 import (
 	"fmt"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"unicode"
@@ -176,44 +177,58 @@ func (v *Term) head(w int) line {
 	if at > 0 {
 		label, _, _ = strings.Cut(printable(n.Text), "  ")
 	}
-	return line{v.headed(path, label, w), []spot{{0, n.ID}}}
+	return v.headed(path, n.ID, label, w)
 }
 
 // headed is a head line: path from home in its parts, the last of them
 // bold, or, given a label, the label bold after the file; cut from the
 // left when long, for its end names the place; then the keys at the right
-// (chips), when they fit.
-func (v *Term) headed(path, label string, w int) *ink {
+// (chips), when they fit. The last names id, what the cursor is on, and
+// each part before it its folder, the one above the next, so that a click
+// on a part goes up there; … names the folder above the first shown.
+func (v *Term) headed(path, id, label string, w int) line {
 	parts, last := v.crumbs(path), label
 	if label == "" {
 		parts, last = parts[:len(parts)-1], parts[len(parts)-1]
+		path = filepath.Dir(path)
 	}
-	k := crumb(parts, last, label != "")
+	k, xs := crumb(parts, last, label != "")
 	for cut := 1; k.w > w-1 && cut <= len(parts); cut++ {
-		k = crumb(append([]string{"…"}, parts[cut:]...), last,
+		k, xs = crumb(append([]string{"…"}, parts[cut:]...), last,
 			label != "")
 	}
+	spots := make([]spot, len(xs))
+	spots[len(xs)-1] = spot{xs[len(xs)-1], id}
+	for i := len(xs) - 2; i >= 0; i-- {
+		spots[i] = spot{xs[i], path}
+		path = filepath.Dir(path)
+	}
+	spots[0].x = 0 // the margin is the first part's
 	if keys := v.chips(w - 1 - k.w - 2); keys.w > 0 {
 		k.pad(w-1-keys.w, "")
+		spots = append(spots, spot{k.w, ""})
 		k.runs, k.w = append(k.runs, keys.runs...), k.w+keys.w
 	}
-	return k.clip(w).pad(w, "")
+	return line{k.clip(w).pad(w, ""), spots}
 }
 
 // crumb is the head's path: a margin, each part soft with a quiet / after
 // it, : after the file when the last is an item's label, then the last,
-// bold.
-func crumb(parts []string, last string, item bool) *ink {
+// bold; and the column each part starts at, the last's last.
+func crumb(parts []string, last string, item bool) (*ink, []int) {
 	k := (&ink{}).add(" ", "", "", false)
+	var xs []int
 	for i, p := range parts {
 		sep := " / "
 		if item && i == len(parts)-1 {
 			sep = " : "
 		}
+		xs = append(xs, k.w)
 		k.add(printable(p), tty.Soft, "", false)
 		k.add(sep, tty.Quiet, "", false)
 	}
-	return k.add(printable(last), tty.Fore, "", true)
+	xs = append(xs, k.w)
+	return k.add(printable(last), tty.Fore, "", true), xs
 }
 
 // crumbs is a path as the head says it, in its parts: from home when it is

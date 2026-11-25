@@ -83,9 +83,9 @@ file, `fm` with none opens on it, and everything that isn't ours takes
 it as `` `{c} `` — ``git add `{c}``, ``wc -l `{c}``.
 
 Everything that selects says it and nothing else does: fm's cursor as it
-moves, and the lens's, a left click on a word in any pane but ed's,
-which takes the mouse for itself, and ed on save — with the line
-it saved at, so `e` reopens there; `ed -f` follows cur, and so says
+moves, and the lens's, a click moving either; a left click on a word in
+any pane but theirs and ed's, which take the mouse for themselves; and ed
+on save — with the line it saved at, so `e` reopens there; `ed -f` follows cur, and so says
 nothing. One cur per tmux window, one log for the machine: each
 line is a verb and the address it was said about, so `m` walks that log
 newest first — back is `` c `{m 1} ``, a line picked whole is that act

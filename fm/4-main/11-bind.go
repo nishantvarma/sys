@@ -17,7 +17,6 @@ func (m *fm) bind() {
 	// keys are settled
 	b("G", "last file", nil)
 	b("t", "layout: folder, thumbs", nil)
-	b("h", "", func() { m.cd(filepath.Dir(m.cwd)) })
 	b("i", "add file", func() { m.create("touch", touch) })
 	b(
 		"I",
@@ -28,7 +27,7 @@ func (m *fm) bind() {
 			})
 		},
 	)
-	b("l", "link", m.link)
+	b("L", "link", m.link)
 	b("m", "repeat by memory", m.fzmemory)
 	b("n", "next", func() { m.find(1) })
 	b("N", "prev", func() { m.find(-1) })
@@ -61,12 +60,21 @@ func (m *fm) bind() {
 	})
 	b(";", "shell", func() { m.detach() })
 	b("`", "home", func() { m.cd(userHome) })
+	// in and out: enter and backspace in either layout, and right and
+	// left, h and l, where the view's rows have no left or right
+	up := func() { m.cd(filepath.Dir(m.cwd)) }
 	b(tty.KEnter, "", m.enter)
 	b(tty.KRight, "", m.enter)
-	b(tty.KLeft, "", func() { m.cd(filepath.Dir(m.cwd)) })
+	b(tty.KBack, "", up)
+	b(tty.KLeft, "", up)
 	b(tty.KTab, "", m.tab)
 	b(tty.KPgDn, "page down", nil)
 	b(tty.KPgUp, "page up", nil)
-	b(tty.KShiftUp, "earlier: swap numbers", func() { m.reorder(-1) })
-	b(tty.KShiftDown, "later: swap numbers", func() { m.reorder(1) })
+	// earlier and later, up and down as rows, left and right as thumbs
+	for _, k := range []string{tty.KShiftUp, tty.KShiftLeft} {
+		b(k, "earlier: swap numbers", func() { m.reorder(-1) })
+	}
+	for _, k := range []string{tty.KShiftDown, tty.KShiftRight} {
+		b(k, "later: swap numbers", func() { m.reorder(1) })
+	}
 }

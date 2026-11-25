@@ -13,9 +13,10 @@ func (m *fm) run() error {
 	t.Write(tty.AltOn + tty.Civis)
 	t.Flush()
 	t.Focus()
+	t.Mouse()
 	m.title("fm:" + m.cwd)
 	defer func() {
-		t.Write(tty.FocusOff + tty.AltOff + tty.Cnorm)
+		t.Write(tty.MouseOff + tty.FocusOff + tty.AltOff + tty.Cnorm)
 		t.Flush()
 		t.Close()
 	}()

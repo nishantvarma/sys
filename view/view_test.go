@@ -189,7 +189,8 @@ func TestTop(t *testing.T) {
 	}
 }
 
-// A cell names the node drawn there: the head the cursor's; as a list, a
+// A cell names the node drawn there: on the head, the last part of the
+// path the cursor's and each part before it its folder; as a list, a
 // row's anywhere on its line; as thumbs, a card's, not its margin or the
 // gap after it; as a figure, its part or its message's word; nothing in
 // the chrome, below the rows, or off the view.
@@ -205,7 +206,9 @@ func TestAt(t *testing.T) {
 		x, y int
 		want string
 	}{
-		{list, 0, 0, "/a/b"},
+		{list, 0, 0, "/a"},
+		{list, 3, 0, "/a"},
+		{list, 6, 0, "/a/b"},
 		{list, 3, 3, ""},
 		{list, 3, 5, "/a/b"},
 		{list, 39, 6, "/a/c"},
@@ -342,5 +345,52 @@ func TestLines(t *testing.T) {
 	}
 	if bg := lines[5][0].Ground; bg != tty.Bar {
 		t.Errorf("the cursor's row is on %q, not the bar", bg)
+	}
+}
+
+// vi's h j k l are the arrows: as thumbs, l and h go a card on and back;
+// as rows, which have no left or right, the program hears h as left and l
+// as right, to go out and in.
+func TestVi(t *testing.T) {
+	thumbs := New(nil, "", looks)
+	thumbs.In(0, 0, 60, 12)
+	thumbs.last, thumbs.lay = tree(), 1
+	thumbs.drawn("")
+	if ev, _ := thumbs.Handle(tty.Key{Name: "l"}); ev.Node != "/a/c" {
+		t.Errorf("thumbs: l goes to %q, not /a/c", ev.Node)
+	}
+	thumbs.last.Kids[0].Cur, thumbs.last.Kids[1].Cur = false, true
+	if ev, _ := thumbs.Handle(tty.Key{Name: "h"}); ev.Node != "/a/b" {
+		t.Errorf("thumbs: h goes to %q, not /a/b", ev.Node)
+	}
+	_, list := region(tree(), 40, 12)
+	for k, want := range map[string]string{"h": tty.KLeft,
+		"l": tty.KRight} {
+		if ev, _ := list.Handle(tty.Key{Name: k}); ev.Name != want {
+			t.Errorf("rows: %s is heard as %q", k, ev.Name)
+		}
+	}
+}
+
+// A left press names what it falls on, at a cell the terminal counts from
+// 1 and the view, in its region, from its own corner; a second soon after
+// on the same cell opens it instead, and says nothing to the program; the
+// wheel moves the cursor.
+func TestMouse(t *testing.T) {
+	t.Setenv("PATH", "") // no p to open anything with
+	v := New(nil, "", looks)
+	v.In(0, 2, 40, 12)
+	v.last = tree()
+	v.drawn("")
+	press := tty.Key{Name: tty.KMouse, Button: tty.MLeft, X: 4, Y: 9}
+	if ev, ok := v.mouse(press); !ok || ev.Node != "/a/c" {
+		t.Errorf("a press on c's row names %q", ev.Node)
+	}
+	if ev, ok := v.mouse(press); ok {
+		t.Errorf("a second press soon after names %q", ev.Node)
+	}
+	wheel := tty.Key{Name: tty.KMouse, Button: tty.MWheelDown}
+	if ev, _ := v.mouse(wheel); ev.Node != "/a/c" {
+		t.Errorf("the wheel down goes to %q, not /a/c", ev.Node)
 	}
 }

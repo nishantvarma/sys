@@ -12,6 +12,7 @@ package view
 
 import (
 	"strings"
+	"time"
 
 	"sys/outline"
 	"sys/tty"
@@ -52,6 +53,9 @@ type Term struct {
 	drew   []line      // the lines drawn last, all but the bottom one
 	keys   [][2]string // the program's keys the head shows (Chips)
 	tabs   []Tab       // the program's tabs (Tabs), nil for the layouts
+	// the last left press, for a second soon after on its cell (mouse)
+	press  time.Time
+	px, py int
 }
 
 // line is a line of the screen: its runs of text, and where on it each
@@ -121,7 +125,8 @@ func (v *Term) Copy(text string) error {
 // At is the node a cell of the view shows, column x and row y counted
 // from the view's top left at 0, 0, as it was drawn last: a row's, a
 // tile's, a figure's part or message, or, on the top line, the place the
-// view is; "" where it shows none. A click names what it falls on.
+// view is or a folder above it; "" where it shows none. A click names what
+// it falls on.
 func (v *Term) At(x, y int) string {
 	if y < 0 || y >= len(v.drew) {
 		return ""

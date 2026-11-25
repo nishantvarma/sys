@@ -43,8 +43,9 @@ func showVerb(args []string) error {
 	t.Write(tty.AltOn + tty.Civis)
 	t.Flush()
 	t.Focus()
+	t.Mouse()
 	defer func() {
-		t.Write(tty.FocusOff + tty.AltOff + tty.Cnorm)
+		t.Write(tty.MouseOff + tty.FocusOff + tty.AltOff + tty.Cnorm)
 		t.Flush()
 		t.Close()
 	}()

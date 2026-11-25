@@ -7,10 +7,12 @@ of five sources — the selection, the file under the cursor, the clip,
 the directory fm stands in, or cur, the row as the shell beside you
 reads it — and every key takes exactly one of them.
 
-move
-  h            up a directory
-  enter        into it, or open the file — right does both too
-  j k          step (arrows too)
+move — h j k l are the arrows
+  h backspace  up a directory; as thumbs, h is a card back
+  l enter      into it, or open the file; as thumbs, l is a card on
+  j k          step; as thumbs, a row of cards
+  click        the row, the card, or a folder of the path on top, the
+               way up; a right click or a double tap opens it
   g G          first file, last file
   pgup pgdn    page
   z            zoxide query
@@ -46,14 +48,14 @@ of a todo's nodes and of a tangle tree's chunks. Then folders, then files.
 . and .. are entries in the directory like the rest — ls skipped the
 two by their leading dot, and the hidden file is that accident. Under
 the cursor they make a directory a target like any other: y its path,
-c or x it whole, * or = it. On .. enter is h; on . it stays. d refuses
+c or x it whole, * or = it. On .. enter is backspace; on . it stays. d refuses
 both, as rm(1) does. A first visit lands past them.
 
 act
   space    select, then step down
   c x      copy, cut — both fill the clip and clear the selection
   p        paste the clip here, asking a name on a clash
-  l        symlink the clip here
+  L        symlink the clip here
   u        drop the clip
   d        delete, after a y
   r        rename
@@ -62,13 +64,14 @@ act
   *        toggle +x
   y Y      yank the path, yank the contents
   = +      clone under ~/Unsynced and go there; + for a dir's contents
-  shift-up shift-down
-           earlier, later: a numbered row swaps its number with the one
-           it passes, 02-b becoming 01-b, two renames
+  shift-arrow
+           earlier, later, up or left, down or right: a numbered row
+           swaps its number with the one it passes, 02-b becoming 01-b,
+           two renames
 
   selection    c x d
-  cursor       enter e o b r y * = + F shift-up shift-down
-  the clip     p l
+  cursor       enter e o b r y * = + F shift-arrow
+  the clip     p L
   here         ; a v V i I
 
 The header carries all three — [n] selected, cp:n or cut:n pending,
