@@ -45,9 +45,10 @@ bottom
   two
 `
 
-// settle waits, up to two seconds, until ok holds.
+// settle waits until ok holds, up to five seconds, for check runs every
+// package's tests at once, and a shell starts slowly beside them.
 func settle(ok func() bool) bool {
-	for end := time.Now().Add(2 * time.Second); time.Now().Before(end); {
+	for end := time.Now().Add(5 * time.Second); time.Now().Before(end); {
 		if ok() {
 			return true
 		}
