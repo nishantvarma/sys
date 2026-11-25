@@ -2,7 +2,7 @@
 // read or wrote, and over nothing else. Text another writer put there
 // stays until R has read it; u then brings the buffer back over it, and
 // save writes, the file being one ed has read. No file is nothing to
-// lose, so a new one is written.
+// lose, so a new one is written; one that is there is put whole (put).
 func (b *buffer) save() error {
 	on, err := os.ReadFile(b.path)
 	if err == nil && sha256.Sum256(on) != b.disk {
@@ -18,7 +18,7 @@ func (b *buffer) save() error {
 	}
 	sb.WriteByte('\n')
 	data := []byte(sb.String())
-	if err := os.WriteFile(b.path, data, 0o644); err != nil {
+	if err := put(b.path, data); err != nil {
 		return err
 	}
 	b.disk = sha256.Sum256(data)

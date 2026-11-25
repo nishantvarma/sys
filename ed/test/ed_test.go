@@ -47,6 +47,11 @@ func ed(t *testing.T, text string, env ...string) (string,
 	func(outline.Key) shown) {
 	file := filepath.Join(t.TempDir(), "note")
 	os.WriteFile(file, []byte(text), 0o644)
+	return file, on(t, file, env...)
+}
+
+// on is ed -s on the file at path, as it is, and a way to send it a key.
+func on(t *testing.T, file string, env ...string) func(outline.Key) shown {
 	c := exec.Command(built(t), "-s", file)
 	c.Env = append(os.Environ(), "HOME="+t.TempDir(), "TMUX_PANE=")
 	c.Env = append(c.Env, env...)
@@ -77,7 +82,7 @@ func ed(t *testing.T, text string, env ...string) (string,
 		return s
 	}
 	next()
-	return file, func(k outline.Key) shown {
+	return func(k outline.Key) shown {
 		enc.Encode(map[string]outline.Key{"key": k})
 		return next()
 	}
@@ -199,5 +204,47 @@ func TestFrame(t *testing.T) {
 	})
 	if got := named(); got != "" {
 		t.Errorf("ed ended, and the file names %q", got)
+	}
+}
+
+// A save puts the file whole, written beside it and renamed over it, and
+// leaves nothing else beside it: a link stays a link, the file it names
+// changing, and the file keeps its mode; a file with a second name is
+// written in place, so the other name reads the new text too.
+func TestSave(t *testing.T) {
+	dir := t.TempDir()
+	note := filepath.Join(dir, "note")
+	os.WriteFile(note, []byte("a\n"), 0o750)
+	link := filepath.Join(dir, "link")
+	os.Symlink("note", link)
+	was, _ := os.Stat(note)
+	keys(on(t, link), "i", "x", "ESC", "s")
+	if now, _ := os.Stat(note); os.SameFile(was, now) {
+		t.Error("a save wrote over the file in place")
+	}
+	if fi, err := os.Lstat(link); err != nil ||
+		fi.Mode()&os.ModeSymlink == 0 {
+		t.Errorf("a save through a link left no link: %v", err)
+	}
+	if b, _ := os.ReadFile(note); string(b) != "xa\n" {
+		t.Errorf("a save through a link: the file holds %q", b)
+	}
+	if fi, _ := os.Stat(note); fi.Mode().Perm() != 0o750 {
+		t.Errorf("a save made the file %v, not 0750", fi.Mode())
+	}
+	other := filepath.Join(dir, "other")
+	os.Link(note, other)
+	keys(on(t, note), "i", "y", "ESC", "s")
+	if b, _ := os.ReadFile(other); string(b) != "yxa\n" {
+		t.Errorf("a save over a hard link: its other name holds %q",
+			b)
+	}
+	if names, _ := filepath.Glob(filepath.Join(dir, "*")); len(names) !=
+		3 {
+		t.Errorf("a save left %v", names)
+	}
+	if hidden, _ := filepath.Glob(filepath.Join(dir, ".*")); len(hidden) >
+		0 {
+		t.Errorf("a save left %v beside the file", hidden)
 	}
 }
