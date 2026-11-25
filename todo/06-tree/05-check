@@ -1,5 +1,0 @@
-check's default target
-
-`sh/check:/set -- ./` defaults to the whole tree, which drags .git and
-bin through grep and flags every camel in go: its targets are what git
-tracks.

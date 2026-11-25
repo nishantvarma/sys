@@ -7,14 +7,17 @@
 # page holds together (general/addressability, layout/sections) and
 # carries a skeleton's style and engine (general/medium), and a package's
 # tests pass, where a target holds them (general/check).
-# run from the tree root.
+# run from the tree root. with no target, the tree as git sees it: what
+# it tracks and what it would, so .git, bin and what tangle makes stay
+# out.
 #
 #	stdout	violations, path:line first. plumbable.
 #	exit	1 if dirty
 
 set -u
 
-[ $# -eq 0 ] && set -- .
+[ $# -eq 0 ] && set -- $(git ls-files -co --exclude-standard |
+	while read -r f; do [ -e "$f" ] && echo "$f"; done)
 
 files=$(find -L "$@" -type f | sed 's|^\./||' | sort)
 [ -n "$files" ] || { echo "check: no files in $*" >&2; exit 2; }
