@@ -2,7 +2,7 @@
 <!-- -- head -- -->
 <!-- a shelf: the folder beside this page, a tree that unfolds in place. the
      data is not in this file: it is the folders, their files, and the
-     path.md in a folder that has one. edit those, and add rules under
+     README.md in a folder that has one. edit those, and add rules under
      local. edit nothing else: a change to style or engine is a change to
      the skeleton, ~/src/sys/medium/shelf.html.
 
@@ -10,19 +10,19 @@
               folder or a stage unfolds under its own row, its rows hung
               on a thin guide, and keeps the cursor by the name under it
      place    the folder at the top of the tree
-     folder   its stages first if it holds a path.md, then its files
+     folder   its stages first if it holds a README.md, then its files
      kind     a file's extension, drawn as a tag right after its name, which
               shows without it: html py md js pdf each in its hue, any other
               muted. a leaf, with none, and a folder show none. a long name
               is cut before its tag
-     subject  a folder that holds a path.md, its ticks beside it as t/n. its
+     subject  a folder that holds a README.md, its ticks beside it as t/n. its
               # heading is the title, atop the tree while it is the place,
               and the lines under it the note
      stage    a ## heading. its rows are its entries
      entry    a list item: `path` — **title** — note. a path runs from the
               subject's folder, and ../ reaches a sibling. the tick is kept
               under the title, else under the first path
-     tick     a reading mark. an entry keeps one in a column, path.md's
+     tick     a reading mark. an entry keeps one in a column, README.md's
               number in it; any other file shows a ✓ at its edge, and only
               once ticked. a path's tick is one wherever it is listed. x
               ticks the row under the cursor; ✓ in an open file's bar, the
@@ -35,7 +35,7 @@
               there. opening a file makes its preview the viewer. under
               50rem, a phone or a narrow window, no preview fits
      card     a folder's count of files, its title, and its tree, as the
-              tree draws it. a folder a path.md names is reading: a line
+              tree draws it. a folder a README.md names is reading: a line
               under its title starts it at its first file, skipping names
               that start with a dot, or resumes the file left part way.
               two levels show at first: a folder in a folder starts
@@ -1046,7 +1046,7 @@
       <h1>Shelf</h1>
       <p>
         The folder beside this page, a tree that unfolds in place: a folder
-        unfolds to its files, and one that holds a <code>path.md</code> to its
+        unfolds to its files, and one that holds a <code>README.md</code> to its
         stages first. The files are read where they are: from the server that
         sent this page or, opened as a file, from the folder you choose, the
         one it sits in.
@@ -1108,7 +1108,7 @@
     // here is the place shown, a folder or a stage
     let library, root, here, focused;
 
-    // path.md may climb out of its folder: cs/../math/dm is math/dm
+    // README.md may climb out of its folder: cs/../math/dm is math/dm
     function clean(path) {
       const parts = [];
       for (const p of path.split('/'))
@@ -1125,7 +1125,7 @@
 
     // keyed by a path from the root, so a key names one file wherever it is
     // listed. a titled entry ticks by its title instead: the tick outlives
-    // an edit to path.md that keeps the title
+    // an edit to README.md that keeps the title
     const stored = name => JSON.parse(localStorage.getItem(name));
     // what is kept under one prefix moves under another
     function carry(from, to) {
@@ -1195,7 +1195,7 @@
         )
         .join('');
 
-    // a folder's path.md: its # heading is the title, the lines under it the
+    // a folder's README.md: its # heading is the title, the lines under it the
     // note, and each ## a stage
     function parse(md, dir) {
       const [head, ...stages] = md.split(/^(?=## )/m);
@@ -1242,7 +1242,7 @@
       return kids;
     }
 
-    // cs/path.md's entries are bare paths: such an entry shows its paths as
+    // cs/README.md's entries are bare paths: such an entry shows its paths as
     // its text
     function entry(item, dir) {
       const [, lead, rest] = item.match(/^((?:`[^`]+`(?:, )?)*)(?: — )?(.*)/);
@@ -1278,10 +1278,10 @@
     // kids, up }. kind is stage, entry, prose or file, and a folder is a
     // file whose kids are null until it is read. a folder or a stage folds,
     // its kids the rows under it: a folder's its stages first if it holds a
-    // path.md, then its files; a stage's its entries. a row is drawn once
+    // README.md, then its files; a stage's its entries. a row is drawn once
     // and its kids' list once, so folding and going back draw nothing again
     const folds = node => node.kids !== undefined;
-    // an entry carries its own number, path.md's
+    // an entry carries its own number, README.md's
     const tick = ({ name, n = '' }) =>
       name
         ? `<label class="tick"><input type="checkbox" name="${esc(name)}"` +
@@ -1339,11 +1339,11 @@
       return node;
     }
 
-    // a folder that holds a path.md is a subject: its title, note and stages
+    // a folder that holds a README.md is a subject: its title, note and stages
     // come from it
     const subject = node =>
       (node.parsing ??= library
-        .url(join(node.path, 'path.md'))
+        .url(join(node.path, 'README.md'))
         .then(read)
         .then(res => res.text())
         .then(
@@ -1353,15 +1353,15 @@
           },
           () => {},
         ));
-    // read once, however many ask: a folder's listing and its path.md, and
-    // the path.md of each folder in it, so a subject there shows its t/n.
+    // read once, however many ask: a folder's listing and its README.md, and
+    // the README.md of each folder in it, so a subject there shows its t/n.
     // this page is no row of its own shelf
     const page = decodeURIComponent(location.pathname.split('/').at(-1));
     const listing = node =>
       (node.reading ??= Promise.all([contents(node.path), subject(node)]).then(
         async ([list]) => {
           const files = list
-            .filter(e => !(node.stages && e.name === 'path.md'))
+            .filter(e => !(node.stages && e.name === 'README.md'))
             .filter(e => node.path || e.name !== page)
             .map(e => file(join(node.path, e.name), e.kind === 'directory'));
           const group = node.stages?.length ? 'files' : '';
@@ -1693,9 +1693,9 @@
         : msg(`No viewer for ${basename(path)}`);
     }
 
-    // a folder a path.md names is reading: in an entry's lead or its note,
+    // a folder a README.md names is reading: in an entry's lead or its note,
     // from any subject, as cs's ../math/dm. each folder above it has its
-    // path.md read first
+    // README.md read first
     async function named(path) {
       const above = path.split('/').map((_, i, all) => all.slice(0, i));
       await Promise.all(above.map(up => subject(file(up.join('/'), true))));
@@ -1703,7 +1703,7 @@
         .flatMap(entries)
         .some(e => e.paths.includes(path));
     }
-    // a folder a path.md names is taken up where it was left: the file left
+    // a folder a README.md names is taken up where it was left: the file left
     // part way, or the first, a line under its head. any other folder
     // offers none. an entry naming it gives its title and note. under that,
     // its tree, with an outline's keys. a file in it opens in the tree on
@@ -1838,7 +1838,7 @@
       return el('section', {
         className: 'card',
         innerHTML:
-          `<p class="kicker">${esc(join(node.path, 'path.md'))}</p>` +
+          `<p class="kicker">${esc(join(node.path, 'README.md'))}</p>` +
           `<h1><a href="${hash(node.path)}">${title}</a></h1>` +
           `<div class="sub">${node.note ?? ''}</div>` +
           `<p class="meta">${ticked} of ${all} ticked</p><div class="bar">` +
@@ -2336,7 +2336,7 @@
       dialog.showModal();
       search();
     }
-    // every entry of every path.md read, and every file of every folder
+    // every entry of every README.md read, and every file of every folder
     // listed, by what its row says
     const says = node => el('p', { innerHTML: node.html }).textContent;
     const placeof = node =>
