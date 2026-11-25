@@ -1,9 +1,11 @@
 #!/usr/bin/env sh
+
 # shelf [dir] [port]: dir as a shelf at localhost:port/shelf.html.
 # dir is the tablet's Data if there is one, else the current folder;
 # port is 8080. the page is the source beside this folder, else dir's
 # own, which pull brings to the tablet. pdf goes as application/pdf,
 # which chrome shows; quark's application/x-pdf it downloads
+
 here=$(dirname "$(readlink -f "$0")")
 dir=$HOME/storage/shared/Data
 [ -d "$dir" ] || dir=$PWD
