@@ -11,4 +11,5 @@ the index is derived — ls on disk, a script on a page. never typed.
 the test: delete a node. any hand edit elsewhere means the outline was
 written, not derived.
 
-the page: `~/src/sys/medium/page.html`.
+the page: `~/src/sys/medium/page.html`. built out in full:
+`~/work/ssv/integration/guide.html`
