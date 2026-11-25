@@ -198,15 +198,19 @@ func (v *Term) headed(path, id, label string, w int) line {
 			label != "")
 	}
 	spots := make([]spot, len(xs))
-	spots[len(xs)-1] = spot{xs[len(xs)-1], id}
+	spots[len(xs)-1] = spot{x: xs[len(xs)-1], id: id}
 	for i := len(xs) - 2; i >= 0; i-- {
-		spots[i] = spot{xs[i], path}
+		spots[i] = spot{x: xs[i], id: path}
 		path = filepath.Dir(path)
 	}
 	spots[0].x = 0 // the margin is the first part's
-	if keys := v.chips(w - 1 - k.w - 2); keys.w > 0 {
+	if keys, at := v.chips(w - 1 - k.w - 2); keys.w > 0 {
 		k.pad(w-1-keys.w, "")
-		spots = append(spots, spot{k.w, ""})
+		spots = append(spots, spot{x: k.w})
+		for _, s := range at {
+			s.x += k.w
+			spots = append(spots, s)
+		}
 		k.runs, k.w = append(k.runs, keys.runs...), k.w+keys.w
 	}
 	return line{k.clip(w).pad(w, ""), spots}
@@ -253,20 +257,24 @@ func (v *Term) crumbs(p string) []string {
 // chips is the keys the head shows, at most room columns of them: the
 // program's (Chips), then the view's own, t for the layout, while the
 // view lays out a folder. Each key stands in a chip and what it does after
-// it; a range, 1..4, is its two ends in chips.
-func (v *Term) chips(room int) *ink {
+// it; a range, 1..4, is its two ends in chips. Where each chip stands,
+// from the chips' first column, is a spot that presses its key, but a
+// range, which is no one key.
+func (v *Term) chips(room int) (*ink, []spot) {
 	keys := v.keys
 	if v.last != nil && !v.figured() {
 		own := [2]string{"t", "layout"}
 		keys = append(keys[:len(keys):len(keys)], own)
 	}
 	k := &ink{}
+	var at []spot
 	for i, c := range keys {
 		next := &ink{}
 		if i > 0 {
 			next.add("   ", "", "", false)
 		}
 		a, b, ranged := strings.Cut(c[0], "..")
+		start := next.w
 		next.add(" "+a+" ", tty.Fore, tty.Rule, false)
 		if ranged {
 			next.add("..", tty.Quiet, "", false)
@@ -276,17 +284,23 @@ func (v *Term) chips(room int) *ink {
 		if k.w+next.w > room {
 			break
 		}
+		if !ranged {
+			at = append(at, spot{x: k.w + start, key: c[0]})
+		}
+		at = append(at, spot{x: k.w + next.w})
 		k.runs, k.w = append(k.runs, next.runs...), k.w+next.w
 	}
-	return k
+	return k, at
 }
 
 // switches is the line over the body: the program's tabs, when it has
-// some (Tabs), else the view's layouts, the one in use lit. A tab is its
+// some (Tabs), else the view's layouts, the one in use lit and the other
+// a click's to turn to. A tab is its
 // name, in a chip while it is the one shown and dim while it waits to be
 // built, then its tally, a count or a diff's +2 −1, and its number.
 func (v *Term) switches(w int) line {
 	k := (&ink{}).add(" ", "", "", false)
+	var spots []spot
 	switch {
 	case v.tabs != nil:
 		for i, t := range v.tabs {
@@ -316,14 +330,17 @@ func (v *Term) switches(w int) line {
 	case !v.figured():
 		for _, name := range layouts {
 			on := name == v.layout()
-			c := tty.Quiet
+			c, key := tty.Quiet, "t"
 			if on {
-				c = tty.Accent
+				c, key = tty.Accent, ""
 			}
-			k.add(name, c, "", on).add("  ", "", "", false)
+			spots = append(spots, spot{x: k.w, key: key})
+			k.add(name, c, "", on)
+			spots = append(spots, spot{x: k.w})
+			k.add("  ", "", "", false)
 		}
 	}
-	return line{ink: k.clip(w).pad(w, "")}
+	return line{k.clip(w).pad(w, ""), spots}
 }
 
 // layout is the name of the layout in use: the folder until t turns it.
@@ -347,7 +364,7 @@ func (v *Term) listed(w, room int) []line {
 	var lines []line
 	for i, r := range vis {
 		lines = append(lines, line{v.paint(off+i, r, w, at),
-			[]spot{{0, r.ID}}})
+			[]spot{{x: 0, id: r.ID}}})
 	}
 	if len(rows) > n && room > 0 {
 		lines = append(lines, more(len(rows)-n, w))
@@ -475,7 +492,8 @@ func (v *Term) card(rows []*outline.Node, start, per, w int) (*ink, *ink,
 		for _, l := range []*ink{a, b} {
 			l.clip(end).pad(end, bg).pad(min(end+cardGap, w), "")
 		}
-		spots = append(spots, spot{x, n.ID}, spot{x + cardW, ""})
+		spots = append(spots, spot{x: x, id: n.ID},
+			spot{x: x + cardW})
 	}
 	return a.clip(w).pad(w, ""), b.clip(w).pad(w, ""), spots
 }
@@ -546,7 +564,7 @@ func parts(f *figure.Figure, y, w int) []spot {
 	last := ""
 	for x := 0; x < w; x++ {
 		if id := f.At(x-1, y); id != last {
-			spots = append(spots, spot{x, id})
+			spots = append(spots, spot{x: x, id: id})
 			last = id
 		}
 	}

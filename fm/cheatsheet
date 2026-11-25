@@ -13,7 +13,9 @@ move — h j k l are the arrows
   j k          step; as thumbs, a row of cards
   click        the row, the card, or a folder of the path on top, the
                way up; a right click or a double tap is enter on it, and
-               a middle click hands its path to the shell's prompt
+               a middle click hands its path to the shell's prompt. a
+               key on top, t layout, is a button, and so is the layout
+               not in use
   g G          first file, last file
   pgup pgdn    page
   z            zoxide query

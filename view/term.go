@@ -69,10 +69,13 @@ type line struct {
 func (l line) text() string { return l.ink.String() }
 
 // spot is where a node starts on a line: it is drawn from column x up to
-// the next spot, or to the line's end.
+// the next spot, or to the line's end. A spot that shows a key in place
+// of a node, a chip, or a layout to turn to, holds the key a click on it
+// presses (keyAt).
 type spot struct {
-	x  int
-	id string
+	x   int
+	id  string
+	key string
 }
 
 // New is the view on the whole of t, as fm draws itself: home is the
@@ -128,16 +131,28 @@ func (v *Term) Copy(text string) error {
 // view is or a folder above it; "" where it shows none. A click names what
 // it falls on.
 func (v *Term) At(x, y int) string {
+	return v.spotAt(x, y).id
+}
+
+// keyAt is the key a cell of the view shows, as At finds a node: a chip's
+// on the top line, or the other layout's on the switch line; "" where it
+// shows none. A click presses it.
+func (v *Term) keyAt(x, y int) string {
+	return v.spotAt(x, y).key
+}
+
+// spotAt is the spot a cell falls in, as it was drawn last.
+func (v *Term) spotAt(x, y int) spot {
+	var at spot
 	if y < 0 || y >= len(v.drew) {
-		return ""
+		return at
 	}
-	id := ""
 	for _, s := range v.drew[y].spots {
 		if s.x <= x {
-			id = s.id
+			at = s
 		}
 	}
-	return id
+	return at
 }
 
 // show draws the screen, with word on the left of the bottom line, and
