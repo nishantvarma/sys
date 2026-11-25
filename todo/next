@@ -125,9 +125,6 @@ What is open, one node each, with the address that shows it.
              key behind (`todo/gio/wake_test.go:/must wake the window/`).
              open: whether to switch, and what that waits on.
 
-    egui     the rust-based alternative to gio: the same job, if gio does
-             not fit. it would add a second language, rust, to the repo.
-
     go-term  for the terminal use case, the go terminal library to explore
              beside gio. check it against tty/, the terminal layer this
              repo already has, before adding another.
