@@ -1,6 +1,6 @@
 // showVerb is the lens as a program: the thing at cur through the
 // window's lens, as nodes that a view draws, as fm's are. On the terminal
-// its view is sys/view's, on the whole of its pane; with -w it is Tk's,
+// its view is sys/view's, on the whole of its pane; with -w the window's,
 // and with -s a host's at the other end of stdin and stdout, which starts
 // it without the eye, as fm -s is. Outside tmux its window is none, as
 // fm's is.

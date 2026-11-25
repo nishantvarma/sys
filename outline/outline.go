@@ -20,8 +20,6 @@ type Node struct {
 	Tags []string `json:"tags,omitempty"` // short words beside it: [2]
 	Cur  bool     `json:"cur,omitempty"`  // the cursor is on it
 	Sel  bool     `json:"sel,omitempty"`  // it is selected
-	Open bool     `json:"open,omitempty"` // its kids are here
-	In   bool     `json:"in,omitempty"`   // the cursor is among its kids
 	Kids []*Node  `json:"kids,omitempty"`
 }
 
@@ -48,7 +46,7 @@ type View interface {
 	Key() (Key, bool)
 	Ask(prompt, def string) (string, bool) // def: the line it starts from
 	Size() (w, h int)                      // how much it shows at once
-	Copy(text string)                      // text onto the clipboard
+	Copy(text string) error                // text onto the clipboard
 }
 
 // msg is one line on the wire, a JSON object with one part set: draw, ask
@@ -103,8 +101,8 @@ func (s *stream) Draw(n *Node, status string, state []string) {
 	s.out.Encode(msg{Draw: &draw{n, status, state}})
 }
 
-func (s *stream) Copy(text string) {
-	s.out.Encode(msg{Copy: &clip{text}})
+func (s *stream) Copy(text string) error {
+	return s.out.Encode(msg{Copy: &clip{text}})
 }
 
 // Window starts the program window and is the view at its other end: what

@@ -1,15 +1,11 @@
-// mark puts the cursor on the node at the address the lens is on, and
-// says its parent holds it, as fm marks a row in its folder; with no node
-// there, the view puts the cursor on the first.
-func mark(n *outline.Node, at string) bool {
+// mark puts the cursor on the row at the address the lens is on, as fm
+// marks its row; with no row there, the view puts the cursor on the
+// first.
+func mark(n *outline.Node, at string) {
 	for _, k := range n.Kids {
 		if k.ID == at {
-			k.Cur, n.In = true, true
-			return true
-		}
-		if mark(k, at) {
-			return true
+			k.Cur = true
+			return
 		}
 	}
-	return false
 }

@@ -37,10 +37,16 @@ bind-key -T copy-mode-vi MouseDown1Pane {
 
 # a drag ends where tmux ends it — mouse-up, mode closed — and says its
 # selection on the way out. held open to be told p, a drag meant for
-# anything else had to be dismissed by hand.
+# anything else had to be dismissed by hand. what it selected is X's
+# primary selection too, as a selection is anywhere on X, through xclip:
+# st takes no OSC 52 from tmux, built as it is; off X, p is told all the
+# same. a copy in copy mode is X's clipboard.
 bind-key -T copy-mode-vi MouseDragEnd1Pane {
-	send-keys -X copy-pipe-and-cancel "p #{pane_id} -c -"
+	send-keys -X copy-pipe-and-cancel \
+		'x=$(cat); printf %s "$x" | xclip; printf %s "$x" |
+		p #{pane_id} -c -'
 }
+set -s copy-command "xclip -selection clipboard"
 
 # open what the text names — sh/p. the word travels in a pane option,
 # never in the command, so screen text is never read as a shell one.
@@ -104,15 +110,25 @@ bind-key -T copy-mode-vi MouseDown2Pane if-shell -F "#{selection_present}" {
 	run-shell -b "p #{pane_id} -a"
 }
 
+# the layout, main-vertical: the shell master, the rest stacked beside
+# it. a window is laid out again when its panes change in number, a split,
+# a kill or an exit, and no other window is: a hand resize keeps, for it
+# changes no count. the hook names its own window, for one that ended
+# whole would be run on the window looked at; studio empties it on a
+# frame's window, which keeps its own layout.
+set -g main-pane-width 50%
+set-hook -g window-layout-changed {
+	if-shell -F "#{==:#{window_id},#{hook_window}}" {
+		if-shell -F "#{!=:#{window_panes},#{@panes}}" {
+			set -wF @panes "#{window_panes}"
+			select-layout main-vertical
+		}
+	}
+}
+bind-key Enter swap-pane -d -t '{top-left}'
+
 # the pointer follows the pane — sh/warp. tmux cannot move it, so X does,
 # and never when the pointer is already in that pane: the click that
 # selected one must not be dragged off the word under it.
-set -g main-pane-width 50%
-set-hook -g after-split-window {
-	select-layout main-vertical
-	run-shell -b warp
-}
+set-hook -g after-split-window "run-shell -b warp"
 set-hook -g after-select-pane "run-shell -b warp"
-set-hook -g after-kill-pane "select-layout main-vertical"
-set-hook -g pane-exited "select-layout main-vertical"
-bind-key Enter swap-pane -d -t '{top-left}'

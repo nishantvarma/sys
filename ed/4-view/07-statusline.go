@@ -1,12 +1,12 @@
-// statusLine is the bottom line, row h, w wide: the mode in its colour,
-// bold, then the file, + while unsaved and held while that keeps ed from
-// cur's file (chase), or in their place a passing message; line:col at
-// the right.
+// statusLine is the bottom line, w wide: the mode in its colour, bold,
+// then the file, + while unsaved and held while that keeps ed from cur's
+// file (chase), or in their place a passing message; line:col at the
+// right.
 func statusLine(
 	n *outline.Node,
 	state []string,
 	status string,
-	line, col, w, h int,
+	line, col, w int,
 ) string {
 	mode := state[0]
 	info, fg := tilde(n.Text), tty.Soft
@@ -25,10 +25,7 @@ func statusLine(
 		info = string(r[:room])
 	}
 	used := tty.Width(" " + mode + "  " + info + right)
-	body := tty.Paint(" "+mode, modeColour(mode), tty.Ground, true) +
-		tty.Paint("  "+info, fg, tty.Ground, false) +
-		tty.Paint(strings.Repeat(" ", max(0, w-used)), "", tty.Ground,
-			false) +
+	return tty.Paint(" "+mode, modeColour(mode), tty.Ground, true) +
+		tty.Paint("  "+info, fg, tty.Ground, false) + blank(w-used) +
 		tty.Paint(right, tty.Soft, tty.Ground, false)
-	return fmt.Sprintf("\x1b[%d;1H%s%s", h, tty.ClrEol, body)
 }

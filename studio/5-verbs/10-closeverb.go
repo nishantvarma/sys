@@ -3,7 +3,9 @@
 // they were in the middle of and then q, so ed keeps an unsaved buffer,
 // saying so, until a save or a second q; a shell waiting at its prompt
 // ends, and one running a command is left to finish. A slot's end runs
-// it, so one q ends the frame (open). fm and ed are as they were.
+// it, so one q ends the frame (open). fm and ed are as they were. The
+// shell the frame was laid out around, @studio-here, is the window's and
+// stays; once it is alone, the window is a plain one again (plain).
 func closeVerb(args []string) error {
 	if len(args) > 1 {
 		return errors.New("usage: studio close [window]")
@@ -21,19 +23,26 @@ func closeVerb(args []string) error {
 		return nil // the window has ended already
 	}
 	sh, _ := t.run("show", "-gv", "default-shell")
+	here, _ := t.run("show", "-wqv", "-t", win, "@studio-here")
+	others := 0
 	for _, l := range strings.Split(out, "\n") {
 		f := strings.Fields(l)
-		if len(f) != 4 || f[1] == "1" {
-			continue // a pane gone
+		if len(f) != 4 || f[1] == "1" || f[0] == here {
+			continue // a pane gone, or the window's own shell
 		}
 		pane, asked, cmd := f[0], f[2] == "1", f[3]
-		switch {
-		case cmd == filepath.Base(sh):
+		if cmd == filepath.Base(sh) { // a kill ends it with no hook
 			t.run("kill-pane", "-t", pane)
-		case !asked && (cmd == "fm" || cmd == "ed" || cmd == "studio"):
+			continue
+		}
+		others++
+		if !asked && (cmd == "fm" || cmd == "ed" || cmd == "studio") {
 			t.run("set", "-p", "-t", pane, "@studio-asked", "1")
 			t.run("send-keys", "-t", pane, "Escape", "q")
 		}
+	}
+	if here != "" && others == 0 {
+		plain(t, win)
 	}
 	return nil
 }

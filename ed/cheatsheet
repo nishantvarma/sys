@@ -42,7 +42,7 @@ act — on the selection, always
   D C          delete, change to line end; break stays
   X            delete the lines the selection touches, break
                and all — dd; X p moves a line down
-  y            yank, also to the system clipboard
+  y            yank, also to X's clipboard
   p P          paste after, before; a selection is replaced,
                register kept — y p p p repeats one yank
   r            overwrite selection with one char
@@ -65,6 +65,26 @@ insert
   enter        blank line above, stays in normal
   esc          leave
 Tab, enter, backspace, arrows work.
+
+mouse and X — as in any editor on X, in either mode
+  click        the cursor there
+  drag         select, and go into insert, so typing replaces it and
+               backspace takes it; esc keeps it selected for the verbs.
+               what it selects is X's primary selection
+  the mode     click the status line's first word to switch: insert
+               back to normal, normal into insert
+  middle       paste the primary selection where it falls
+  right        open the word there, as in any pane (p); a double tap,
+               the touchpad's right click, does the same
+  wheel        three lines down or up
+  ctrl-c       copy the selection to X's clipboard, as y does
+  ctrl-x       cut it there, as d does
+  ctrl-v       paste X's clipboard, as a terminal's paste does
+  ctrl-z       undo, as u does, and ctrl-y redo, as U does
+  ctrl-s       save, as s does
+Insert is a plain editor, with these and the mouse: a person on the
+mouse need not leave it. ctrl-c copies, and q quits. . types no change a
+drag was part of, nor an insert that undid.
 
 find
   /            literal search

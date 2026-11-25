@@ -5,12 +5,13 @@ The goal, first: one outline, two renderers
   programs read a note's text, and two make a todo page. The first goal
   is fewer. One outline runs from the root through folders and files to a
   single item of a note (README:/The outline does not stop at a file/). One
-  reader builds it, medium/page/list. Two views draw it, the terminal and
-  the page in the browser, with one cursor, so you go into an item, act on
-  it and come back out at any level, in either. fm and ed run in either
-  view: what they do does not change with where it is shown. A primitive is
-  added once, to the reader, and both views draw it. A piece that serves
-  none of this goes.
+  reader builds it, medium/page/list. Two views draw it, the terminal's,
+  which gio's window draws too, and the page in the browser, with one
+  cursor: on the terminal fm walks the folders and ed beside it edits the
+  file, and the page folds both.
+  fm and ed run in either view: what they do does not change with where it
+  is shown. A primitive is added once, to the reader, and both views draw
+  it. A piece that serves none of this goes.
 
 Built on sys, not beside it
   The studio is ed, fm and the rest of sys; studio, the program, only lays
@@ -52,7 +53,7 @@ The case, carried through: medium/page/py, node
   run       45 checks, 0 failed                        node run.mjs
   diff      node before the refactor, +12 -11          difflib
 
-  folder    the same thing one level up: lens = tree | thumbs | changes
+  folder    the same thing one level up: lens = rows | thumbs | changes
 
 A new idea fits if it is a lens on a thing, or a verb the terminal runs.
 If it is neither, it does not belong.

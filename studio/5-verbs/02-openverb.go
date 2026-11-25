@@ -1,6 +1,7 @@
-// openVerb lays a frame out in a new tmux window, in the folder studio
-// runs in: studio's own frame, or the note given; -n prints the tmux
-// commands and runs none.
+// openVerb lays a frame out in the folder studio runs in: studio's own
+// frame, or the note given. Run from a shell alone in its tmux window, it
+// lays the frame out there, around that shell, when the frame has one;
+// else in a new window. -n prints the tmux commands and runs none.
 func openVerb(args []string) error {
 	dry := len(args) > 0 && args[0] == "-n"
 	if dry {
@@ -17,5 +18,13 @@ func openVerb(args []string) error {
 	if err != nil {
 		return err
 	}
-	return f.open(dir, dry)
+	here := ""
+	if p := os.Getenv("TMUX_PANE"); p != "" && f.shell() != nil {
+		n, err := (&tmux{}).run("display", "-p", "-t", p,
+			"#{window_panes}")
+		if err == nil && n == "1" {
+			here = p
+		}
+	}
+	return f.open(dir, here, dry)
 }

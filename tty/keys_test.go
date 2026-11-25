@@ -8,7 +8,8 @@ import (
 // The bytes a terminal sends decode to the keys a person pressed: Esc then
 // O is two keys unless a terminal's own letter follows; a mouse report, in
 // either form, is one mouse key and leaks nothing; Ctrl and a letter is a
-// chord by name, the keys named already keeping their names.
+// chord by name, the keys named already keeping their names; an arrow
+// with shift held is the arrow's name after S-, and with ctrl the arrow.
 func TestParseKeys(t *testing.T) {
 	esc, o := Key{Name: KEsc}, func(r rune) Key { return Key{Rune: r} }
 	for _, c := range []struct {
@@ -29,6 +30,9 @@ func TestParseKeys(t *testing.T) {
 		{"\x12\x03\r\t", []Key{{Name: "C-r"}, {Name: KInt},
 			{Name: KEnter}, {Name: KTab}}, ""},
 		{"\x1b[A", []Key{{Name: KUp}}, ""},
+		{"\x1b[1;2A\x1b[1;2B\x1b[1;2D", []Key{{Name: KShiftUp},
+			{Name: KShiftDown}, {Name: KShiftLeft}}, ""},
+		{"\x1b[1;5A", []Key{{Name: KUp}}, ""},
 	} {
 		got, rest := parseKeys([]byte(c.in))
 		if !reflect.DeepEqual(got, c.want) || string(rest) != c.rest {

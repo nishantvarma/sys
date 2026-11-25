@@ -11,6 +11,7 @@ func (e *editor) pasteText(s string) {
 		return
 	}
 	e.b.snapshot(e.caret)
+	e.owed = false
 	a, c := e.rng()
 	if a != c {
 		e.b.cut(a, c)

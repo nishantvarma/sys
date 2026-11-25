@@ -14,6 +14,12 @@ type editor struct {
 	count int  // a pending numeric prefix; 0 means none, i.e. once
 	armed bool // a dirty-quit was requested once
 	done  bool
+	// the insert under way is no change . can type again: a drag of the
+	// mouse began it, or an undo or a redo was done in it
+	unkept bool
+	// the insert under way owes a snapshot, which its first edit takes
+	// (pay)
+	owed bool
 	typed []tty.Key // keys read since normal mode was last idle
 	again []tty.Key // the last typed that changed the text: what . types
 	fed   []tty.Key // what . put back, read ahead of the view

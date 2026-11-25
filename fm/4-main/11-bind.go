@@ -16,7 +16,7 @@ func (m *fm) bind() {
 	// G, the pages and t are the view's, listed here for help until the
 	// keys are settled
 	b("G", "last file", nil)
-	b("t", "layout: folder, tree, thumbs", nil)
+	b("t", "layout: folder, thumbs", nil)
 	b("h", "", func() { m.cd(filepath.Dir(m.cwd)) })
 	b("i", "add file", func() { m.create("touch", touch) })
 	b(
@@ -67,4 +67,6 @@ func (m *fm) bind() {
 	b(tty.KTab, "", m.tab)
 	b(tty.KPgDn, "page down", nil)
 	b(tty.KPgUp, "page up", nil)
+	b(tty.KShiftUp, "earlier: swap numbers", func() { m.reorder(-1) })
+	b(tty.KShiftDown, "later: swap numbers", func() { m.reorder(1) })
 }

@@ -116,26 +116,6 @@ func TestPrintable(t *testing.T) {
 	}
 }
 
-// A tree marks what holds something: a folder, or a node with kids, gets
-// + while shut and - while open; a leaf gets a blank.
-func TestHints(t *testing.T) {
-	x := &outline.Node{ID: "/a/x", Kind: "file"}
-	root := &outline.Node{ID: "/", Kids: []*outline.Node{
-		{ID: "/a", Kind: "dir", Open: true, Kids: []*outline.Node{x}},
-		{ID: "/b", Kind: "dir"},
-		{ID: "/c", Kind: "item", Kids: []*outline.Node{{ID: "/c:2"}}},
-		{ID: "/d", Kind: "file"},
-	}}
-	want := map[string]string{"/a": "-", "/a/x": " ", "/b": "+",
-		"/c": "+", "/d": " "}
-	for _, r := range flat(root, 0, "") {
-		if r.hint != want[r.n.ID] {
-			t.Errorf("%s: hint %q, want %q", r.n.ID, r.hint,
-				want[r.n.ID])
-		}
-	}
-}
-
 // A key given to the view moves its cursor and hands the program only
 // where it landed; t is the view's own, and the program hears nothing; a
 // digit, and any key not the view's, is the program's.
@@ -187,8 +167,8 @@ func TestScroll(t *testing.T) {
 	if v.top != 9 {
 		t.Errorf("drawn at top %d, want 9: 13 lines, 4 shown", v.top)
 	}
-	if v.lay != "" {
-		t.Errorf("t in a figure turned the layout to %q", v.lay)
+	if v.lay != 0 {
+		t.Errorf("t in a figure turned the layout to %d", v.lay)
 	}
 }
 
@@ -217,7 +197,7 @@ func TestAt(t *testing.T) {
 	_, list := region(tree(), 40, 12)
 	thumbs := New(nil, "", looks)
 	thumbs.In(0, 0, 60, 12)
-	thumbs.last, thumbs.lay = tree(), "thumbs"
+	thumbs.last, thumbs.lay = tree(), 1
 	thumbs.drawn("")
 	_, fig := region(pair(), 20, 22)
 	for _, c := range []struct {
@@ -247,29 +227,27 @@ func TestAt(t *testing.T) {
 	}
 }
 
-// The three layouts of tree, each drawn in a region 40 by 12 and read
+// The two layouts of tree, each drawn in a region 40 by 12 and read
 // without its colours: the head says where the cursor is, from home, or,
 // as thumbs, the folder the cards are, and the keys; a rule; the layouts,
-// the one in use lit; then the folder, its rows numbered and + on what
-// holds more; the tree alike; thumbs, a card a thing, its kind's word
-// under its name. The cursor's row, or card, is on the bar, with the
-// accent's edge.
+// the one in use lit; then the folder, its rows numbered; or thumbs, a
+// card a thing, its kind's word under its name. The cursor's row, or
+// card, is on the bar, with the accent's edge.
 func TestLayouts(t *testing.T) {
 	top := []string{
 		" b                            t  layout",
 		strings.Repeat("─", 40),
 		"",
-		" folder  tree  thumbs",
+		" folder  thumbs",
 		"",
 	}
-	rows := []string{"▌ 1  + b/", "  2    c", "", "", "", ""}
+	rows := []string{"▌ 1  b/", "  2  c", "", "", "", ""}
 	cards := []string{" ▌b/", "  folder", "", "  c", "  file", ""}
 	home := append([]string{" ~                            t  layout"},
 		top[1:5]...)
-	for lay, want := range map[string][]string{
-		"":       append(top[:5:5], rows...),
-		"tree":   append(top[:5:5], rows...),
-		"thumbs": append(home, cards...),
+	for lay, want := range [][]string{
+		append(top[:5:5], rows...),
+		append(home, cards...),
 	} {
 		v := New(nil, "/a", looks)
 		v.In(0, 0, 40, 12)
@@ -277,19 +255,21 @@ func TestLayouts(t *testing.T) {
 		v.drawn("")
 		var got []string
 		for _, l := range v.drew {
-			text := strings.TrimRight(plain(l.text), " ")
+			text := strings.TrimRight(plain(l.text()), " ")
 			got = append(got, text)
 		}
 		if g, w := strings.Join(got, "\n"), strings.Join(want,
 			"\n"); g != w {
-			t.Errorf("%q:\n%s\nwant:\n%s", lay, g, w)
+			t.Errorf("%s:\n%s\nwant:\n%s", layouts[lay], g, w)
 		}
 		lit := tty.Paint(v.layout(), tty.Accent, tty.Ground, true)
-		if !strings.Contains(v.drew[3].text, lit) {
-			t.Errorf("%q: the layout in use is not lit", lay)
+		if !strings.Contains(v.drew[3].text(), lit) {
+			t.Errorf("%s: the layout in use is not lit",
+				layouts[lay])
 		}
-		if !strings.Contains(v.drew[5].text, "48;2;28;42;61") {
-			t.Errorf("%q: the cursor is not on the bar", lay)
+		if !strings.Contains(v.drew[5].text(), "48;2;28;42;61") {
+			t.Errorf("%s: the cursor is not on the bar",
+				layouts[lay])
 		}
 	}
 }
@@ -303,10 +283,42 @@ func TestFacts(t *testing.T) {
 		v.last = tree()
 		v.last.Kids[1].Tags = []string{"640   1h"}
 		v.drawn("")
-		got := plain(v.drew[6].text)
+		got := plain(v.drew[6].text())
 		at := strings.Index(got, "640   1h")
 		if want && at != 46 || !want && at >= 0 {
 			t.Errorf("%d wide: the facts at %d in %q", w, at, got)
 		}
+	}
+}
+
+// A host that is no terminal gets the screen as runs: as many lines as
+// its region is high, the bottom line last, saying what the terminal's
+// would, and the cursor's row on the bar.
+func TestLines(t *testing.T) {
+	v := New(nil, "/a", looks)
+	v.In(0, 0, 40, 12)
+	v.Draw(tree(), "hi", nil)
+	lines := v.Lines()
+	if len(lines) != 12 {
+		t.Fatalf("%d lines, want 12", len(lines))
+	}
+	say := func(rs []Run) string {
+		var b strings.Builder
+		for _, r := range rs {
+			b.WriteString(r.Text)
+		}
+		return strings.TrimRight(b.String(), " ")
+	}
+	for i, want := range map[int]string{
+		0:  " b" + strings.Repeat(" ", 28) + "t  layout",
+		5:  "▌ 1  b/",
+		11: " hi" + strings.Repeat(" ", 33) + "1/2",
+	} {
+		if got := say(lines[i]); got != want {
+			t.Errorf("line %d: %q, want %q", i, got, want)
+		}
+	}
+	if bg := lines[5][0].Ground; bg != tty.Bar {
+		t.Errorf("the cursor's row is on %q, not the bar", bg)
 	}
 }

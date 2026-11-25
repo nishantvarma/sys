@@ -1,11 +1,7 @@
 type fm struct {
 	t       *tty.Term
-	ui      outline.View // what shows fm and takes its keys: the terminal
+	ui      outline.View // shows fm, takes its keys: tty, a window, a host
 	cwd     string
-	root    string           // the tree's top: where fm began, or above it
-	open    map[string]bool  // what a view asked to see inside
-	item    string           // the item the cursor is on, in a text file
-	items   map[string]place // the items drawn last, by id: where each is
 	last    string
 	alt     string
 	pat     string

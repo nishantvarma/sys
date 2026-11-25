@@ -66,24 +66,15 @@ not taken, and why
   structure info helped more than control flow.
 
 order
-  1  node contract, md only. ids on details; keyed() takes details[id]; heading
-     = first child; edge slot; body in a div; the page.html look from nesting.
-     Smallest step, every kind rides it. Shelf's checker stays green, and an
-     md file's keys behave as page/run.mjs says.
-  2  node shape {id, heading, edge[], body} in sections() and defs(); part()
-     builds from it. Diff takes its edge (M +n -m) here.
-  3  python heading: kind, name, params, from the signature lines defs()
-     already joins; drop self/cls, shorten defaults.
-  4  python edge: the skyline from indent per line.
-  5  python folds: record fields and small defs as group nodes.
-  6  python body: first statement, line numbers, quiet strings, then the rail.
-     4 to 6 moved to medium/page/py: a page of its own, made from the ast as
-     page/diff is. The shelf does not call it yet.
-  7  retire the ring and guide css for python.
-  Built: 1 to 3 in the shelf (`medium/shelf/run.mjs:/refactor, step 1/`),
-  4 and 6 in page/py, without the rail; 5 is dropped, for a page hides
-  nothing. Open: 7, for the shelf still rings a folded bullet
-  (`medium/shelf.html:/wears a ring/`).
+  1  node contract                 built in the shelf
+  2  node shape                    built in the shelf
+  3  python heading, the def line  built in the shelf
+                                   (`medium/shelf/run.mjs:/refactor, step 1/`)
+  4  python edge, the skyline      built in page/py
+  5  python folds                  dropped, for a page hides nothing
+  6  python body                   built in page/py, without the rail
+  7  retire the ring and guide css for python: open, for the shelf still
+     rings a folded bullet (`medium/shelf.html:/wears a ring/`)
 
 check
   1  node medium/shelf/run.mjs                      green before and after

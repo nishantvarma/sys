@@ -27,13 +27,7 @@ func (m *fm) loop() {
 			continue
 		}
 		m.msg = ""
-		switch b, hit := m.keys[k]; {
-		case k == "open": // a view asks to see inside a node
-			m.unfold(ev.Node)
-		case k == "close":
-			delete(m.open, ev.Node)
-		case m.item != "" && m.itemKey(k): // on an item, its verbs
-		case hit && b.act != nil:
+		if b, hit := m.keys[k]; hit && b.act != nil {
 			b.act()
 		}
 	}

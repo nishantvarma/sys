@@ -1,6 +1,4 @@
-// Copy mirrors text to the system clipboard via OSC 52; terminals that
-// don't support it just ignore the escape.
-func (v *term) Copy(text string) {
-	b64 := base64.StdEncoding.EncodeToString([]byte(text))
-	v.t.Write("\x1b]52;c;" + b64 + "\x07")
+// Copy puts text on X's clipboard.
+func (v *term) Copy(text string) error {
+	return tty.Put(tty.Clipboard, text)
 }

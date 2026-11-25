@@ -13,8 +13,6 @@ func newFM(path string, row bool) (*fm, error) {
 	win, on := state.Pane()
 	m := &fm{
 		cwd:  cwd,
-		root: cwd,
-		open: map[string]bool{},
 		this: state.Path("cur", win),
 		on:   on,
 		pos:  map[string]string{},

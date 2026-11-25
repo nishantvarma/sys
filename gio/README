@@ -1,0 +1,38 @@
+gio: sys's views drawn by gio (gioui.org), a window beside the terminal,
+and the check that sys's programs need no terminal: fm, ed and the lens
+run here as they are, each at the end of a pipe (-s), and what is no
+text is laid out by sys/view, the terminal's own view, whose lines this
+draws as runs (`view/term.go:/Lines is the screen/`).
+
+    gio/build             into bin/window
+    gio/build test        vet and tests, on the fm and ed in bin/
+    window -studio .      studio's frame on the folder you are in, as
+                          `studio slots` says it
+    fm -w, ed -w file     one program, its view this window
+
+sys's ./build goes first, for the tests and the window run the fm and ed
+in bin/. its own go module, so that sys takes on neither gio nor cgo; it
+needs freetype2 and `DejaVuSansMono.ttf`, and the C headers it builds on
+are unpacked into ~/.cache/sys-gio, nothing installed.
+
+what is where
+    main.go     the window: input, drawing and the frame; the one file
+                that knows gio
+    ft.go       text by freetype, sharp as the terminal's
+    host.go     the frame's slots, a program in each
+    model.go    a program as the window holds it: sys/view for a folder
+                or a lens, a text drawn here
+    look.go     ed's text, and sys/view's lines, as strips
+
+keys: ctrl-w the next pane; ctrl-v paste; f11 full screen; the other
+chords, ctrl-c, -x, -z, -y and -s, are ed's, as on the terminal.
+
+careful: closing the window drops what ed has not saved. q in fm keeps
+it.
+
+not here yet
+    - a shell: its slot says so. the plan runs it through tmux's control
+      mode (`todo/studio/outline:/the shell through tmux/`)
+    - help and the pickers (`todo/next:/the pickers need a terminal/`)
+    - a drag in ed's text, the wheel, a middle click's paste and a right
+      click's open, as on the terminal

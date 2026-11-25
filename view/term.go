@@ -1,18 +1,16 @@
 // Package view is the outline drawn on a terminal: fm's view, lifted out
-// of fm so that a host, studio, draws it too. It lays the tree out itself,
-// as the folder the cursor is in, the tree from the top, or the folder as
-// thumbs, and it moves the cursor among what it shows, telling the program
-// only where it landed (`todo/studio/outline:/Who holds what/`). It draws in
-// the palette, as the samples drew it: a head that says where the cursor
-// is, the layouts over the rows, names the loudest thing, the cursor's row
-// lit with a blue edge. It draws on the whole terminal, or in a region of
-// it that a host gives it, and it knows which node each cell shows, for a
-// click to name (At).
+// of fm so that a host, studio, draws it too. It lays a folder out itself,
+// as its rows or as thumbs, cards read left to right, and it moves the
+// cursor among what it shows, telling the program only where it landed
+// (`todo/studio/outline:/Who holds what/`). It draws in the palette, as the
+// samples drew it: a head that says where the cursor is, the layouts over
+// the rows, names the loudest thing, the cursor's row lit with a blue
+// edge. It draws on the whole terminal, or in a region of it that a host
+// gives it, and it knows which node each cell shows, for a click to name
+// (At).
 package view
 
 import (
-	"encoding/base64"
-	"fmt"
 	"strings"
 
 	"sys/outline"
@@ -46,7 +44,7 @@ type Term struct {
 	last   *outline.Node   // the tree drawn last
 	status string
 	state  []string // the program's state, drawn last
-	lay    string   // "" the folder, "tree" or "thumbs"
+	lay    int      // the layout in use, of layouts
 	region bool     // in x, y, w, h, not the whole terminal
 	x, y   int
 	w, h   int
@@ -56,12 +54,15 @@ type Term struct {
 	tabs   []Tab       // the program's tabs (Tabs), nil for the layouts
 }
 
-// line is a line of the screen: its text, and where on it each node is
-// drawn, for At.
+// line is a line of the screen: its runs of text, and where on it each
+// node is drawn, for At.
 type line struct {
-	text  string
+	ink   *ink
 	spots []spot
 }
+
+// text is the line in the terminal's words.
+func (l line) text() string { return l.ink.String() }
 
 // spot is where a node starts on a line: it is drawn from column x up to
 // the next spot, or to the line's end.
@@ -112,11 +113,9 @@ func (v *Term) Size() (int, int) {
 	return v.t.Size()
 }
 
-// Copy puts text on the system clipboard via OSC 52; terminals that don't
-// support it just ignore the escape.
-func (v *Term) Copy(text string) {
-	b64 := base64.StdEncoding.EncodeToString([]byte(text))
-	v.t.Write("\x1b]52;c;" + b64 + "\x07")
+// Copy puts text on X's clipboard.
+func (v *Term) Copy(text string) error {
+	return tty.Put(tty.Clipboard, text)
 }
 
 // At is the node a cell of the view shows, column x and row y counted
@@ -136,45 +135,64 @@ func (v *Term) At(x, y int) string {
 	return id
 }
 
-// show draws the screen, with word on the left of the bottom line. A view
-// with no terminal, as a test makes, draws nothing.
+// show draws the screen, with word on the left of the bottom line, and
+// keeps the lines it drew, at most the h-1 that fit above the bottom line.
+// On the whole terminal it is a frame of tty's, which writes the rows that
+// changed, the cursor hidden; in a region, drawn. A view with no terminal,
+// as a test makes, draws nothing.
 func (v *Term) show(word string) {
 	if v.t == nil {
 		return
 	}
-	v.t.Write(v.drawn(word))
-	v.t.Flush()
+	if v.region {
+		v.t.Write(v.drawn(word))
+		v.t.Flush()
+		return
+	}
+	var rows []string
+	for _, l := range v.page(word) {
+		rows = append(rows, l.text())
+	}
+	v.t.Frame(rows, "")
 }
 
-// drawn is what show writes, and it keeps the lines it drew, at most the
-// h-1 that fit above the bottom line. On the whole terminal, the screen
-// from its top, each line cleared to its end, and the bottom line in
-// place last. In a region, each row put at its own corner and padded to
-// the region's width, so that nothing beside the region is touched; a
-// region with no rows draws nothing.
-func (v *Term) drawn(word string) string {
+// page is the screen as its h lines, word on the left of the bottom one,
+// the last; it keeps the lines above the bottom, at most h-1, for At.
+func (v *Term) page(word string) []line {
 	w, h := v.Size()
 	lines, bottom := v.screen(word, w, h)
 	v.drew = lines[:min(len(lines), max(0, h-1))]
-	var b strings.Builder
-	if !v.region {
-		b.WriteString(tty.Home)
-		for _, l := range v.drew {
-			tty.Line(&b, l.text)
-		}
-		b.WriteString(tty.Status(h, bottom, false))
-		return b.String()
-	}
 	if h < 1 {
-		return ""
+		return nil
 	}
-	rows := make([]string, 0, h)
-	for _, l := range v.drew {
-		rows = append(rows, l.text)
+	out := append([]line(nil), v.drew...)
+	for len(out) < h-1 {
+		out = append(out, blank(w))
 	}
-	for i, l := range append(rows, bottom) {
-		fmt.Fprintf(&b, "\x1b[%d;%dH%s%s", v.y+i+1, v.x+1, l, tty.Sgr0)
-		b.WriteString(strings.Repeat(" ", max(0, w-tty.Width(l))))
+	return append(out, bottom)
+}
+
+// Lines is the screen as Draw left it, for a host that is no terminal and
+// draws it itself, as gio does: a line a row, h of them for the region it
+// is in (In), the bottom line last, each the runs it is drawn in. Where a
+// click falls is At's, as on the terminal.
+func (v *Term) Lines() [][]Run {
+	var out [][]Run
+	for _, l := range v.page(v.status) {
+		out = append(out, l.ink.runs)
+	}
+	return out
+}
+
+// drawn is what show writes in a region: each row put at its own corner
+// and padded to the region's width, so that nothing beside the region is
+// touched, the bottom line last; a region with no rows draws nothing.
+func (v *Term) drawn(word string) string {
+	w, _ := v.Size()
+	var b strings.Builder
+	for i, l := range v.page(word) {
+		b.WriteString(tty.Goto(v.y+i+1, v.x+1) + l.text() + tty.Sgr0)
+		b.WriteString(strings.Repeat(" ", max(0, w-l.ink.w)))
 	}
 	return b.String()
 }

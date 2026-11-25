@@ -1,8 +1,8 @@
-// entries are dir's children as fm shows them: folders and links first,
-// then by name; dotfiles only when hidden, and with dots, . and .. too.
-func entries(dir string, hidden, dots bool) []entry {
+// entries are dir's children as fm shows them: by rank, then by name;
+// dotfiles only when hidden, and with them . and .. too.
+func entries(dir string, hidden bool) []entry {
 	var files []entry
-	if hidden && dots { // ReadDir never lists these two
+	if hidden { // ReadDir never lists these two
 		files = []entry{
 			{name: ".", path: dir, dir: true},
 			{name: "..", path: filepath.Dir(dir), dir: true},
@@ -15,12 +15,8 @@ func entries(dir string, hidden, dots bool) []entry {
 			}
 		}
 		slices.SortStableFunc(files, func(a, b entry) int {
-			ai, bi := a.dir || a.link, b.dir || b.link
-			if ai != bi { // dirs and symlinks first
-				if ai {
-					return -1
-				}
-				return 1
+			if r := rank(a) - rank(b); r != 0 {
+				return r
 			}
 			an := strings.ToLower(a.name)
 			bn := strings.ToLower(b.name)

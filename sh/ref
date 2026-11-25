@@ -27,7 +27,7 @@ done
 shift $((OPTIND - 1))
 [ $# -eq 0 ] && set -- .
 
-syntax='`[a-z0-9][a-z0-9._-]*(/[a-z0-9._-]+)+(:/[^/`]+/)?`'
+syntax='`[a-zA-Z0-9][a-zA-Z0-9._-]*(/[a-zA-Z0-9._-]+)+(:/[^/`]+/)?`'
 home='~(/[a-zA-Z0-9._-]+)+'
 broken=$(mktemp)
 trap 'rm -f "$broken"' EXIT

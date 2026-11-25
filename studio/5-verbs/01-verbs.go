@@ -8,4 +8,5 @@ var verbs = map[string]func(args []string) error{
 	"read":   readVerb,
 	"show":   showVerb,
 	"close":  closeVerb,
+	"slots":  slotsVerb,
 }

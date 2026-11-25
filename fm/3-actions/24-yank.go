@@ -10,7 +10,5 @@ func (m *fm) yank(content bool) {
 		abs, _ := filepath.Abs(c)
 		data = []byte(abs)
 	}
-	cmd := exec.Command("xclip", "-selection", "clipboard")
-	cmd.Stdin = bytes.NewReader(data)
-	m.catch(cmd.Run())
+	m.catch(m.ui.Copy(string(data)))
 }

@@ -15,13 +15,26 @@ func (e *editor) loop() {
 			break
 		}
 		// a key on a line, as a click or a lens says one, puts the
-		// cursor there first, and a landing alone is nothing more; one
-		// on a line not ed's goes with it, for it was meant for that
-		// line and not the cursor's
+		// cursor there first, and a landing alone is nothing more; a
+		// drag moves the head alone; a paste lands where it falls,
+		// past a line's end too. One on a line not ed's goes with it,
+		// for it was meant for that line and not the cursor's. A click
+		// in an insert is no key . types again.
 		if ev.Node != "" {
-			if !e.reach(ev.Node, ev.At) {
+			p, ok := e.spot(ev.Node, ev.At)
+			switch {
+			case !ok:
 				e.msg = "gone: " + ev.Node
 				continue
+			case ev.Name == tty.KDrag:
+				e.drag(p)
+				continue
+			case ev.Name == tty.KPaste:
+				q := e.b.clamp(p, true)
+				e.caret, e.ext = sel{q, q}, false
+			default:
+				e.place(p)
+				e.unkept = e.unkept || e.mode == e.ins
 			}
 			if ev.Name == "" {
 				continue
@@ -29,11 +42,6 @@ func (e *editor) loop() {
 		}
 		k := keyOf(ev)
 		if k.Name == tty.KResize { // redraw at the top of the loop
-			continue
-		}
-		// Ctrl-C is a raw byte here: quit through the guard
-		if k.Name == tty.KInt {
-			e.quit()
 			continue
 		}
 		e.msg = ""

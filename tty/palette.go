@@ -26,7 +26,7 @@ const (
 	Plus   = "#52b57c" // --plus: a program, a line added
 	Minus  = "#ee665b" // --minus: a link gone, a line removed
 	Quiet  = "#4a524e" // a row's number: there, and nearly not
-	Faint  = "#6f7873" // marks, hints and brackets: the scaffolding
+	Faint  = "#6f7873" // marks and a figure's lines: the scaffolding
 	Link   = "#5fb8c2" // a link
 	Bar    = "#1c2a3d" // the cursor's row: the accent sunk into the ground
 	Gone   = "#a3504b" // where a broken link points

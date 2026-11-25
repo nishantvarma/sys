@@ -17,6 +17,7 @@ func ReadLine(
 	buf := []rune(def)
 	pos := len(buf)
 	_, h := t.Size()
+	defer t.Forget() // the bottom line was the prompt's
 	show := func() {
 		t.Write(Status(h, msg+string(buf), true))
 		t.Write(strings.Repeat(MoveL, len(buf)-pos))

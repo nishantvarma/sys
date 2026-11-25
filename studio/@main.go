@@ -1,14 +1,16 @@
 // studio is sys's frame: fm, the thing at fm's cursor in ed, and a
 // shell, side by side, each running as it is; a slot that runs studio
 // show adds a lens, the thing seen another way. The frame is a note,
-// read by its indent as fm reads any note (outline.Text): its lines
-// stack down, the lines under one go across, and so on, turn about. The
+// read by its indent (outline.Text): its lines stack down, the lines
+// under one go across, and so on, turn about. The
 // same note lays out as tmux panes in the terminal and as panes on a
 // page. cur, which fm writes as its cursor moves, is all the panes
 // share, and a slot's name is how a program reaches it.
 //
-//	studio [-n] [frame]             the frame in a tmux window; -n
-//	                                prints its tmux commands, runs none
+//	studio [-n] [frame]             the frame in a tmux window: this
+//	                                one, around the shell alone in it,
+//	                                else a new one; -n prints its tmux
+//	                                commands, runs none
 //	studio page [frame]             the frame as a page, on stdout
 //	studio figure note [page.html]  a note's figure as a page, on the
 //	                                skeleton given, or sys's own
@@ -20,10 +22,13 @@
 //	                                runs it
 //	studio close [window]           end the frame, each slot as it ends
 //	                                itself; a slot's end runs it
+//	studio slots [frame]            the frame's slots as JSON, for a
+//	                                host that lays them out itself
 package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"html"

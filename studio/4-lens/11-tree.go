@@ -5,7 +5,7 @@
 // thing of no kind.
 func tree(at string, l lens) *outline.Node {
 	path, _ := outline.Address(at)
-	root := &outline.Node{ID: path, Text: path, Open: true}
+	root := &outline.Node{ID: path, Text: path}
 	words := l.waits
 	if l.nodes != nil {
 		kids, err := l.nodes(path)

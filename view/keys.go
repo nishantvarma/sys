@@ -29,10 +29,9 @@ func (v *Term) Key() (outline.Key, bool) {
 // Handle is a key given to the view, as a host gives one, rather than read by
 // it. What is the view's own it does itself. In a figure, down and up scroll
 // it, a line or a page, and g and G to its top and its bottom. Elsewhere, t
-// turns to the next layout, the folder, the tree, thumbs; a move goes down,
-// up, to the last row or a page on, and as thumbs right and left too; in the
-// tree, a node opens and closes in place. The program hears where the cursor
-// landed, what the view wants to see inside, and every other key, a digit too,
+// turns to the other layout, the folder's rows or thumbs; a move goes down,
+// up, to the last row or a page on, and as thumbs right and left too. The
+// program hears where the cursor landed, and every other key, a digit too,
 // for a row's number takes the keys after it, and only Key reads keys; false
 // when there is nothing for it to hear.
 func (v *Term) Handle(k tty.Key) (outline.Key, bool) {
@@ -45,16 +44,12 @@ func (v *Term) Handle(k tty.Key) (outline.Key, bool) {
 		return theirs, true
 	}
 	if name == "t" {
-		next := map[string]string{"": "tree", "tree": "thumbs"}
-		v.lay = next[v.lay]
+		v.lay = (v.lay + 1) % len(layouts)
 		v.show(v.status)
 		return outline.Key{}, false
 	}
 	if to, moved := v.move(name); moved {
 		return outline.Key{Node: to}, true
-	}
-	if ev, turned := v.turn(name); turned {
-		return ev, true
 	}
 	return theirs, true
 }
@@ -110,12 +105,12 @@ func (v *Term) move(name string) (to string, moved bool) {
 	if v.last == nil {
 		return "", false
 	}
-	_, rows := v.shown()
+	rows := v.rows()
 	w, h := v.Size()
 	top, foot := chrome(h)
 	page := max(1, h-top-foot-1)
 	step := 1
-	if v.lay == "thumbs" {
+	if v.layout() == "thumbs" {
 		step = perRow(w)
 		page = max(1, (h-top-foot+1)/3)
 	}
@@ -132,8 +127,8 @@ func (v *Term) move(name string) (to string, moved bool) {
 	case "G":
 		d = len(rows)
 	case tty.KRight, tty.KLeft:
-		if v.lay != "thumbs" {
-			return "", false // in and out, not a move here
+		if v.layout() != "thumbs" {
+			return "", false // in and out: the program's
 		}
 		d = 1
 		if name == tty.KLeft {
@@ -145,7 +140,7 @@ func (v *Term) move(name string) (to string, moved bool) {
 	if len(rows) == 0 {
 		return "", true
 	}
-	return rows[max(0, min(curRow(rows)+d, len(rows)-1))].n.ID, true
+	return rows[max(0, min(curRow(rows)+d, len(rows)-1))].ID, true
 }
 
 // jump reads a row's number, the digits so far shown as the status. It
@@ -155,7 +150,7 @@ func (v *Term) move(name string) (to string, moved bool) {
 // empty.
 func (v *Term) jump(first string) string {
 	buf := first
-	_, rows := v.shown()
+	rows := v.rows()
 	n := len(rows)
 	for x, _ := strconv.Atoi(buf); x*10 <= n; x, _ = strconv.Atoi(buf) {
 		v.show(buf)
@@ -176,48 +171,7 @@ func (v *Term) jump(first string) string {
 		buf += name
 	}
 	if x, err := strconv.Atoi(buf); err == nil && x >= 1 && x <= n {
-		return rows[x-1].n.ID
+		return rows[x-1].ID
 	}
 	return ""
-}
-
-// turn is going in and out in the tree, the view's own. Enter and right
-// open or close a folder or an item with kids in place, and right a file
-// too, asking the program for what is inside; enter on a file, or on an
-// item with no kids, is the program's, for it edits. Left and h close what
-// is open, else go up to the node a row is in. turned is false zoomed,
-// where in and out are the program's, and at the top, where going out is.
-func (v *Term) turn(name string) (ev outline.Key, turned bool) {
-	if v.lay != "tree" || v.last == nil {
-		return ev, false
-	}
-	_, rows := v.shown()
-	if len(rows) == 0 {
-		return ev, false
-	}
-	i := curRow(rows)
-	r := rows[i]
-	switch name {
-	case tty.KEnter, tty.KRight:
-		leaf := r.n.Kind == "item" && len(r.n.Kids) == 0
-		file := r.n.Kind != "dir" && r.n.Kind != "item"
-		if leaf || name == tty.KEnter && file {
-			return ev, false
-		}
-		if r.n.Open {
-			return outline.Key{Name: "close", Node: r.n.ID}, true
-		}
-		return outline.Key{Name: "open", Node: r.n.ID}, true
-	case tty.KLeft, "h":
-		if r.n.Open {
-			return outline.Key{Name: "close", Node: r.n.ID}, true
-		}
-		for j := i - 1; j >= 0; j-- {
-			if rows[j].depth < r.depth {
-				return outline.Key{Node: rows[j].n.ID}, true
-			}
-		}
-		return ev, false
-	}
-	return ev, false
 }

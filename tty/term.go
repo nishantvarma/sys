@@ -31,6 +31,11 @@ const (
 	KRight = "RIGHT"
 	KPgUp  = "PGUP"
 	KPgDn  = "PGDN"
+	// An arrow with shift held is the arrow's name after S-: S-UP.
+	KShiftUp    = "S-UP"
+	KShiftDown  = "S-DOWN"
+	KShiftLeft  = "S-LEFT"
+	KShiftRight = "S-RIGHT"
 	// KResize is a synthetic key ReadKey returns when the terminal
 	// resizes, so the caller's loop redraws to the new size on its own.
 	KResize = "RESIZE"
@@ -43,10 +48,22 @@ const (
 	KBlur  = "BLUR"
 	// KMouse is a button pressed, or moved while held, and KMouseUp one
 	// let go, at Key.X, Key.Y. They only arrive once a caller has asked
-	// with Mouse; no program asks yet, for what a click means waits on
-	// the keys (`todo/studio/outline:/the keys, decided last/`).
+	// with Mouse. A view that reads a move with the left button held as
+	// a selection under way names it KDrag.
 	KMouse   = "MOUSE"
 	KMouseUp = "MOUSEUP"
+	KDrag    = "DRAG"
+)
+
+// A mouse key's Button, as the terminal's SGR report gives it: its low
+// bits the button, 32 for a move, 64 for the wheel.
+const (
+	MLeft      = 0
+	MMiddle    = 1
+	MRight     = 2
+	MDrag      = 32 // moving, the left button held
+	MWheelUp   = 64
+	MWheelDown = 65
 )
 
 // Key is one decoded keystroke: a named special key, or a rune. A KPaste
@@ -80,6 +97,7 @@ type Term struct {
 	wake  *os.File // its write end, for Wake
 	focus bool     // focus reporting asked for, so Suspend lends it out
 	mouse bool     // mouse reporting asked for, lent out the same way
+	frame []string // the rows Frame wrote last; nil when none are known
 }
 
 // New puts stdin in raw mode and returns the driver.
@@ -111,10 +129,17 @@ func (t *Term) watchResize() {
 	signal.Notify(ch, syscall.SIGWINCH)
 	go func() {
 		for range ch {
-			w.Write([]byte{0})
+			w.Write([]byte{resized})
 		}
 	}()
 }
+
+// A byte on the self-pipe says why ReadKey woke: the terminal resized,
+// or a Wake, which leaves the screen as it was.
+const (
+	resized = 0
+	woken   = 1
+)
 
 func (t *Term) Close() { term.Restore(t.fd, t.state) }
 
@@ -128,6 +153,31 @@ func (t *Term) Size() (int, int) {
 
 func (t *Term) Write(s string) { t.out.WriteString(s) }
 func (t *Term) Flush()         { t.out.Flush() }
+
+// Frame shows a screen, a row a string from the top, writing only the
+// rows that differ from the last frame, with the cursor hidden while it
+// does; then cursor, where to put it and its shape, or "" to leave it
+// hidden. A key that moves the cursor so costs a row or two, not the
+// screen. What else tty writes over the screen, a prompt, help or a
+// child, and a resize, make the next frame whole again (Forget).
+func (t *Term) Frame(rows []string, cursor string) {
+	var b strings.Builder
+	b.WriteString(Civis)
+	for i, r := range rows {
+		if i < len(t.frame) && t.frame[i] == r {
+			continue
+		}
+		b.WriteString(Goto(i+1, 1) + ClrEol + r)
+	}
+	t.frame = rows
+	b.WriteString(cursor)
+	t.Write(b.String())
+	t.Flush()
+}
+
+// Forget has the next frame written whole: the screen is no longer what
+// Frame left on it.
+func (t *Term) Forget() { t.frame = nil }
 
 // Focus asks the terminal to report focus, so KFocus and KBlur arrive as
 // the pane gains and loses the eye — how a view tells whether it is the
@@ -168,6 +218,7 @@ func (t *Term) Suspend() {
 func (t *Term) Resume() {
 	term.MakeRaw(t.fd)
 	t.queue, t.rest = nil, nil
+	t.Forget()
 	t.Write(AltOn + Civis + Home + Clear)
 	if t.focus {
 		t.Write(FocusOn)
@@ -190,10 +241,11 @@ func (t *Term) Feed(ks []Key) { t.queue = slices.Concat(ks, t.queue) }
 
 // Wake has ReadKey return as a resize does, from any goroutine: a program
 // blocked on keys hears that something it watches changed, and draws
-// again. Like the resize forwarder, it touches only the self-pipe.
+// again, only what changed. Like the resize forwarder, it touches only
+// the self-pipe.
 func (t *Term) Wake() {
 	if t.wake != nil {
-		t.wake.Write([]byte{0})
+		t.wake.Write([]byte{woken})
 	}
 }
 
@@ -262,7 +314,10 @@ func (t *Term) waitInput(ms int) (resize, quiet, ok bool) {
 		}
 		if len(fds) > 1 && fds[1].Revents&unix.POLLIN != 0 {
 			var b [64]byte
-			t.winch.Read(b[:]) // drain, coalescing a burst
+			n, _ := t.winch.Read(b[:]) // drain, coalescing a burst
+			if bytes.IndexByte(b[:n], resized) >= 0 {
+				t.Forget() // what was shown may have moved
+			}
 			return true, false, true
 		}
 		if fds[0].Revents != 0 {
@@ -424,10 +479,15 @@ func pasteKey(b []byte) Key {
 	return Key{Name: KPaste, Text: strings.ReplaceAll(s, "\r", "\n")}
 }
 
+// arrows are the keys a CSI sequence's final byte names, A to D.
+var arrows = map[byte]string{'A': KUp, 'B': KDown, 'C': KRight,
+	'D': KLeft}
+
 // csiKey maps a CSI sequence's parameters and final byte to a named key.
-// Arrows end in A-D; Page Up/Down are the parametered "5~"/"6~"; focus in
-// and out are the bare I and O; an SGR mouse report is <button;x;y, M for
-// a press or a move and m for a release.
+// Arrows end in A-D, with shift held 1;2 before it, any other modifier
+// read as none; Page Up/Down are the parametered "5~"/"6~"; focus in and
+// out are the bare I and O; an SGR mouse report is <button;x;y, M for a
+// press or a move and m for a release.
 func csiKey(params string, final byte) (Key, bool) {
 	if p, ok := strings.CutPrefix(params, "<"); ok {
 		f := strings.Split(p, ";")
@@ -444,19 +504,17 @@ func csiKey(params string, final byte) (Key, bool) {
 		}
 		return mouseKey(n[0], n[1], n[2], final == 'm'), true
 	}
+	if name, ok := arrows[final]; ok {
+		if params == "1;2" {
+			name = "S-" + name
+		}
+		return Key{Name: name}, true
+	}
 	switch final {
 	case 'I':
 		return Key{Name: KFocus}, true
 	case 'O':
 		return Key{Name: KBlur}, true
-	case 'A':
-		return Key{Name: KUp}, true
-	case 'B':
-		return Key{Name: KDown}, true
-	case 'C':
-		return Key{Name: KRight}, true
-	case 'D':
-		return Key{Name: KLeft}, true
 	case '~':
 		switch params {
 		case "5":

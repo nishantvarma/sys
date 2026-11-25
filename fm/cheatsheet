@@ -39,6 +39,10 @@ again is the landing — so pick one of those when going there was the
 point. Only c writes that log, so m finds what was said out loud, and b
 is how a row you merely browsed gets in.
 
+A name that starts with a number, 01-a, is in an order: numbered rows
+stand first and in it, a folder among files, for the number is the order
+of a todo's nodes and of a tangle tree's chunks. Then folders, then files.
+
 . and .. are entries in the directory like the rest — ls skipped the
 two by their leading dot, and the hidden file is that accident. Under
 the cursor they make a directory a target like any other: y its path,
@@ -58,9 +62,12 @@ act
   *        toggle +x
   y Y      yank the path, yank the contents
   = +      clone under ~/Unsynced and go there; + for a dir's contents
+  shift-up shift-down
+           earlier, later: a numbered row swaps its number with the one
+           it passes, 02-b becoming 01-b, two renames
 
   selection    c x d
-  cursor       enter e o b r y * = + F
+  cursor       enter e o b r y * = + F shift-up shift-down
   the clip     p l
   here         ; a v V i I
 

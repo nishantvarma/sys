@@ -5,6 +5,7 @@
 func (e *editor) swap(b *buffer, line int) {
 	e.b, e.caret, e.ext, e.goal = b, sel{}, false, 0
 	e.mode, e.count, e.armed, e.msg = e.nor, 0, false, ""
+	e.unkept, e.owed = false, false
 	e.typed, e.again, e.fed, e.seen = nil, nil, nil, b.edits
 	if line > 0 {
 		e.place(pos{line - 1, 0})

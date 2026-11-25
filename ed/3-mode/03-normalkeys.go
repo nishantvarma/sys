@@ -12,7 +12,7 @@
 // key, so nothing here needs to know a count exists. . replays a whole
 // change the same way, its keys typed again, so no verb knows of it either.
 func normalKeys() []binding {
-	return []binding{
+	return append([]binding{
 		{"h", "left", (*editor).left},
 		{"j", "down", (*editor).down},
 		{"k", "up", (*editor).up},
@@ -71,5 +71,5 @@ func normalKeys() []binding {
 		{"R", "reload", (*editor).reload},
 		{"q", "quit (2× discard)", (*editor).quit},
 		{"?", "help", (*editor).help},
-	}
+	}, chordKeys()...)
 }

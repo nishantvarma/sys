@@ -5,7 +5,6 @@ package main
 
 import (
 	"crypto/sha256"
-	"encoding/base64"
 	"errors"
 	"fmt"
 	"os"
@@ -14,12 +13,12 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 	"unicode"
 
 	"sys/outline"
 	"sys/state"
 	"sys/tty"
-	"sys/view"
 	"sys/watch"
 )
 

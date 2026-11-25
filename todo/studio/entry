@@ -27,9 +27,9 @@ the test it gives: an idea is a node, a lens or a verb
    were built to avoid; take it only in a folder named todo.
 
 3  a rename reorders
-   a number is the order in a todo and in a tangle tree alike, so one verb
-   serves both: put a node at place n, and renumber its siblings. making a
-   thing 01 should be one key, not five mv's.
+   built as fm's shift-up and shift-down, a node trading numbers with the
+   one it passes (`fm/3-actions/26-reorder.go`). left: a node put at
+   place n in one key, its siblings renumbered.
 
 4  the run lens is a todo the machine types
    todo and pipeline are one structure with two evaluators. a test run

@@ -4,4 +4,7 @@ func (e *editor) redo() {
 	} else {
 		e.msg = "nothing to redo"
 	}
+	if e.mode == e.ins {
+		e.owed, e.unkept = true, true
+	}
 }

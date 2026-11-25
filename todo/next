@@ -1,5 +1,60 @@
 What is open, one node each, with the address that shows it.
 
+    lines    ed sends its view every line of the file at each key
+             (`ed/7-loop/01-draw.go:/for i := range/`), for the view keeps
+             the window. timed in process: 0.2 ms a key on a note of 209
+             lines, 1.5 ms on a file of 4011, the nodes half of it; down a
+             pipe, to gio, each key is the file again as json. small
+             files are the aim, so it stays until a measure says it must
+             go; then the view asks for the lines it shows. a scroll still
+             writes the screen whole, where a move writes its rows alone
+             (`tty/term.go:/Frame shows a screen/`); a wake that changes
+             nothing writes the cursor alone, 46 bytes, so no debounce.
+             structure, an item lit or a label, is no editor's: something
+             beside ed may say it, as a language server would.
+
+    shell    what fm runs for you to read could run in the shell below
+             it, typed there as you would type it: v, w and F borrow fm's
+             own pane today and pause on it
+             (`fm/4-main/13-spawn.go:/p.Run()/`). the nature, by who
+             reads what comes out:
+               you      v w F, git, a verb on cur: the shell, so it is in
+                        the history, scrolls, and runs again from there
+               fm       f s m z: a pick fm acts on, so fm runs it
+               itself   e o a V: a program with a screen, beside
+             the shell is the window's: studio names its slot
+             (`studio/5-verbs/06-sendverb.go`), and outside studio it is
+             the first pane, which `tmux/conf:/main-vertical/` keeps
+             left. what makes it unclean: fm has never typed at the shell,
+             on purpose (`README.md:/never moves it or types at it/`); the
+             shell stands in a folder of its own, so v would need cur's,
+             not the shell's; and a shell busy with a program, or a line
+             half typed, takes the keys as theirs. so it is parked until
+             those have an answer.
+
+    gio      the looks of fm's kinds and the lens's are copied into gio
+             (`gio/model.go:/looks are how the window draws/`), for a
+             program down a pipe says none; a looks message would end it.
+
+    preview  the pane beside fm by what fm is on: a text, ed; a folder,
+             its README in ed, as now (`ed/5-editor/17-edits.go`), and
+             nothing for a folder with none. ed holds a buffer with no
+             file already, but a listing in it would be ed showing what
+             no one typed: derived, so a lens's
+             (`design/todo:/typed at rest/`). the form worth having
+             later: a folder edited as text, a line a row and a save its
+             renames, as vidir and dired do; moving lines there would be
+             the reorder too, as fm's shift-up does. noted, not built.
+
+    html     a page as a tangle tree: shelf.html a folder of chunks,
+             tangled to one file as fm and ed are, so a page of 3000
+             lines is small files an outline apart; the shelf says so in
+             prose (`todo/studio/shelf:/carries its parts by/`). tangle is
+             go's today: it takes only .go chunks and gofmts what it
+             makes (`tangle/4-run/01-collect.go:/".go"/`), and a folder
+             and the file it makes cannot share a name, so the page is
+             made elsewhere. noted, not built.
+
     t        the second noun, deferred by `design/pronoun:/two-noun verbs/`.
              a second noun and not a plural one — that is many, below.
 
@@ -114,48 +169,9 @@ What is open, one node each, with the address that shows it.
                  plumb to open
                  plumb start p $0
 
-    gio      explore gio (gioui.org), the go gui toolkit, to draw the
-             windows. it is go, so it adds no second language. the
-             question is whether its immediate-mode model fits them.
-             tried: `todo/gio`, run as its README says. it fits: the view
-             keeps the tree and a frame draws it, and sys's programs
-             needed no change. gio's text is grayscale; drawn by freetype
-             it is sharp (`todo/gio/ft.go:/hinted slightly/`).
-             a trap: wake the window at every reply, or the screen runs a
-             key behind (`todo/gio/wake_test.go:/must wake the window/`).
-             open: whether to switch, and what that waits on.
-
     go-term  for the terminal use case, the go terminal library to explore
              beside gio. check it against tty/, the terminal layer this
              repo already has, before adding another.
-
-    views    each new view rewrites how a view behaves. layouts, moving,
-             and open and close are in sys/view, tied to the terminal,
-             and again in tk (`sh/window:/proc turn/`). a go-gui poc, kept
-             outside the repo and not needed here, made a third in part,
-             and `todo/gio/model.go:/move and turn are the view/` copies
-             that one.
-             the fix: lift those from `view/rows.go:/func flat/` and
-             `view/keys.go:/turn is going in and out/` into a new go
-             package that does not import tty. a tree and a key go in;
-             rows, or a message for the program, come out, and it keeps
-             the layout in use. the view says how much a page and a line
-             hold. the key names it reads move from tty to outline, beside
-             `outline/outline.go:/type Key struct/`. drawing, a row's
-             typed number and a figure's scroll stay in sys/view. sys/view
-             and a go gui share the package, and its tests define the
-             behaviour. tk and a page cannot import it; they can only
-             match its examples.
-             with it, write down what a view now learns from code, at
-             `outline/outline.go:/msg is one line on the wire/`: the node
-             kinds, how text marks the cursor and the selection, that
-             ed's first state word is its mode, and that size is in
-             columns and rows.
-             the check: new tests in the package cover moving in each
-             layout, and open and close, which
-             `view/view_test.go:/func TestHandle/` does not. sys/view's
-             tests still pass, its layouts drawn as before
-             (`view/view_test.go:/func TestLayouts/`).
 
     term     some of fm and ed works only on a terminal, so swapping the
              view does not carry it. read in the code, not tried by hand.
@@ -175,26 +191,3 @@ What is open, one node each, with the address that shows it.
              v, w and F could, their output kept readable. V is refused
              too, though gitk brings its own window.
              the check: ? shows help from fm -w and ed -w.
-
-    go-gui   a poc of `sh/window` in go-gui v0.100.0, kept outside the
-             repo. weigh gio against the same points.
-             fit: immediate mode suits draw; the view stores the tree and
-             the next frame shows it. sys needed no change. tried with a
-             test against fm -s, not as a full fm -w or ed -w session.
-             cost: go 1.26, sys is on 1.22.2; not yet 1.0; 34 mb.
-             text: grayscale smoothing only on linux, so softer than
-             alacritty's subpixel text in the same font and size. no
-             setting found for it.
-             the title bar stayed light when asked for dark.
-             a trap: set RTFCfg.BaseTextStyle, or the first run's
-             background spreads to the next.
-             f11 for fullscreen is written in the poc, not yet seen to
-             work.
-             missing beside tk: thumbs, the layout and position in the
-             state, a title that follows the path, paste in ed, and line
-             editing in a prompt.
-
-    draw     every draw sends the whole tree, and ed every line
-             (`outline/outline.go:/func (s *stream) Draw/`): about 18 kb
-             for a file of 170 lines. time a large file before changing
-             it.

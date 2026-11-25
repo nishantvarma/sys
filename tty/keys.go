@@ -10,6 +10,7 @@ import (
 // into as many columns as the terminal height needs, so a long keymap never
 // scrolls off the top.
 func Help(t *Term, title string, keys [][2]string) {
+	defer t.Forget() // the screen was the help's
 	type cell struct{ key, desc string }
 	var cs []cell
 	keyw := 0
@@ -18,8 +19,11 @@ func Help(t *Term, title string, keys [][2]string) {
 		if desc == "" {
 			continue
 		}
-		if key == " " {
+		switch key {
+		case " ":
 			key = "space"
+		case KInt:
+			key = "C-c" // the chord, as the other chords are named
 		}
 		if len(key) > keyw {
 			keyw = len(key)

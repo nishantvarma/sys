@@ -14,11 +14,16 @@ rebuild away.
     fm        single-pane file manager: vim keys, a remembered cursor per
               directory, and it shells out to your own tools instead of
               reimplementing them
+    gio       sys's views in a window, drawn by gio: studio's frame, fm
+              and ed in it as they are; its own module, built apart
+              (`gio/README`)
     studio    the frame: fm, ed on the thing at fm's cursor, and a shell,
               as tmux panes or as a page; `studio/frame` is the layout, a
               note, and a program reaches each pane by its name; `studio
-              show` is the lens, the thing at cur seen another way; q in
-              any pane ends the frame, ed keeping what is unsaved
+              show` is the lens, the thing at cur seen another way; run
+              from a shell alone in its window it lays the frame out
+              there, the shell its shell; q in any pane ends the frame,
+              ed keeping what is unsaved, the shell staying
     tangle    literate tangler: weaves a tree of code chunks into one main.go
 
 and the packages they share:
@@ -27,8 +32,9 @@ and the packages they share:
               and its view; a note read into that tree by its indent
     tty       the shared terminal layer: raw mode, escape codes,
               key and click decoding, line input
-    view      the outline drawn on a terminal: fm's layouts, folder, tree
-              and thumbs, on the whole screen or in a region a host gives
+    view      the outline drawn on a terminal: fm's layouts, folder and
+              thumbs, on the whole screen or in a region a host gives,
+              or as runs of text for a host that is no terminal, gio
     watch     says when files change in a folder: how a program follows
               cur
     state     a tmux window's own files, cur and the lens: where each is
@@ -38,8 +44,8 @@ and the packages they share:
               `design/arch` is sys drawn that way, and `./build` makes
               it `arch.html`
 
-ed, fm and studio are what's built so far; the packages are what they're
-built on, and tangle is how. Nothing here is a fixed scope — a window
+ed, fm, studio and gio are what's built so far; the packages are what
+they're built on, and tangle is how. Nothing here is a fixed scope — a window
 manager, or whatever else earns its keep, can join the same way: small,
 and hardcoded like the rest.
 
@@ -76,7 +82,8 @@ file, `fm` with none opens on it, and everything that isn't ours takes
 it as `` `{c} `` — ``git add `{c}``, ``wc -l `{c}``.
 
 Everything that selects says it and nothing else does: fm's cursor as it
-moves, and the lens's, a left click on a word, ed on save — with the line
+moves, and the lens's, a left click on a word in any pane but ed's,
+which takes the mouse for itself, and ed on save — with the line
 it saved at, so `e` reopens there; `ed -f` follows cur, and so says
 nothing. One cur per tmux window, one log for the machine: each
 line is a verb and the address it was said about, so `m` walks that log
@@ -99,12 +106,12 @@ Go packages.
 
 The outline does not stop at a file. A note is an outline too, by its
 indent, so one tree runs from the root, the topmost thing, down through
-folders and files to a single item in a note. That tree is the central
-structure, and a person works it the same way at every level: go into an
-item, do something about it, and come back out, with no seam where a
-folder ends and a note begins. outline.Text reads every text file into
-that tree by its indent, as Python is read, and fm opens a file in place
-with it.
+folders and files to a single item in a note. Two panes work it: fm walks
+the folders, a level at a time, and ed beside it edits the file at fm's
+cursor, whose items are its indent. ed stays an editor: what more is
+known of a file's structure is for something beside it to say.
+outline.Text reads a note into that tree by its indent, as Python is
+read, for what draws a note another way: studio's frame and its figure.
 
 ## everything talks in messages
 
@@ -112,7 +119,7 @@ The outline is what everything is; messages are how it talks, and the
 one is as much a foundation as the other. A program and its view, and one
 program and another, pass only messages: plain data, which crosses a
 channel, a pipe or a socket alike. So any piece can be another process,
-a view can be a terminal, a page or wish, and any program can drive
+a view can be a terminal, a window or a page, and any program can drive
 another by sending it an idea. Nothing is shared but the messages; what a
 piece knows of another is what it was last told. `c` and the `m` log are
 messages already, a verb and the address it was said about, passed
@@ -167,7 +174,8 @@ in POSIX and fm won't notice; it only ever execs these by name.
     rc            shell fm shells out to, and most of sh/'s language
     st            terminal spawn opens when there is no tmux
     zoxide        directory-jump history behind fm's z
-    xclip         clipboard behind fm's yank
+    xclip         X's selections: fm's and ed's copy, ed's paste, and
+                  what tmux's copy mode selects
     fzy, fd, rg   fuzzy pick + search behind f, s and fm's picks
     ruff          linter/formatter behind lint, and fm's F
     node          prettier behind fmt, via npx; medium/shelf's and
@@ -197,6 +205,8 @@ stays yours; your own tmux.conf reaches this with
 
     ./build          everything, into bin/
     ./build fm ed    named targets only
+    gio/build        the window fm -w and ed -w open, apart, for it
+                     needs cgo (`gio/README`)
     ./fmt            gofmt the tree (skips tangle sources), prettier every .html
                      and .mjs
 
