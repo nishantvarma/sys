@@ -1,6 +1,7 @@
 // Package test lays a frame out on a tmux server of the test's own, as
 // studio does, and ends it as fm's q does, by the end of its face: each
-// slot's program says its slot and waits for its input to end.
+// slot's program says its slot and waits for its input to end, the face's
+// a stand-in for fm.
 package test
 
 import (
@@ -34,10 +35,10 @@ func built(t *testing.T) string {
 	return filepath.Join(dir, "studio")
 }
 
-// frame is two programs over two shells, the first program the face.
+// frame is fm, the face, and another program over two shells.
 const frame = `a frame: two programs over two shells
 top  70%
-  a  50%  sh -c 'echo in $STUDIO; exec cat'
+  a  50%  fm
   b       sh -c 'echo in $STUDIO; exec cat'
 bottom
   one
@@ -55,19 +56,22 @@ func settle(ok func() bool) bool {
 	return ok()
 }
 
-// TestEnd: each slot's program is told its slot; a shell that exits ends
-// alone; the face's end ends the frame, the rest of its programs and the
-// shells at their prompt, and the window with them; a shell running a
-// command stays, and its window is then a plain one, with no unsaved file
-// left for it.
+// TestEnd: each slot's program is told its slot; the face's end ends the
+// frame, the other program and the shells at their prompt, and the window
+// with them; a shell that exits ends alone, and so does a face that ends
+// while ed names work it holds unsaved, as after a crash; and a shell
+// running a command stays, its window then a plain one.
 func TestEnd(t *testing.T) {
 	if _, err := exec.LookPath("tmux"); err != nil {
 		t.Skip("no tmux")
 	}
 	studio := built(t)
-	home := t.TempDir()
+	home, bin := t.TempDir(), t.TempDir()
+	os.WriteFile(filepath.Join(bin, "fm"),
+		[]byte("#!/bin/sh\necho in $STUDIO\nexec cat\n"), 0o755)
 	sock := fmt.Sprintf("sys-studio-%d", os.Getpid())
-	env := append(os.Environ(), "TMUX_PANE=", "HOME="+home)
+	env := append(os.Environ(), "TMUX_PANE=", "HOME="+home,
+		"PATH="+bin+":"+os.Getenv("PATH"))
 	tm := func(args ...string) string {
 		t.Helper()
 		c := exec.Command("tmux", append([]string{"-L", sock, "-f",
@@ -86,8 +90,16 @@ func TestEnd(t *testing.T) {
 	note := filepath.Join(t.TempDir(), "frame")
 	os.WriteFile(note, []byte(frame), 0o644)
 
+	// shows is whether a pane's screen holds s; for s empty, anything
+	shows := func(p, s string) func() bool {
+		return func() bool {
+			out := tm("capture-pane", "-p", "-t", p)
+			return out != "" && strings.Contains(out, s)
+		}
+	}
 	// open is the frame in a new window, as studio lays it out from a
-	// shell that is not alone in its window, and its slots' panes
+	// shell not alone in its window, and its slots' panes, once each
+	// has started: a program saying its slot, a shell its prompt
 	open := func() (string, map[string]string) {
 		c := exec.Command(studio, note)
 		c.Dir, c.Env = t.TempDir(), append(env, "TMUX="+server)
@@ -96,8 +108,12 @@ func TestEnd(t *testing.T) {
 		}
 		w := tm("show", "-gv", "@studio")
 		slot := map[string]string{}
-		for _, n := range []string{"a", "b", "one", "two"} {
+		for n, says := range map[string]string{"a": "in a",
+			"b": "in b", "one": "", "two": ""} {
 			slot[n] = tm("show", "-wv", "-t", w, "@studio-"+n)
+			if !settle(shows(slot[n], says)) {
+				t.Fatalf("slot %s never showed %q", n, says)
+			}
 		}
 		return w, slot
 	}
@@ -111,41 +127,37 @@ func TestEnd(t *testing.T) {
 		}
 		return in
 	}
-	says := func(p, s string) func() bool {
-		return func() bool {
-			out := tm("capture-pane", "-p", "-t", p)
-			return strings.Contains(out, s)
+	// keeps is whether the window comes to n panes and keeps them once
+	// the hook a pane's end ran has had its time
+	keeps := func(w string, n int) bool {
+		if !settle(func() bool { return len(panes(w)) == n }) {
+			return false
 		}
+		time.Sleep(300 * time.Millisecond)
+		return len(panes(w)) == n
 	}
 
 	w, slot := open()
-	for _, n := range []string{"a", "b"} {
-		if !settle(says(slot[n], "in "+n)) {
-			t.Errorf("slot %s's program is not told its slot", n)
-		}
-	}
 	tm("send-keys", "-t", slot["a"], "C-d")
 	if !settle(func() bool { return len(panes(w)) == 0 }) {
 		t.Errorf("the face ended, and %v stay", panes(w))
 	}
 
 	w, slot = open()
-	settle(says(slot["a"], "in a"))
-	for _, n := range []string{"one", "two"} { // typed at its prompt
-		settle(func() bool {
-			return tm("capture-pane", "-p", "-t", slot[n]) != ""
-		})
-	}
 	tm("send-keys", "-t", slot["one"], "exit", "Enter")
-	if !settle(func() bool {
-		return !slices.Contains(panes(w), slot["one"])
-	}) {
-		t.Fatal("a shell's exit did not end it")
+	if !keeps(w, 3) {
+		t.Errorf("a shell exited, and the frame is %v", panes(w))
 	}
-	time.Sleep(300 * time.Millisecond) // the hook it ran has done
-	if got := panes(w); len(got) != 3 {
-		t.Errorf("a shell exited, and the frame is %v", got)
+	unsaved := filepath.Join(home, ".config", "sys", "unsaved", w)
+	os.MkdirAll(filepath.Dir(unsaved), 0o755)
+	os.WriteFile(unsaved, []byte("/a/file\n"), 0o644)
+	tm("send-keys", "-t", slot["a"], "C-d")
+	if !keeps(w, 2) {
+		t.Errorf("the face ended while ed held work unsaved, and "+
+			"the frame is %v", panes(w))
 	}
+
+	w, slot = open()
 	tm("send-keys", "-t", slot["two"], "sleep 100", "Enter")
 	if !settle(func() bool {
 		return tm("display", "-p", "-t", slot["two"],
@@ -153,9 +165,6 @@ func TestEnd(t *testing.T) {
 	}) {
 		t.Fatal("the shell runs no command")
 	}
-	unsaved := filepath.Join(home, ".config", "sys", "unsaved", w)
-	os.MkdirAll(filepath.Dir(unsaved), 0o755)
-	os.WriteFile(unsaved, []byte("/a/file\n"), 0o644)
 	tm("send-keys", "-t", slot["a"], "C-d")
 	if !settle(func() bool {
 		return slices.Equal(panes(w), []string{slot["two"]})
@@ -166,8 +175,5 @@ func TestEnd(t *testing.T) {
 		return tm("show", "-wqv", "-t", w, "@studio-frame") == ""
 	}) {
 		t.Error("the window left is still the frame's")
-	}
-	if _, err := os.Stat(unsaved); err == nil {
-		t.Error("the frame ended, and its unsaved file stays")
 	}
 }

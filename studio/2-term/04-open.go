@@ -6,7 +6,7 @@
 // changing does nothing, for `tmux/conf:/window-layout-changed/` lays a
 // window out again when its panes change in number, which would undo the
 // frame; and a pane's end runs closeVerb, which ends the frame when the
-// pane was its face, the first slot, where the eye starts.
+// pane was its face, fm's slot (face).
 // Its borders are drawn in the rule's colour, the palette's, as the
 // samples drew the frame. The window keeps each slot's pane by name,
 // @studio-name, the frame it was laid out from, @studio-frame, its face,
@@ -70,9 +70,12 @@ func (f *frame) open(dir, here string, dry bool) error {
 	}
 	cmds = append(cmds,
 		[]string{"set", "-w", "-t", win, "@studio-frame", f.note},
-		[]string{"set", "-w", "-t", win, "@studio-face", panes[first]},
 		[]string{"set", "-g", "@studio", win},
 		[]string{"select-pane", "-t", panes[first]})
+	if fc := f.face(); fc != nil {
+		cmds = append(cmds, []string{"set", "-w", "-t", win,
+			"@studio-face", panes[fc]})
+	}
 	for _, c := range cmds {
 		if _, err := t.run(c...); err != nil {
 			return err

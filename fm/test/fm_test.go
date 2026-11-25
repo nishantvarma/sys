@@ -174,8 +174,9 @@ func TestReorderNames(t *testing.T) {
 
 // In a frame's slot fm's q ends the frame: while ed names a file it holds
 // unsaved, the first q says so and ends nothing, a key between takes it
-// back, and a second q ends fm; with nothing unsaved one q ends it, and
-// outside a frame the file is not read.
+// back, and a second q lets the work go, taking the name away, and ends
+// fm; with nothing unsaved one q ends it, and outside a frame the file is
+// neither read nor touched.
 func TestQuit(t *testing.T) {
 	dir := t.TempDir()
 	os.WriteFile(filepath.Join(dir, "a"), nil, 0o644)
@@ -191,9 +192,16 @@ func TestQuit(t *testing.T) {
 			t.Errorf("%d: %s says %q, not %q", i+1, k, said, want)
 		}
 	}
+	if _, err := os.Stat(mark); err == nil {
+		t.Error("the second q let the work go, and its name stays")
+	}
+	os.WriteFile(mark, []byte("/x/note.go\n"), 0o644)
 	press = fm(t, dir, "HOME="+home)
 	if _, said := press("q", ""); said != ended {
 		t.Errorf("outside a frame, q says %q and ends nothing", said)
+	}
+	if _, err := os.Stat(mark); err != nil {
+		t.Error("outside a frame, q took the name of ed's work away")
 	}
 	os.Remove(mark)
 	press = fm(t, dir, "HOME="+home, "STUDIO=fm")

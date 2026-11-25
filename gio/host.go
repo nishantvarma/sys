@@ -45,11 +45,14 @@ type news struct {
 }
 
 type studio struct {
-	frame  []slot
-	panes  map[string]*pane // by slot name
-	order  []*pane          // the frame's slots, as it reads
-	eye    int              // order's index of the one keys go to
-	events chan news
+	frame []slot
+	panes map[string]*pane // by slot name
+	order []*pane          // the frame's slots, as it reads
+	eye   int              // order's index of the one keys go to
+	face  *pane            // fm's, whose end ends the frame
+	// the window's unsaved file, where ed names work it holds unsaved
+	unsaved string
+	events  chan news
 }
 
 // start lays studio/frame out on dir: each slot that runs something runs
@@ -70,6 +73,7 @@ func start(dir string) (*studio, error) {
 		return strings.HasPrefix(v, "TMUX")
 	})
 	curf := state.Path("cur", "none")
+	s.unsaved = state.Path("unsaved", "none")
 	if err := os.MkdirAll(filepath.Dir(curf), 0o755); err != nil {
 		return nil, err
 	}
@@ -84,6 +88,9 @@ func start(dir string) (*studio, error) {
 			continue
 		}
 		args := append(strings.Fields(sl.Run), "-s")
+		if args[0] == "fm" {
+			s.face = p
+		}
 		c := exec.Command(args[0], args[1:]...)
 		c.Env = append(slices.Clip(env), "STUDIO="+sl.Name)
 		c.Dir, c.Stderr = dir, os.Stderr
@@ -166,12 +173,14 @@ func (s *studio) handle(e news) (copied string, done bool) {
 			}
 		}
 	case e.ended:
-		// the face's end, fm's, ends the frame, for its q asked first
-		// while ed held work unsaved: the window goes, and with it
-		// each program's view, so each ends. Another's end is its
-		// own, the eye moving on from it
+		// the face's end, fm's, ends the frame: the window goes, and
+		// with it each program's view, so each ends. But while ed
+		// names work it holds unsaved, which fm's second q takes
+		// away, fm ended some other way, as a crash ends it, and the
+		// frame stays for ed to save. Another's end is its own, the
+		// eye moving on from it
 		e.p.gone = true
-		if e.p == s.order[0] {
+		if e.p == s.face && state.Read(s.unsaved) == "" {
 			return "", true
 		}
 		if s.order[s.eye] == e.p {
@@ -196,7 +205,7 @@ func piped(r io.Reader, w io.Writer) *studio {
 	p := &pane{app: newApp(json.NewEncoder(w)), name: "window"}
 	s := &studio{frame: []slot{{Name: "window", Weight: 100}},
 		panes: map[string]*pane{"window": p}, order: []*pane{p},
-		events: make(chan news, 64)}
+		face: p, events: make(chan news, 64)}
 	go func() {
 		feed(r, func(m in) { s.events <- news{p: p, m: &m} })
 		s.events <- news{p: p, ended: true}
