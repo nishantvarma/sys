@@ -104,7 +104,12 @@ for f in $html; do
 	done
 done
 # a package's tests are its own check. go speaks on stderr, so stdout
-# stays violations alone
-pkgs=$(echo "$files" | grep '_test\.go$' | sed 's|/[^/]*$||' | sort -u)
+# stays violations alone. a folder with a go.mod of its own is another module,
+# which go cannot test from here, so its tests are its own to run
+pkgs=$(echo "$files" | grep '_test\.go$' | sed 's|/[^/]*$||' | sort -u |
+	while read -r d
+	do
+		[ "$d" != . ] && [ -f "$d/go.mod" ] || echo "$d"
+	done)
 [ -z "$pkgs" ] || go test $(printf './%s ' $pkgs) >&2 || rc=1
 exit $rc

@@ -1,0 +1,44 @@
+#!/bin/sh
+# build [test]
+#
+# the gio poc into ~/.cache/sys-gio/window; test runs its tests instead.
+# gio needs c headers. the ones missing are unpacked beside it, from
+# ubuntu's packages: nothing is installed, and no root is needed.
+# fm and ed come from sys's bin, so ./build at the root goes first.
+set -eu
+cd "$(dirname "$0")"
+cache=$HOME/.cache/sys-gio
+export GOTOOLCHAIN=auto CGO_ENABLED=1
+if ! pkg-config --exists egl glesv2 x11-xcb xkbcommon-x11 2>/dev/null
+then
+	root=$cache/root
+	lib=$root/usr/lib/x86_64-linux-gnu
+	if [ ! -e "$root/done" ]
+	then
+		mkdir -p "$cache/debs" "$root"
+		(cd "$cache/debs" && apt-get download libegl-dev \
+			libgles-dev libx11-xcb-dev libxkbcommon-x11-dev)
+		for d in "$cache"/debs/*.deb
+		do
+			dpkg -x "$d" "$root"
+		done
+		# a dev package's links point at libraries it lacks: point
+		# them at the system's
+		for l in "$lib"/*.so
+		do
+			t=$(readlink "$l")
+			s=/usr/lib/x86_64-linux-gnu/${t##*/}
+			[ ! -e "$s" ] || ln -sfn "$s" "$l"
+		done
+		: >"$root/done"
+	fi
+	export PKG_CONFIG_PATH="$lib/pkgconfig"
+	export CGO_CFLAGS="-I$root/usr/include" CGO_LDFLAGS="-L$lib"
+fi
+tags=nowayland,novulkan
+if [ "${1-}" = test ]
+then
+	go vet -tags $tags . && go test -tags $tags -count=1 .
+else
+	go build -tags $tags -o "$cache/window" . && echo "$cache/window"
+fi

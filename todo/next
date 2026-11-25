@@ -113,3 +113,91 @@ What is open, one node each, with the address that shows it.
                  data matches '[a-zA-Z0-9_\-./:~@#]+'
                  plumb to open
                  plumb start p $0
+
+    gio      explore gio (gioui.org), the go gui toolkit, to draw the
+             windows. it is go, so it adds no second language. the
+             question is whether its immediate-mode model fits them.
+             tried: `todo/gio`, run as its README says. it fits: the view
+             keeps the tree and a frame draws it, and sys's programs
+             needed no change. gio's text is grayscale; drawn by freetype
+             it is sharp (`todo/gio/ft.go:/hinted slightly/`).
+             a trap: wake the window at every reply, or the screen runs a
+             key behind (`todo/gio/wake_test.go:/must wake the window/`).
+             open: whether to switch, and what that waits on.
+
+    egui     the rust-based alternative to gio: the same job, if gio does
+             not fit. it would add a second language, rust, to the repo.
+
+    go-term  for the terminal use case, the go terminal library to explore
+             beside gio. check it against tty/, the terminal layer this
+             repo already has, before adding another.
+
+    views    each new view rewrites how a view behaves. layouts, moving,
+             and open and close are in sys/view, tied to the terminal,
+             and again in tk (`sh/window:/proc turn/`). a go-gui poc, kept
+             outside the repo and not needed here, made a third in part,
+             and `todo/gio/model.go:/move and turn are the view/` copies
+             that one.
+             the fix: lift those from `view/rows.go:/func flat/` and
+             `view/keys.go:/turn is going in and out/` into a new go
+             package that does not import tty. a tree and a key go in;
+             rows, or a message for the program, come out, and it keeps
+             the layout in use. the view says how much a page and a line
+             hold. the key names it reads move from tty to outline, beside
+             `outline/outline.go:/type Key struct/`. drawing, a row's
+             typed number and a figure's scroll stay in sys/view. sys/view
+             and a go gui share the package, and its tests define the
+             behaviour. tk and a page cannot import it; they can only
+             match its examples.
+             with it, write down what a view now learns from code, at
+             `outline/outline.go:/msg is one line on the wire/`: the node
+             kinds, how text marks the cursor and the selection, that
+             ed's first state word is its mode, and that size is in
+             columns and rows.
+             the check: new tests in the package cover moving in each
+             layout, and open and close, which
+             `view/view_test.go:/func TestHandle/` does not. sys/view's
+             tests still pass, its layouts drawn as before
+             (`view/view_test.go:/func TestLayouts/`).
+
+    term     some of fm and ed works only on a terminal, so swapping the
+             view does not carry it. read in the code, not tried by hand.
+             the test for each: can every view do it in messages alone?
+             help is only keys and words, yet ? gives up
+             (`fm/4-main/10-help.go:/needs the terminal/`,
+             `ed/3-mode/07-help.go:/needs the terminal/`). start here:
+             send it as nodes, wait for a key, likely with no new
+             message. a view keeps some keys, t among them, so not any
+             key can close it.
+             the pickers need a terminal
+             (`fm/4-main/22-pick.go:/m.t == nil/`): draw the choices
+             through the view, or run the picker beside the window and
+             take its answer.
+             only o and e run beside a window
+             (`fm/4-main/13-spawn.go:/Off the terminal, in a window/`):
+             v, w and F could, their output kept readable. V is refused
+             too, though gitk brings its own window.
+             the check: ? shows help from fm -w and ed -w.
+
+    go-gui   a poc of `sh/window` in go-gui v0.100.0, kept outside the
+             repo. weigh gio against the same points.
+             fit: immediate mode suits draw; the view stores the tree and
+             the next frame shows it. sys needed no change. tried with a
+             test against fm -s, not as a full fm -w or ed -w session.
+             cost: go 1.26, sys is on 1.22.2; not yet 1.0; 34 mb.
+             text: grayscale smoothing only on linux, so softer than
+             alacritty's subpixel text in the same font and size. no
+             setting found for it.
+             the title bar stayed light when asked for dark.
+             a trap: set RTFCfg.BaseTextStyle, or the first run's
+             background spreads to the next.
+             f11 for fullscreen is written in the poc, not yet seen to
+             work.
+             missing beside tk: thumbs, the layout and position in the
+             state, a title that follows the path, paste in ed, and line
+             editing in a prompt.
+
+    draw     every draw sends the whole tree, and ed every line
+             (`outline/outline.go:/func (s *stream) Draw/`): about 18 kb
+             for a file of 170 lines. time a large file before changing
+             it.
