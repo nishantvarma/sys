@@ -1,8 +1,0 @@
-the readme against the code
-
-the non-goals leave out motion counts, which
-`ed/cheatsheet:/leading count/` and normal mode have.
-`tmux/cheatsheet:/search the pane backward/` describes a branch `sh/p`
-does not have: p ends at the git check. the dependency table says it
-lists what is spawned, and omits what o and p spawn: microsoft-edge,
-zathura, mpv, mocp, foliate, xchm.

@@ -64,12 +64,12 @@ and the drift between them.
 
 ## the directory you are in
 
-`o` opens it, `q` closes it. With no argument `o` takes the directory you
-are in, and a directory is what it dispatches to fm. Nothing in
-`tmux/conf` names fm, so changing `sh/o` changes what `o`, a right click
-and `` `p `` open. fm's `o` runs it too, handing it the row under the
-cursor. `o` opens and never runs: a script is text, and running is the
-shell's.
+`o` opens it, `q` closes it. With no argument `o` takes cur, which is the
+directory you are in until something is said, and a directory is what it
+dispatches to fm. Nothing in `tmux/conf` names fm, so changing `sh/o`
+changes what `o`, a right click and `` `p `` open. fm's `o` runs it too,
+handing it the row under the cursor. `o` opens and never runs: a script
+is text, and running is the shell's.
 
 There is no key for this, because there is nothing a key would know that
 the shell does not. fm splits in beside the shell and never moves it or
@@ -156,8 +156,8 @@ page and the walk are lenses on the folders, so neither is ever edited.
 the body only if the name isn't enough. Same trick as tangle: the tree is
 the outline, so read it in fm.
 
-    general       simplicity, symmetry, naming, reduce, root
-    programming   decomposition, dry, terse, stateless, module order
+    general       simple, terse, symmetry, naming, root
+    programming   decomposition, dry, stateless, module order
     learning      topdown, spacing, interleaving, connections
     debugging     reproduce, bisection
     ai            how to work with an assistant, in numbered order
@@ -168,10 +168,10 @@ applying them here.
 
 ## non-goals
 
-Left out on purpose: motion counts, marks, named registers, and an ex line in
-ed; syntax highlighting; an fm preview pane or sort modes; untangling
-main.go back into chunks. The tree is the source, and the
-answers to the rest are your shell and your own tools.
+Left out on purpose: marks, named registers, and an ex line in ed, whose
+counts only replay a key; syntax highlighting; an fm preview pane or sort
+modes; untangling main.go back into chunks. The tree is the source, and
+the answers to the rest are your shell and your own tools.
 
 ## dependencies
 
@@ -194,11 +194,13 @@ in POSIX and fm won't notice; it only ever execs these by name.
     gitk          fm's git-gui binding, and one of v's own shortcuts
     tmux, wmctrl  panes and windows for spawn
     xdotool       the pointer warp moves
+    zathura, mpv, mocp, foliate, xchm, microsoft-edge
+                  o's openers, by extension, and edge p's for a url
 
-`sh/` is the scripts these bindings actually run — c, m, e, o, v, spawn,
-warp, the finders f and s, and v's small prompt helpers. `./build` copies
-them into bin/ next to the compiled programs; edit or replace them like
-anything else here.
+`sh/` is the scripts these bindings actually run — c, m, p, e, o, v,
+spawn, warp, todo, lint, check, the finders f and s, and v's small prompt
+helpers. `./build` copies them into bin/ next to the compiled programs;
+edit or replace them like anything else here.
 
 `tmux/` is the same idea one layer out: the bindings that run those
 scripts — a left click to say a word, a right click to open what it
@@ -217,8 +219,8 @@ reaches this with
     ./build fm ed    named targets only
     gio/build        the window fm -w and ed -w open, apart, for it
                      needs cgo (`gio/README`)
-    ./fmt            gofmt the tree (skips tangle sources), prettier every .html
-                     and .mjs
+    ./fmt            gofmt the tree, but tangle's sources, and prettier
+                     every .html and .mjs
 
 Each target is tangled then compiled, so `bin/tangle` must already exist —
 it's tangled by itself. `build` also copies `sh/` into `bin/`, so the
