@@ -32,7 +32,7 @@ it.
 
 not here yet
     - a shell: its slot says so. the plan runs it through tmux's control
-      mode (`todo/studio/outline:/the shell through tmux/`)
-    - help and the pickers (`todo/next:/the pickers need a terminal/`)
+      mode (`todo/03-studio/03-shell`)
+    - help and the pickers (`todo/04-gio/02-term`)
     - a drag in ed's text, the wheel, a middle click's paste and a right
       click's open, as on the terminal

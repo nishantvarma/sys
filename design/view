@@ -1,0 +1,55 @@
+view: a program and its view, and the messages between them
+
+A program says what to show as nodes; a view draws them and hands back
+what the person did. fm does what a file manager does and ed what an
+editor does; how either is shown is the view's: the terminal on tty
+(`view/term.go`), gio's window (`gio/README`), a page next. Nodes, not
+cells: cells would make the page a terminal in a browser, as ttyd does,
+where nodes let a view draw a pill or a chip.
+
+    type View interface {
+        Draw(n *Node, status string, state []string)
+        Key() (Key, bool)
+        Ask(prompt, def string) (string, bool)
+        Size() (w, h int)
+        Copy(text string) error
+    }
+
+Messages, not calls
+  A program and its view pass only plain data: in one process a call
+  whose arguments are data, down a pipe or a socket a JSON line each
+  (`outline/outline.go:/msg is one line on the wire/`).
+    to the view      draw: the tree, the program's word and its state;
+                     ask: a prompt; copy: text for the clipboard
+    to the program   key: its name, the node it was said on, the rune a
+                     click fell on, any text; answer: the line typed;
+                     size: how much the view shows
+  A message joins when a view needs one. What only a terminal can do
+  stays with it, and a window says so.
+
+Who holds what
+  program  the data, the cursor and the selection: what its verbs act on.
+           fm sends the folder it stands in, ed every line, its cursor
+           and its selection as runs.
+  view     how it shows: a folder as rows or as thumbs, t turning between
+           them. It moves the cursor among what it shows, and tells the
+           program where it landed; going in and out is the program's,
+           for it changes what is shown.
+  between  ideas, by name: down, in, rename. A key is one way to say one
+           and a click another; ed passes its keys through, for an
+           editor's keys are its language.
+
+The status line, at the bottom only, in every view
+  The program's word on the left, what just happened or what it asks; on
+  the right its state, [2] selected, cut:3, mark:x, then the view's, its
+  layout and where the cursor is. ed says its mode, + while unsaved,
+  held while that keeps it from cur's file, and line:col. A prompt takes
+  the line while it asks.
+
+The structure is the tree, not a language
+  Folders and files carry it down to the idea, and inside a file the
+  note's own indent carries the rest. A primitive is a kind the views
+  know, a package of its own as sys/figure is, asked by kind: no plugin
+  system and no runtime library. fm and ed stay programs, each at the end
+  of messages; as Go packages one process could host both, which stays
+  open.

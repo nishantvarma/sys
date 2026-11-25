@@ -1,0 +1,6 @@
+a count replays keys that prompt
+
+`ed/3-mode/06-normalmode/04-key.go:/e.mode.key(e, k)/` replays a key n
+times, so 5/ asks five times and 5? shows help five times. a bit on the
+binding would stop it at a key that prompts; not worth the field until
+it bites.

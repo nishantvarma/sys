@@ -1,0 +1,42 @@
+page: the browser's side, a reader of nodes
+
+The browser shows, the terminal does, and a page keeps no state; the
+shelf only reads, on purpose. A server that speaks the file verbs was
+not taken: it needs writes off unless asked, localhost only, and a
+header only the shelf sends, for any page you visit can reach localhost.
+It makes the page an app. Wait for an app only for meaning across files,
+who uses this field or where it is defined, a view apart from the
+outline.
+
+The node is the contract, page.html's, frozen; its checker is the oracle
+(`medium/page/run.mjs`):
+    details#id               id is the address
+      summary
+        heading              first child: what find and the box list read
+        edge ...             the rest: a glyph, a count
+      body                   a component: anything with no details#id
+Look comes from nesting alone: a node holding nodes is a card, one
+holding none a row.
+
+A renderer is a function from one file to nodes; the engine, keys,
+folds, find and the address, knows no kind. A kind that needs a parser
+gets a generator and a page of its own, as page/py, page/diff and
+page/todo do; a kind that is only text stays in the shelf's outline.
+Each page stays one file and carries its parts by assembly, as tangle
+stitches go, not by a runtime library. devtools takes page.html,
+page/diff and page/run.mjs by copy, one way, never edited there.
+
+the refactor: the shelf's outlines onto page.html's node, python first
+  1  node contract              built in the shelf
+  2  node shape                 built in the shelf
+  3  python heading             built in the shelf: the def line itself,
+                                `@property def parts()`, self and cls
+                                dropped, a default over 10 chars =...
+  4  python edge                built in page/py: the skyline and the size
+  5  python folds               dropped, for a page hides nothing
+  6  python body                built in page/py: from the line after the
+                                def, as written, strings quiet, no rail
+  7  retire the ring            open (`todo/03-studio/09-ring`)
+  not taken, for each hides code the reader wants whole or puts a second
+  structure beside the outline: structograms, skeletons, exit tables,
+  treemaps, call graphs, arcs, a pill on every row, d3 or mermaid.

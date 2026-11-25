@@ -1,0 +1,19 @@
+the keys, decided last, once the ideas are settled
+
+  ideas      each binding names its idea beside its key, so a key, a
+             click and a button say one thing, and the wire carries ideas
+  vi         digits a count, 3j, and a row by :N or NG; g first and G
+             last everywhere; l in, as right is
+  m and t    m is memory in fm and the bracket in ed, so the next lens
+             moves to gt and gT; t is till in ed, so the layout turns by
+             another key. q is decided: a slot's q ends the frame
+             (`studio/5-verbs/10-closeverb.go:/closeVerb/`)
+  the frame  ctrl-w, vim's window prefix, which no slot binds: h j k l
+             move the eye, : the frame's words, q closes a slot
+  one table  keys and gestures to ideas, read by view, gio, the page and
+             `tmux/conf`, and listed by ?; six places decide keys today
+  the word   one function finds the word at a column, as tmux, p and ed
+             each do (`ed/4-view/28-wordat.go`), and p takes -w dir
+  text in    p -a and studio send paste with brackets, not typed keys
+  chords     tmux hands a chord only as one button's press and the
+             other's release: acme's chords read from that, or keys

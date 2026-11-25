@@ -1,0 +1,14 @@
+a language server, beside ed and not in it
+
+ed stays an editor. what a server knows reaches the person by what sys
+has already, so the terminal and gio show it alike:
+  symbols, diagnostics   a lens on the thing at cur, derived and read
+                         only (`studio/4-lens/02-lenses.go`)
+  go to definition       an address said to cur, which ed -f follows
+                         (`design/pronoun:/Verbs default their noun/`)
+  a word's meaning       p asks for it before the files, as it asks c
+                         (`sh/p:/c is asked what the word names/`)
+  marks on ed's lines    a run's kind or a line's tags on the wire
+                         (`outline/outline.go:/type Node struct/`), from
+                         beside ed, by studio's socket
+none built.

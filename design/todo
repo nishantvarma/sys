@@ -10,8 +10,8 @@ the machine: do what is next, type its state, and next moves on.
     02-taxes                       3   a file: one item
     03-move/                           an item that grew
       README                           its text
-      todo/01-boxes                4
-      todo/02-van                  5
+      01-boxes                     4
+      02-van                       5
     04-invoice -> ../shop/todo/03-invoice
                                    6   one item, of a list not yours
 
@@ -20,11 +20,12 @@ the machine: do what is next, type its state, and next moves on.
 
 the grammar
   node      a file, or a folder; a folder's text is its README, and its
-            other files are the explorer's, not the todo's
+            files with no number are the explorer's, not the todo's
   head      title:, state:, after:, on top of the text
   order     the NN- of a name, in its own list: 01 is done first. it is
             only order: 04-invoice is the node invoice
-  children  a folder's own todo/: its entries are the node's nodes
+  children  a folder's numbered entries, as tangle reads a folder; a
+            project's, whose own files are not the todo's, its todo/
   link      a symlink is a node that lives elsewhere: a link to a folder
             brings its whole list, a link to a file the one item
   step      a line "- [ ]" or "- [x]": counted on its card, not a node
@@ -69,7 +70,7 @@ the studio, on its own data (`design/studio`)
   todo and pipeline are one structure with two evaluators, you or the
   runner; the tree and the views do not differ. a gate is an open node,
   a stage's reads are after:. what else the studio can take from it,
-  still open: `todo/studio/entry`.
+  still open: `todo/03-studio/06-entry`.
 
 the verb: todo (`sh/todo`), with `medium/page/todo` making the views
   todo        the walk of the todo you are on, a node a line

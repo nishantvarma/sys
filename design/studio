@@ -1,4 +1,4 @@
-studio: the idea, in five lines
+studio: the idea, in six lines
 
 The goal, first: one outline, two renderers
   sys has grown pieces that each read and draw notes their own way: three
@@ -20,9 +20,9 @@ Built on sys, not beside it
   A lens shows what is derived from a thing, never what is typed, which is
   ed's (design/todo:/typed at rest/).
   A need goes into one of those first, as a few lines, and becomes a new
-  piece only when it fits none of them. The terminal pane runs fm and ed as
-  they are (todo/studio/terminal:/fm, ed, c and tmux/); the thing every
-  lens is on is fm's cur, which c names (README:/the word you are on/).
+  piece only when it fits none of them. The terminal pane runs fm and ed
+  as they are; the thing every lens is on is fm's cur, which c names
+  (README:/the word you are on/).
 
   Target: the shelf reads, and page/py is a lens on a page; studio lays
   fm, ed and a shell out in tmux, and studio show is the lenses there. No
@@ -33,17 +33,19 @@ Built on sys, not beside it
   3  an id joins the lenses
   4  the shelf reads               list, show, flip, follow
   5  the terminal acts, and writes a file a lens shows
+  6  nothing reads a lens          a lens reads the thing, never another
 
 The todo is where it starts (`design/todo`): the things you mean to do,
-as a tree, in the order you do them. All five lines hold there already:
+as a tree, in the order you do them. All six lines hold there already:
 its nodes are files and folders, its page and its walk are lenses, an id
-is the path down, the page only reads, and ed types the state. What the
-studio can take from it, still open: `todo/studio/entry`.
+is the path down, the page only reads, ed types the state, and a card's
+tally is read from the folders, never from a page. What the studio can
+take from it, still open: `todo/03-studio/06-entry`.
 
 The case, carried through: medium/page/py, node
   medium/page/ is the studio's own source: the renderers, their check, a
   README. `studio show` draws the lenses on it in the terminal, and the
-  page will at step 8 (`todo/studio/outline:/a page view of fm and ed/`).
+  page will (`todo/03-studio/04-page`).
 
   thing     page/py : node                             the id
   source    node as written, lines 311..328            nothing makes it
@@ -68,6 +70,5 @@ Open
     it would bend.
   - a trace needs something to run: a test, a script, a request.
 
-See todo/studio/: outline (the goal, in Go), renderer (file -> nodes),
-terminal (the pane), shelf (the page the studio grew from), refactor (the
-build order).
+See `design/view`, a program and its view; `design/page`, the page's side;
+and `todo/03-studio`, what is open of the studio.

@@ -1,7 +1,7 @@
 // Package outline is the tree a view draws. A program says what to show as
 // nodes; a view, on the terminal, in a window or on a page, says how, and
 // hands back what was pressed. All of it is plain data, so a view can be
-// at the other end of a pipe or a socket. The idea: `todo/studio/outline`.
+// at the other end of a pipe or a socket. The idea: `design/view`.
 package outline
 
 import (

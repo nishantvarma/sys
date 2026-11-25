@@ -96,4 +96,4 @@ raw bytes and must be a terminal, and having no tty it never fires
 tmux's mouse bindings, so mouse_word, copy_cursor_word, copy-mode and
 copy-pipe all go (`design/address:/Not a terminal/`). studio's plan
 takes that road, running the shell through control mode and drawing it
-in a slot: `todo/studio/outline:/the shell through tmux/`.
+in a slot: `todo/03-studio/03-shell`.

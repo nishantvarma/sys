@@ -1,0 +1,5 @@
+fm reads the folder on every key
+
+`fm/4-main/28-loop.go:/for !m.done/` reads and sorts the folder on each
+key, j too: it is what makes the cursor survive a rebuild for free.
+measure on a large folder before touching it.

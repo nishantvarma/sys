@@ -1,0 +1,9 @@
+a page as a tangle tree
+
+shelf.html a folder of chunks, tangled to one file as fm and ed are, so a
+page of 3000 lines is small files an outline apart; the page side says it
+in prose (`design/page:/carries its parts by/`). tangle is go's today: it
+takes only .go chunks and gofmts what it makes
+(`tangle/4-run/01-collect.go:/".go"/`), and a folder and the file it
+makes cannot share a name, so the page is made elsewhere. noted, not
+built.

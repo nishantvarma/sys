@@ -1,0 +1,4 @@
+a go terminal library, against tty
+
+a go terminal library to explore for the terminal; check it against tty,
+the terminal layer this repo has, before adding another.

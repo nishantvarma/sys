@@ -1,0 +1,10 @@
+the row: a prompt at the foot of the terminal
+
+one fixed line at the bottom of a bare terminal, its input the
+terminal's own cooked line, DECSTBM keeping the scroll above it. a key in
+fm and in ed hands the bottom line to tty.ReadLine, runs the word on cur
+and takes the row back: same row, same key, same meaning, for all act on
+one this. no bar: the middle is the view or the last thing said. output
+is discarded and held only on failure; what matters is file:line, kept by
+selecting it into cur. to hand back: history in ReadLine, a slice and two
+keys; tab, the callback `tty/line.go` takes and nothing passes.

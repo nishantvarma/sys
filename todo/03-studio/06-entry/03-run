@@ -1,0 +1,5 @@
+the run lens is a todo the machine types
+
+todo and pipeline are one structure with two evaluators. a test run that
+writes a node per test, its state done or fail, is a todo folder, and the
+page, the walk and the tally draw it as they are.

@@ -2,7 +2,7 @@
 // of fm so that a host, studio, draws it too. It lays a folder out itself,
 // as its rows or as thumbs, cards read left to right, and it moves the
 // cursor among what it shows, telling the program only where it landed
-// (`todo/studio/outline:/Who holds what/`). It draws in the palette, as the
+// (`design/view:/Who holds what/`). It draws in the palette, as the
 // samples drew it: a head that says where the cursor is, the layouts over
 // the rows, names the loudest thing, the cursor's row lit with a blue
 // edge. It draws on the whole terminal, or in a region of it that a host

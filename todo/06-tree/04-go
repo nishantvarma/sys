@@ -1,0 +1,8 @@
+go's tools do not see the chunks
+
+go build ./... and go vet ./... choke on the chunks, expected 'package',
+and gopls with them; go vet main.go a folder works, and nothing says so:
+a line in the readme and a vet step in build keep the trade honest.
+beside it `tangle/5-splice/02-expand.go:/return m/` leaves an unresolved
+<<name>> in its output without a word, so the failure surfaces three
+steps on, as a compile error.

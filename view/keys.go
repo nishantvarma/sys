@@ -56,7 +56,7 @@ func (v *Term) Handle(k tty.Key) (outline.Key, bool) {
 
 // Ask reads a line at the bottom of the whole terminal, a region's view's
 // too, until studio hosts the slots and gives each view its own
-// (`todo/studio/outline:/studio hosts the slots/`). Completion stays tty's
+// (`todo/03-studio/01-slots`). Completion stays tty's
 // seam, which fm leaves empty.
 func (v *Term) Ask(prompt, def string) (string, bool) {
 	return tty.ReadLine(v.t, prompt, nil, def)

@@ -1,0 +1,8 @@
+a terminal pane on the page: an idea
+
+the browser shows, the terminal does. t on a folder would make the right
+pane a shell standing there, tmux new -A under ttyd in an iframe, on
+127.0.0.1 with a token: one more view, like pdf.js. ttyd is not
+installed. the test before any of it: for a week, note why you leave the
+browser. mostly "run a command in this folder", and the pane earns its
+place; mostly editing, and it does not.

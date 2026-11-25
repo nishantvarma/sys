@@ -1,0 +1,13 @@
+what is open of the renderers
+
+  - one list, every page: a note, a folder and a page's main read to one
+    list, (node title leaf...), saved as json so a program asks it, each
+    page a renderer over it; a leaf a type and a component, one function,
+    type in and html out. moved a page at a time, its old html kept until
+    run.mjs passes on both
+  - a file's source beside its rendered view, flipped by a key on the
+    same id: where the key lives, and whether a source view needs ids
+  - the shelf opening a .py: a link to the made page, or its nodes in
+    place; the link first, embedded if the keys are missed
+  - a caption by ":" at the end of a line: too clever for prose?
+  - rows by two spaces: a typo makes a table

@@ -1,0 +1,9 @@
+studio hosts the slots
+
+it starts each slot with pipes, draws each in its region, and hands the
+eye, the keys and the clicks to the right one. gio's window does
+(`gio/host.go:/start lays/`); on the terminal tmux does still. ready for
+it: a stream starts without the eye, tty reads clicks and ctrl chords,
+and view and figure know the node at each cell (view.At, figure.At). to
+do: a prompt in a region, for Ask asks on the terminal's bottom line, and
+a row's number typed to a host's view.

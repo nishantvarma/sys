@@ -7,14 +7,14 @@ func waits(cmd string) string {
 	switch word {
 	case "fm", "ed":
 		return "Its page view is a step of the plan:" +
-			" todo/studio/outline:/a page view of fm and ed/."
+			" todo/03-studio/04-page."
 	case "studio":
 		return "The lens follows cur in the terminal; on a page it" +
 			" waits on fm's page view."
 	case "":
 		return "A shell on a page runs under ttyd, which waits on a" +
 			" week's test:" +
-			" todo/studio/terminal:/for a week, note why/."
+			" todo/03-studio/07-terminal:/for a week, note why/."
 	}
 	return "It runs in the terminal, and has no page view."
 }

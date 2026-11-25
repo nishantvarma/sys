@@ -1,0 +1,11 @@
+~/lib/plumbing, a second table
+
+it sends djvu to evince and mp3 to mpv, where `sh/o` says zathura and
+mocp. delete it if acme never opens: the change is a deletion either way
+(`general/terse`). if acme should open files itself, an edit rule ahead
+of the shim (`design/plumbing:/becomes a shim into p/`):
+    type is text
+    data matches '[a-zA-Z0-9_\-./:~@#]+'
+    plumb to open
+    plumb start p $0
+untested: nothing runs to test it against.

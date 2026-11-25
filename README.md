@@ -124,7 +124,7 @@ another by sending it an idea. Nothing is shared but the messages; what a
 piece knows of another is what it was last told. `c` and the `m` log are
 messages already, a verb and the address it was said about, passed
 through files. The messages a program and its view pass are in
-`todo/studio/outline`.
+`design/view`.
 
 ## the studio, and where it starts
 

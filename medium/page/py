@@ -8,7 +8,7 @@ strings and comments quiet, keywords dim, the control words bold.
 nothing is left out but the module's docstring, which is the lead, and the
 def lines, which head their nodes. the lines between a body's classes and
 defs are source: a lone line as it is, two or more one closed row, headed
-by its first line, its size at the edge. todo/studio/refactor decides each of
+by its first line, its size at the edge. design/page decides each of
 these.
 
 an id is a qualified name, Field.broken_constraint, and a repeat gets -2.

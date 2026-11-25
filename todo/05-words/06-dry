@@ -1,0 +1,9 @@
+where cur lives: one fact, three owners
+
+where cur is kept: `sh/c:/$"id/`, `sh/m:/$"id/` and
+`state/state.go:/Path is where a window's state/`. how the window is
+found: `sh/c:/window_id/`, `sh/m:/window_id/` and
+`state/state.go:/window_id/`. three edits for one fix, and
+`design/plumbing:/one owner/` is the answer already written: a c -w that
+prints this window's cur path, which fm (`fm/4-main/24-here.go`) and m
+ask instead of working it out again.

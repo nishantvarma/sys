@@ -1,0 +1,6 @@
+ed writes over the work in place
+
+`ed/1-buffer/08-save.go:/os.WriteFile/` truncates the file and writes
+it, where `sh/c:/temp then rename/` writes a one-line pronoun beside and
+renames it over: the care is on the cheap file. a write beside and a
+rename would end it.

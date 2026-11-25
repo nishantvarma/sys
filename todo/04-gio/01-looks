@@ -1,0 +1,5 @@
+a program's looks, down the pipe
+
+the looks of fm's kinds and the lens's are copied into gio
+(`gio/model.go:/looks are how the window draws/`), for a program down a
+pipe says none: a looks message, sent once, would end the copy.

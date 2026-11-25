@@ -940,16 +940,16 @@ check(
 //         headings, a duplicate's -2; the keys reach each, and pass a
 //         component's own details by; the heading the summary's first
 //         child, the box's, a figure after it at the edge; a heading Book
-//         leaves the epub's #book alone (todo/studio/refactor, step 1)
+//         leaves the epub's #book alone (design/page, the refactor's step 1)
 //   shape every kind's node is one shape, its id, heading, edge and body:
 //         a diff's file is headed by its path, its status and +n −m at the
 //         edge, a gap apart, its id its path's; python's nodes an id each,
-//         none twice (todo/studio/refactor, step 2)
+//         none twice (design/page, the refactor's step 2)
 //   sign  python's heading as its code says it, @property def parts(), in
 //         the cases model.py has not: an async def, a def in a def, a
 //         signature and a decorator over lines, a def named twice, tabs;
 //         hovered, the signature as written and the docstring; ast is the
-//         oracle (todo/studio/refactor, step 3)
+//         oracle (design/page, the refactor's step 3)
 //   keys  tab hands the view the keys, shift+tab, esc and h at the first
 //         heading hand them back; an outline takes j k l h o z e c /
 //         as page.html's engine does, a page in a frame its own keys; on
@@ -1762,13 +1762,13 @@ async function others(s, tag) {
   );
 }
 
-// md's nodes, todo/studio/refactor's step 1: each heading a page's node, its id
-// the path of the headings down to it. the oracle is a file written here,
+// md's nodes, design/page's refactor, step 1: each heading a page's node, its
+// id the path of the headings down to it. the oracle is a file written here,
 // beside the ids and headings it must have: a duplicate heading, a # in a
-// fenced block, a line underlined. the keys reach each node and nothing
-// else: a component's own details has no id, and is passed by. the
-// heading is the summary's first child, what the box lists, and a figure
-// after it sits at the edge. an id leaves the shelf's own alone
+// fenced block, a line underlined. the keys reach each node and nothing else:
+// a component's own details has no id, and is passed by. the heading is the
+// summary's first child, what the box lists, and a figure after it sits at the
+// edge. an id leaves the shelf's own alone
 async function nodes(s, tag) {
   const md = [
     '# shelf',
@@ -1898,7 +1898,7 @@ async function nodes(s, tag) {
   check(!s.errors.length, `${tag} node: no page errors`, s.errors.join(' | '));
 }
 
-// every kind's node one shape, todo/studio/refactor's step 2: its id, its
+// every kind's node one shape, design/page's refactor, step 2: its id, its
 // heading, the figures at its edge and its body, as part() draws them. the
 // oracle is a diff and a python file written here, beside what they must
 // show: a file headed by its path, its status and +n −m at its edge, a gap
@@ -2002,7 +2002,7 @@ async function shapes(s, tag) {
 // heading, its first line; each # -- name -- mark at the margin a heading,
 // the defs after it under it; each class or def, its depth by ast, its
 // heading as its code says it, its decorators inline, its params as
-// todo/studio/refactor's oracle.py has them, and its id its qualified name, a
+// design/page's python heading has them, and its id its qualified name, a
 // duplicate -2
 function ast(path) {
   return JSON.parse(
@@ -2170,11 +2170,11 @@ async function python(s, tag) {
   );
 }
 
-// python's heading, todo/studio/refactor's step 3, in the cases model.py has not:
-// an async def, a def in a def, a signature over lines, a decorator over
-// lines, a def named twice, and a file indented by tabs. the oracle is
-// ast, as for model.py: a case holds when the node ast names is headed as
-// ast heads it, and its id is ast's
+// python's heading, design/page's refactor, step 3, in the cases model.py has
+// not: an async def, a def in a def, a signature over lines, a decorator over
+// lines, a def named twice, and a file indented by tabs. the oracle is ast, as
+// for model.py: a case holds when the node ast names is headed as ast heads
+// it, and its id is ast's
 async function signatures(s, tag) {
   const cases = [
     '"""the cases a heading meets."""',

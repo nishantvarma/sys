@@ -79,13 +79,19 @@ def slug(name: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
 
 
-def entries(folder: Path, seen: set[Path] | None = None) -> dict[str, Entry]:
-    """the folder's entries by id, each with what its text says. seen is
-    the folders already read above this one, so a link cannot cycle."""
+def entries(
+    folder: Path, seen: set[Path] | None = None, numbered: bool = False
+) -> dict[str, Entry]:
+    """the folder's entries by id, each with what its text says; with
+    numbered, only those whose names are, as a folder's own nodes are.
+    seen is the folders already read above this one, so a link cannot
+    cycle."""
     seen = (seen or set()) | {folder.resolve()}
     found: dict[str, Entry] = {}
     for path in sorted(folder.iterdir()):
         if path.name.startswith(".") or path.name == "index.html":
+            continue
+        if numbered and not re.match(r"\d+-", path.name):
             continue
         e = entry(path, seen)
         if e.id in found:
@@ -118,11 +124,13 @@ def entry(path: Path, seen: set[Path]) -> Entry:
     target = path.resolve()
     if target.is_dir():
         text = lead(text)
-    # a folder with a todo/ of its own lends its entries to the card
+    # a folder's nodes are its numbered entries, as tangle reads a
+    # folder; a project's, whose own files are not the todo's, its todo/
     todo = target / "todo"
+    home = todo if todo.is_dir() else target
     children = (
-        list(entries(todo, seen).values())
-        if target.is_dir() and todo.is_dir() and todo.resolve() not in seen
+        list(entries(home, seen, numbered=home == target).values())
+        if target.is_dir() and home.resolve() not in seen
         else []
     )
     # a node with nodes counts them; only one without reads a page, its own
@@ -139,7 +147,7 @@ def entry(path: Path, seen: set[Path]) -> Entry:
         tally=tally(held),
         is_dir=target.is_dir(),
         children=children,
-        todo=todo if children else None,
+        todo=todo if children and home == todo else None,
     )
 
 

@@ -1,0 +1,8 @@
+ed sends its view every line at each key
+
+the view keeps the window, so ed sends the whole file
+(`ed/7-loop/01-draw.go:/for i := range/`): timed in process, 0.2 ms a
+key on a note of 209 lines and 1.5 ms on a file of 4011, the nodes half
+of it; down a pipe each key is the file again as json. small files are
+the aim, so it stays until a measure says it must go, and then the view
+asks for the lines it shows.
