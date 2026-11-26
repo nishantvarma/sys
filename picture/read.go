@@ -1,4 +1,4 @@
-package figure
+package picture
 
 import (
 	"errors"
@@ -51,19 +51,19 @@ func widest(lines ...string) int {
 	return n
 }
 
-// read is the figure a note's items make. Its head, the first item and
+// read is the picture a note's items make. Its head, the first item and
 // the items under it, is its title and lead (outline.Head). Each other
 // item is a box: its label up to the first run of two spaces, its note
 // after; the items under it are the boxes inside it. But an item that
 // starts with → is a message, from the box it is under to the box whose
 // label follows the arrow, and its note is what the message carries. A
 // message names one box, or it is an error at its line.
-func read(items []*outline.Node) (*Figure, error) {
+func read(items []*outline.Node) (*Picture, error) {
 	if len(items) == 0 {
 		return nil, errors.New("nothing to draw")
 	}
 	title, lead := outline.Head(items)
-	f := &Figure{Title: title, Lead: lead}
+	f := &Picture{Title: title, Lead: lead}
 	named := map[string][]*box{}
 	type message struct {
 		from      *box

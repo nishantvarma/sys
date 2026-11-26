@@ -1,4 +1,4 @@
-package figure
+package picture
 
 import (
 	"strings"
@@ -7,12 +7,12 @@ import (
 	"sys/outline"
 )
 
-// pair is the figure the tests draw: two lanes, a box in each, one above
+// pair is the picture the tests draw: two lanes, a box in each, one above
 // the other, and a message down between them that carries a word.
 const pair = "t\nup\n  a\n    → b  go\nlow\n  b\n"
 
-// figure reads src as a note, as fm reads one, and lays it out.
-func figure(t *testing.T, src string) *Figure {
+// picture reads src as a note, as fm reads one, and lays it out.
+func picture(t *testing.T, src string) *Picture {
 	t.Helper()
 	f, err := New(outline.Text(strings.NewReader(src), "note"))
 	if err != nil {
@@ -44,7 +44,7 @@ func TestBroken(t *testing.T) {
 // where it arrives, and its word beside it, a cell clear, at the right,
 // as the page says one message's word.
 func TestRunes(t *testing.T) {
-	got := strings.Join(figure(t, pair).Runes(), "\n")
+	got := strings.Join(picture(t, pair).Runes(), "\n")
 	want := strings.Join([]string{
 		"",
 		"      ╭───╮",
@@ -69,15 +69,15 @@ func TestRunes(t *testing.T) {
 // another, keep the junction there: the second draws no line over the
 // first's ┬.
 func TestJunction(t *testing.T) {
-	f := figure(t, "t\nup\n  a\n    → b\n    → c\nmid\n  b\nlow\n  c\n")
+	f := picture(t, "t\nup\n  a\n    → b\n    → c\nmid\n  b\nlow\n  c\n")
 	if pic := strings.Join(f.Runes(), "\n"); !strings.Contains(pic,
 		"╰─┬─╯") {
 		t.Errorf("the junction is lost:\n%s", pic)
 	}
 }
 
-// A word beside a line near an edge is in the figure, not cut by it: past
-// the right edge the figure widens; past the left the whole of it moves
+// A word beside a line near an edge is in the picture, not cut by it: past
+// the right edge the picture widens; past the left the whole of it moves
 // right, and its lanes' labels stay at the left.
 func TestFit(t *testing.T) {
 	for _, c := range [][2]string{
@@ -87,7 +87,7 @@ func TestFit(t *testing.T) {
 			"    → b  first long word\n    → b  go\n" +
 			"low\n  b  a wide box note\n", "first long word"},
 	} {
-		rows := figure(t, c[0]).Runes()
+		rows := picture(t, c[0]).Runes()
 		if pic := strings.Join(rows, "\n"); !strings.Contains(pic,
 			c[1]) {
 			t.Errorf("%q is cut:\n%s", c[1], pic)
@@ -100,9 +100,9 @@ func TestFit(t *testing.T) {
 
 // A cell names what it falls on: the innermost box, its border too; a
 // lane, on its band; a message, on its word; nothing on its line, in the
-// column of labels, or off the figure.
+// column of labels, or off the picture.
 func TestAt(t *testing.T) {
-	f := figure(t, pair)
+	f := picture(t, pair)
 	for _, c := range []struct {
 		x, y int
 		want string
@@ -126,7 +126,7 @@ func TestAt(t *testing.T) {
 // item's address, the message's line and head in the accent, and its word
 // in a group of its own.
 func TestSVG(t *testing.T) {
-	want := `<svg class="figure" viewBox="0 0 104 234" width="104"` +
+	want := `<svg class="picture" viewBox="0 0 104 234" width="104"` +
 		` height="234" role="img" aria-label="t">
 <text class="lane" x="0" y="45" text-anchor="start">up</text>
 <g data-id="note:2">
@@ -150,7 +150,7 @@ func TestSVG(t *testing.T) {
 <text class="said" x="76" y="117" text-anchor="start">go</text>
 </g>
 </svg>`
-	if got := figure(t, pair).SVG(); got != want {
+	if got := picture(t, pair).SVG(); got != want {
 		t.Errorf("svg:\n%s\nwant:\n%s", got, want)
 	}
 }

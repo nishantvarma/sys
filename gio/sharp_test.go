@@ -26,7 +26,7 @@ func TestSharp(t *testing.T) {
 	var ops op.Ops
 	gtx := gtxFor(&ops, wide, high)
 	fill(gtx, image.Rect(0, 0, wide, high), hex(groundHex))
-	words := []string{"bin/", "design/", "ed/", "figure/", "fm/"}
+	words := []string{"bin/", "design/", "ed/", "picture/", "fm/"}
 	for i, w := range words {
 		v.line(
 			gtx,

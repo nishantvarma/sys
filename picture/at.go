@@ -1,4 +1,4 @@
-package figure
+package picture
 
 // inner is the innermost of b and the boxes in it that holds the cell at
 // x, y; nil when b does not hold it.
@@ -22,8 +22,8 @@ func (m *arrow) covers(x, y int) bool {
 
 // At is the address a cell of Runes names, column x and row y from 0: the
 // innermost box that holds it, else the message whose word stands there;
-// "" for none. A click on a figure names what it falls on.
-func (f *Figure) At(x, y int) string {
+// "" for none. A click on a picture names what it falls on.
+func (f *Picture) At(x, y int) string {
 	for _, l := range f.lanes {
 		if b := l.inner(x, y); b != nil {
 			return b.at

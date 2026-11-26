@@ -40,7 +40,7 @@ and the packages they share:
               cur
     state     a tmux window's own files, cur and the lens: where each is
               kept, read, and written whole
-    figure    a note as its parts and the messages between them, laid
+    picture   a note as its parts and the messages between them, laid
               out in cells: SVG on a page, runes on a terminal;
               `design/arch` is sys drawn that way, and `./build` makes
               it `arch.html`
@@ -110,7 +110,7 @@ insertmode/key coexist, both under `ed/3-mode`; `<<name>>` takes any path
 suffix that names one chunk. tangle walks the tree and stitches it into a
 single `main.go`. Browse the outline in fm, edit the chunks in ed — no
 markup to learn. `tangle`, `fm`, `ed` and `studio` are each written this
-way; `outline`, `tty`, `view`, `watch`, `state` and `figure` stay plain
+way; `outline`, `tty`, `view`, `watch`, `state` and `picture` stay plain
 Go packages.
 
 The outline does not stop at a file. A note is an outline too, by its
@@ -120,7 +120,7 @@ the folders, a level at a time, and ed beside it edits the file at fm's
 cursor, whose items are its indent. ed stays an editor: what more is
 known of a file's structure is for something beside it to say.
 outline.Text reads a note into that tree by its indent, as Python is
-read, for what draws a note another way: studio's frame and its figure.
+read, for what draws a note another way: studio's frame and its picture.
 
 ## everything talks in messages
 

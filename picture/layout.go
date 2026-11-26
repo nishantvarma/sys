@@ -1,4 +1,4 @@
-package figure
+package picture
 
 import (
 	"fmt"
@@ -30,7 +30,7 @@ func (b *box) title() string {
 // message runs between them or what they hold. Across: room for its
 // label, or its head at least, else the usual gap. Down: room for a
 // label, else a line.
-func (f *Figure) apart(a, b *box, across bool) int {
+func (f *Picture) apart(a, b *box, across bool) int {
 	g := 1
 	if across {
 		g = gapW
@@ -54,7 +54,7 @@ func (f *Figure) apart(a, b *box, across bool) int {
 // at an even depth and down at an odd one. A lane is depth 0, so its boxes
 // go across; its label and note stand in the column at its left, and a
 // lane that holds no boxes is a bar, its note in it on one line.
-func (b *box) size(depth int, f *Figure) {
+func (b *box) size(depth int, f *Picture) {
 	if len(b.kids) == 0 && depth == 0 {
 		b.lines = wrap(b.note, math.MaxInt)
 		b.w, b.h = widest(b.lines...)+4, 3
@@ -94,7 +94,7 @@ func (b *box) size(depth int, f *Figure) {
 // and its kids inside it, under its title: across, each wider by an even
 // share of the room spare, and all as high as b holds; down, each as wide
 // as b holds, and higher by a share.
-func (b *box) place(x, y, w, h, depth int, f *Figure) {
+func (b *box) place(x, y, w, h, depth int, f *Picture) {
 	b.x, b.y, b.w, b.h = x, y, w, h
 	if len(b.kids) == 0 {
 		return
@@ -219,9 +219,9 @@ func (m *arrow) span() (x0, n int) {
 	return int(math.Round(m.said[0] - float64(n)/2)), n
 }
 
-// shift moves the figure d cells right: every box, and every message's
+// shift moves the picture d cells right: every box, and every message's
 // line and word. The lanes' labels stay in the column at left.
-func (f *Figure) shift(d int) {
+func (f *Picture) shift(d int) {
 	var move func(b *box)
 	move = func(b *box) {
 		b.x += d
@@ -244,7 +244,7 @@ func (f *Figure) shift(d int) {
 // lay sizes every box and places it: the lanes one under another, as far
 // apart as boxes stacked are, all as wide as the widest, right of the
 // column their labels take.
-func (f *Figure) lay() {
+func (f *Picture) lay() {
 	w := 0
 	for _, l := range f.lanes {
 		l.size(0, f)
@@ -270,7 +270,7 @@ func (f *Figure) lay() {
 // above the other, across when they stand side by side. Messages between
 // the same two boxes share the room between them evenly. A box cannot
 // send to one it holds or is held by: that is an error at the message.
-func (f *Figure) route() error {
+func (f *Picture) route() error {
 	type pair struct{ a, b *box }
 	var pairs []pair
 	along := map[pair][]*arrow{}
@@ -300,9 +300,9 @@ func (f *Figure) route() error {
 }
 
 // fit makes room for what the messages say: a word beside a line near an
-// edge would run past the figure, and be cut there. Past the left edge
-// the whole figure moves right; past the right, it widens.
-func (f *Figure) fit() {
+// edge would run past the picture, and be cut there. Past the left edge
+// the whole picture moves right; past the right, it widens.
+func (f *Picture) fit() {
 	left, right := 0, f.w
 	for _, m := range f.arrows {
 		x0, n := m.span()

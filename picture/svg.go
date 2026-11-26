@@ -1,4 +1,4 @@
-package figure
+package picture
 
 import (
 	"fmt"
@@ -8,48 +8,48 @@ import (
 	"strings"
 )
 
-// Style is a figure's look on its page, for the skeleton's local mark
+// Style is a picture's look on its page, for the skeleton's local mark
 // (`general/medium`), in the page's own tokens so that it follows the page
 // into the dark: a box is a card, ground or raised as the page's cards
 // are, and a message is in the accent. Its classes are the ones SVG
 // writes.
 const Style = `
-    svg.figure {
+    svg.picture {
       display: block;
       max-width: 100%;
       height: auto;
       margin: 0.25rem 0 0.5rem;
       font: 13px var(--mono);
     }
-    .figure .ground {
+    .picture .ground {
       fill: var(--bg);
       stroke: var(--line);
     }
-    .figure .raised {
+    .picture .raised {
       fill: var(--panel);
       stroke: var(--line);
     }
-    .figure text {
+    .picture text {
       fill: var(--fg);
       dominant-baseline: central;
     }
-    .figure .lane,
-    .figure .label {
+    .picture .lane,
+    .picture .label {
       font-weight: 600;
     }
-    .figure .note {
+    .picture .note {
       fill: var(--dim);
     }
-    .figure .msg {
+    .picture .msg {
       fill: none;
       stroke: var(--accent);
       stroke-width: 1.25;
     }
-    .figure .head,
-    .figure .said {
+    .picture .head,
+    .picture .said {
       fill: var(--accent);
     }
-    .figure .said {
+    .picture .said {
       paint-order: stroke;
       stroke: var(--panel);
       stroke-width: 4px;
@@ -139,7 +139,7 @@ func (b *box) svg(s *strings.Builder, depth int) {
 // svgLane draws l: its label in the column at left, level with the first
 // line in it, with its note under the label when it holds boxes; then the
 // band itself.
-func (f *Figure) svgLane(s *strings.Builder, l *box) {
+func (f *Picture) svgLane(s *strings.Builder, l *box) {
 	row := float64(l.y) + 1.5
 	if len(l.kids) > 0 {
 		row++
@@ -153,13 +153,13 @@ func (f *Figure) svgLane(s *strings.Builder, l *box) {
 	l.svg(s, 0)
 }
 
-// SVG is the figure on a page: the lanes and their boxes, the messages
+// SVG is the picture on a page: the lanes and their boxes, the messages
 // over them, and what the messages say over those. A cell is cellW by
 // cellH px, and the colours are the page's, by class (see Style).
-func (f *Figure) SVG() string {
+func (f *Picture) SVG() string {
 	var s strings.Builder
 	w, h := f.w*cellW, f.h*cellH
-	fmt.Fprintf(&s, `<svg class="figure" viewBox="0 0 %d %d" width="%d"`+
+	fmt.Fprintf(&s, `<svg class="picture" viewBox="0 0 %d %d" width="%d"`+
 		` height="%d" role="img" aria-label="%s">`+"\n",
 		w, h, w, h, html.EscapeString(f.Title))
 	for _, l := range f.lanes {

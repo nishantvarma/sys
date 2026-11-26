@@ -6,13 +6,13 @@ import (
 	"strconv"
 	"time"
 
-	"sys/figure"
 	"sys/outline"
+	"sys/picture"
 	"sys/tty"
 )
 
 // Key reads the next key, does what is the view's own (see Handle), and
-// hands back the first that is the program's. Outside a figure a digit
+// hands back the first that is the program's. Outside a picture a digit
 // starts a row's number, which takes the keys after it (see jump); the
 // mouse is read as a click (mouse).
 func (v *Term) Key() (outline.Key, bool) {
@@ -27,7 +27,7 @@ func (v *Term) Key() (outline.Key, bool) {
 			}
 			continue
 		}
-		if name := k.Token(); digit(name) && !v.figured() {
+		if name := k.Token(); digit(name) && !v.isPicture() {
 			return outline.Key{Node: v.jump(name)}, true
 		}
 		if ev, theirs := v.Handle(k); theirs {
@@ -38,7 +38,7 @@ func (v *Term) Key() (outline.Key, bool) {
 
 // Handle is a key given to the view, as a host gives one, rather than read by
 // it. What is the view's own it does itself. vi's h j k l are the arrows. In
-// a figure, down and up scroll it, a line or a page, and g and G to its top
+// a picture, down and up scroll it, a line or a page, and g and G to its top
 // and its bottom. Elsewhere, t turns to the other layout, the folder's rows
 // or thumbs; a move goes down, up, to the last row or a page on, and as
 // thumbs right and left too, where rows have no left or right, and the
@@ -51,7 +51,7 @@ func (v *Term) Handle(k tty.Key) (outline.Key, bool) {
 		name, text = arrow, ""
 	}
 	theirs := outline.Key{Name: name, Text: text}
-	if v.figured() {
+	if v.isPicture() {
 		if v.scroll(name) {
 			return outline.Key{}, false
 		}
@@ -76,7 +76,7 @@ func (v *Term) Ask(prompt, def string) (string, bool) {
 	return tty.ReadLine(v.t, prompt, nil, def)
 }
 
-// scroll does a key that scrolls a figure: down and up a line or a page,
+// scroll does a key that scrolls a picture: down and up a line or a page,
 // g to its top and G to its bottom, where drawing it stops; false when
 // the key is no scroll.
 func (v *Term) scroll(name string) bool {
@@ -96,7 +96,7 @@ func (v *Term) scroll(name string) bool {
 		v.top = 0
 	case "G":
 		// past the last page: pictured stops it there
-		if f, err := figure.New(v.last.Kids); err == nil {
+		if f, err := picture.New(v.last.Kids); err == nil {
 			v.top = len(f.Runes())
 		}
 	default:

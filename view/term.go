@@ -49,7 +49,7 @@ type Term struct {
 	region bool     // in x, y, w, h, not the whole terminal
 	x, y   int
 	w, h   int
-	top    int         // a figure's first line shown
+	top    int         // a picture's first line shown
 	drew   []line      // the lines drawn last, all but the bottom one
 	keys   [][2]string // the program's keys the head shows (Chips)
 	tabs   []Tab       // the program's tabs (Tabs), nil for the layouts
@@ -90,7 +90,7 @@ func (v *Term) In(x, y, w, h int) {
 	v.region, v.x, v.y, v.w, v.h = true, x, y, w, h
 }
 
-// Draw shows the tree, the program's word and its state. A figure
+// Draw shows the tree, the program's word and its state. A picture
 // scrolled down starts at its top again when the tree is another.
 func (v *Term) Draw(n *outline.Node, status string, state []string) {
 	if v.last == nil || n.ID != v.last.ID {
@@ -127,7 +127,7 @@ func (v *Term) Copy(text string) error {
 
 // At is the node a cell of the view shows, column x and row y counted
 // from the view's top left at 0, 0, as it was drawn last: a row's, a
-// tile's, a figure's part or message, or, on the top line, the place the
+// tile's, a picture's part or message, or, on the top line, the place the
 // view is or a folder above it; "" where it shows none. A click names what
 // it falls on.
 func (v *Term) At(x, y int) string {

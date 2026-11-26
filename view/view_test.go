@@ -30,11 +30,11 @@ func tree() *outline.Node {
 	}}
 }
 
-// pair is a note drawn as a figure: two lanes, a box in each, and a
+// pair is a note drawn as a picture: two lanes, a box in each, and a
 // message down between them that carries a word.
 func pair() *outline.Node {
 	src := "t\nup\n  a\n    → b  go\nlow\n  b\n"
-	return &outline.Node{ID: "n", Kind: "figure",
+	return &outline.Node{ID: "n", Kind: "picture",
 		Kids: outline.Text(strings.NewReader(src), "n")}
 }
 
@@ -139,7 +139,7 @@ func TestHandle(t *testing.T) {
 	}
 }
 
-// In a figure only scrolling is the view's: j a line down, g to the top,
+// In a picture only scrolling is the view's: j a line down, g to the top,
 // G to the bottom, where drawing stops it at the last page; t, a digit,
 // and a move's left and right are the program's.
 func TestScroll(t *testing.T) {
@@ -168,11 +168,11 @@ func TestScroll(t *testing.T) {
 		t.Errorf("drawn at top %d, want 9: 13 lines, 4 shown", v.top)
 	}
 	if v.lay != 0 {
-		t.Errorf("t in a figure turned the layout to %d", v.lay)
+		t.Errorf("t in a picture turned the layout to %d", v.lay)
 	}
 }
 
-// A figure scrolled down stays where it is while its tree is drawn again,
+// A picture scrolled down stays where it is while its tree is drawn again,
 // and starts at its top when the tree is another.
 func TestTop(t *testing.T) {
 	_, v := region(pair(), 20, 6)
@@ -192,7 +192,7 @@ func TestTop(t *testing.T) {
 // A cell names the node drawn there: on the head, the last part of the
 // path the cursor's and each part before it its folder; as a list, a
 // row's anywhere on its line; as thumbs, a card's, not its margin or the
-// gap after it; as a figure, its part or its message's word; nothing in
+// gap after it; as a picture, its part or its message's word; nothing in
 // the chrome, below the rows, or off the view.
 func TestAt(t *testing.T) {
 	_, list := region(tree(), 40, 12)

@@ -28,4 +28,4 @@ for x in "${t[@]}"; do
 		go build -o "../bin/$x" main.go) || exit 1
 done
 # design/arch drawn as a page, made by every build and never kept
-bin/studio figure design/arch > arch.html
+bin/studio picture design/arch > arch.html

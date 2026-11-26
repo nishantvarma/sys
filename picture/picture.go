@@ -1,14 +1,14 @@
-// Package figure is a note drawn as its parts and the messages between
+// Package picture is a note drawn as its parts and the messages between
 // them: a box an item, a message an item that starts with →. It lays them
 // out in cells, as a terminal shows text, so that one layout draws as SVG
-// on a page and as runes in a terminal; studio's figure lens draws it so,
-// and studio figure makes its page. Each part keeps its item's address,
+// on a page and as runes in a terminal; studio's picture lens draws it so,
+// and studio picture makes its page. Each part keeps its item's address,
 // so a click on one names it (At).
-package figure
+package picture
 
 import "sys/outline"
 
-// A figure is laid out in cells: a cell is a rune wide and a line high,
+// A picture is laid out in cells: a cell is a rune wide and a line high,
 // so the layout that draws an SVG draws runes too. A box's border runs
 // through the middle of its outer cells.
 const (
@@ -22,7 +22,7 @@ const (
 
 // box is a part: what it is called, what it is, the parts inside it, and
 // where it is drawn, in cells. A box no box holds is a lane, a band
-// across the whole figure, its label in the column at its left.
+// across the whole picture, its label in the column at its left.
 type box struct {
 	label, note string
 	at          string // its item's address, path:line
@@ -44,20 +44,20 @@ type arrow struct {
 	anchor   string
 }
 
-// Figure is a note drawn: its title, the lead under it, its lanes from
+// Picture is a note drawn: its title, the lead under it, its lanes from
 // the top, the messages between their boxes, and its size in cells; left
 // is the column the lanes' boxes start at, right of their labels.
-type Figure struct {
+type Picture struct {
 	Title, Lead string
 	lanes       []*box
 	arrows      []*arrow
 	left, w, h  int
 }
 
-// New is the figure a note's items make (see read), laid out, its
+// New is the picture a note's items make (see read), laid out, its
 // messages routed, and room made for what they say. An error in an item
 // starts with its path and line.
-func New(items []*outline.Node) (*Figure, error) {
+func New(items []*outline.Node) (*Picture, error) {
 	f, err := read(items)
 	if err != nil {
 		return nil, err

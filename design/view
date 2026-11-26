@@ -49,7 +49,7 @@ The status line, at the bottom only, in every view
 The structure is the tree, not a language
   Folders and files carry it down to the idea, and inside a file the
   note's own indent carries the rest. A primitive is a kind the views
-  know, a package of its own as sys/figure is, asked by kind: no plugin
+  know, a package of its own as sys/picture is, asked by kind: no plugin
   system and no runtime library. fm and ed stay programs, each at the end
   of messages; as Go packages one process could host both, which stays
   open.

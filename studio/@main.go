@@ -7,24 +7,24 @@
 // page. cur, which fm writes as its cursor moves, is all the panes
 // share, and a slot's name is how a program reaches it.
 //
-//	studio [-n] [frame]             the frame in a tmux window: this
-//	                                one, around the shell alone in it,
-//	                                else a new one; -n prints its tmux
-//	                                commands, runs none
-//	studio page [frame]             the frame as a page, on stdout
-//	studio figure note [page.html]  a note's figure as a page, on the
-//	                                skeleton given, or sys's own
-//	studio lens [name]              the window's lens, or set it
-//	studio send slot text...        paste text into a slot, then enter
-//	studio read slot                a slot's screen, as text
-//	studio show [-w | -s]           the lens: cur through the window's
-//	                                lens, as nodes a view draws; a slot
-//	                                runs it
-//	studio close window pane        a pane of the frame ended: its hook
-//	                                runs it, and when the pane was the
-//	                                face, fm, the frame ends with it
-//	studio slots [frame]            the frame's slots as JSON, for a
-//	                                host that lays them out itself
+//	studio [-n] [frame]              the frame in a tmux window: this
+//	                                 one, around the shell alone in it,
+//	                                 else a new one; -n prints its tmux
+//	                                 commands, runs none
+//	studio page [frame]              the frame as a page, on stdout
+//	studio picture note [page.html]  a note's picture as a page, on the
+//	                                 skeleton given, or sys's own
+//	studio lens [name]               the window's lens, or set it
+//	studio send slot text...         paste text into a slot, then enter
+//	studio read slot                 a slot's screen, as text
+//	studio show [-w | -s]            the lens: cur through the window's
+//	                                 lens, as nodes a view draws; a slot
+//	                                 runs it
+//	studio close window pane         a pane of the frame ended: its hook
+//	                                 runs it, and when the pane was the
+//	                                 face, fm, the frame ends with it
+//	studio slots [frame]             the frame's slots as JSON, for a
+//	                                 host that lays them out itself
 package main
 
 import (
@@ -42,8 +42,8 @@ import (
 	"strings"
 	"unicode"
 
-	"sys/figure"
 	"sys/outline"
+	"sys/picture"
 	"sys/state"
 	"sys/tty"
 	"sys/view"

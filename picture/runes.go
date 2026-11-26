@@ -1,11 +1,11 @@
-package figure
+package picture
 
 import (
 	"math"
 	"strings"
 )
 
-// cells is a figure's runes, a row a line, blank to start.
+// cells is a picture's runes, a row a line, blank to start.
 type cells [][]rune
 
 // grid is w by h blank cells.
@@ -17,7 +17,7 @@ func grid(w, h int) cells {
 	return g
 }
 
-// put sets the cell at x, y, if the figure has one there.
+// put sets the cell at x, y, if the picture has one there.
 func (g cells) put(x, y int, r rune) {
 	if y >= 0 && y < len(g) && x >= 0 && x < len(g[y]) {
 		g[y][x] = r
@@ -200,7 +200,7 @@ func (m *arrow) runesSaid(g cells) {
 	}
 }
 
-// Runes is the figure in a terminal's cells, a line a row, from the same
+// Runes is the picture in a terminal's cells, a line a row, from the same
 // layout the page draws. A box is drawn round, its border in its outer
 // cells, as the page's runs through their middle; a lane stands as a
 // band, its label and note in the column at left, and a lane that holds
@@ -208,7 +208,7 @@ func (m *arrow) runesSaid(g cells) {
 // ─ from the side of one box to the other's: ┬ ┴ ├ ┤ where it leaves a
 // border, ▼ ▲ ▶ ◀ where it arrives, bent once at the middle where the two
 // boxes do not line up; what it carries stands beside it.
-func (f *Figure) Runes() []string {
+func (f *Picture) Runes() []string {
 	g := grid(f.w, f.h)
 	for _, l := range f.lanes {
 		row := l.y + 1

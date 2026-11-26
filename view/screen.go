@@ -7,8 +7,8 @@ import (
 	"strings"
 	"unicode"
 
-	"sys/figure"
 	"sys/outline"
+	"sys/picture"
 	"sys/tty"
 )
 
@@ -124,7 +124,7 @@ func (v *Term) screen(word string, w, h int) ([]line, line) {
 	}
 	var body []line
 	switch {
-	case v.figured():
+	case v.isPicture():
 		body = v.pictured(w, room)
 	case v.layout() == "thumbs":
 		body = v.cards(w, room)
@@ -152,17 +152,17 @@ func chrome(h int) (top, foot int) {
 	return 5, 2
 }
 
-// figured is whether the tree drawn last is a figure: a note whose kind
+// isPicture is whether the tree drawn last is a picture: a note whose kind
 // says to draw it as its parts and the messages between them.
-func (v *Term) figured() bool {
-	return v.last != nil && v.last.Kind == "figure"
+func (v *Term) isPicture() bool {
+	return v.last != nil && v.last.Kind == "picture"
 }
 
 // where is the node the head names: the cursor's, else the folder shown;
-// as thumbs, the folder its cards are; a figure's, the note.
+// as thumbs, the folder its cards are; a picture's, the note.
 func (v *Term) where() *outline.Node {
 	rows := v.rows()
-	if v.figured() || len(rows) == 0 || v.layout() == "thumbs" {
+	if v.isPicture() || len(rows) == 0 || v.layout() == "thumbs" {
 		return v.last
 	}
 	return rows[curRow(rows)]
@@ -262,7 +262,7 @@ func (v *Term) crumbs(p string) []string {
 // range, which is no one key.
 func (v *Term) chips(room int) (*ink, []spot) {
 	keys := v.keys
-	if v.last != nil && !v.figured() {
+	if v.last != nil && !v.isPicture() {
 		own := [2]string{"t", "layout"}
 		keys = append(keys[:len(keys):len(keys)], own)
 	}
@@ -327,7 +327,7 @@ func (v *Term) switches(w int) line {
 			k.add(strconv.Itoa(i+1), tty.Quiet, "", false)
 			k.add("  ", "", "", false)
 		}
-	case !v.figured():
+	case !v.isPicture():
 		for _, name := range layouts {
 			on := name == v.layout()
 			c, key := tty.Quiet, "t"
@@ -498,13 +498,13 @@ func (v *Term) card(rows []*outline.Node, start, per, w int) (*ink, *ink,
 	return a.clip(w).pad(w, ""), b.clip(w).pad(w, ""), spots
 }
 
-// pictured is the body as a figure, a note whose kind is figure: its
-// items laid out as parts and messages (sys/figure) and drawn in runes,
+// pictured is the body as a picture, a note whose kind is picture: its
+// items laid out as parts and messages (sys/picture) and drawn in runes,
 // from the line the view has scrolled to, as many as fit, with a count of
-// those below; a note that makes no figure says why. A cell of the
-// picture names what the figure says stands there.
+// those below; a note that makes no picture says why. A cell of the
+// picture names what the picture says stands there.
 func (v *Term) pictured(w, room int) []line {
-	f, err := figure.New(v.last.Kids)
+	f, err := picture.New(v.last.Kids)
 	var pic []string
 	if err != nil {
 		pic = []string{printable(err.Error())}
@@ -533,9 +533,9 @@ func (v *Term) pictured(w, room int) []line {
 	return lines
 }
 
-// drawing is a line of a figure in its looks: a box's border and a
+// drawing is a line of a picture in its looks: a box's border and a
 // message's line faint, a message's head in the accent, words as words;
-// a note that made no figure, its why, faint whole.
+// a note that made no picture, its why, faint whole.
 func drawing(s string, why bool) *ink {
 	k := &ink{}
 	for _, c := range s {
@@ -558,8 +558,8 @@ func drawing(s string, why bool) *ink {
 
 // parts is where the parts of f stand on its line y, drawn from a
 // screen's second column, w wide: a spot each time what a cell names
-// changes (figure.At).
-func parts(f *figure.Figure, y, w int) []spot {
+// changes (picture.At).
+func parts(f *picture.Picture, y, w int) []spot {
 	var spots []spot
 	last := ""
 	for x := 0; x < w; x++ {
@@ -640,10 +640,10 @@ func (v *Term) foot(word string, w int) *ink {
 }
 
 // pos is where the cursor is among what the view shows, 12/34; nothing
-// for a figure, which has no cursor, or for no rows.
+// for a picture, which has no cursor, or for no rows.
 func (v *Term) pos() string {
 	rows := v.rows()
-	if v.figured() || len(rows) == 0 {
+	if v.isPicture() || len(rows) == 0 {
 		return ""
 	}
 	return fmt.Sprintf("%d/%d", curRow(rows)+1, len(rows))
