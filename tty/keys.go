@@ -15,15 +15,9 @@ func Help(t *Term, title string, keys [][2]string) {
 	var cs []cell
 	keyw := 0
 	for _, k := range keys {
-		key, desc := k[0], k[1]
+		key, desc := Label(k[0]), k[1]
 		if desc == "" {
 			continue
-		}
-		switch key {
-		case " ":
-			key = "space"
-		case KInt:
-			key = "C-c" // the chord, as the other chords are named
 		}
 		if len(key) > keyw {
 			keyw = len(key)
@@ -60,4 +54,16 @@ func Help(t *Term, title string, keys [][2]string) {
 	t.Write(Dim("\r\n  press any key"))
 	t.Flush()
 	t.ReadKey()
+}
+
+// Label is a key as a help says it: " " as space, and tty's INT as the
+// chord, C-c, as the other chords are named.
+func Label(key string) string {
+	switch key {
+	case " ":
+		return "space"
+	case KInt:
+		return "C-c"
+	}
+	return key
 }

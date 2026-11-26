@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"gioui.org/io/key"
 	"gioui.org/layout"
 	"gioui.org/op"
 	"gioui.org/unit"
@@ -74,5 +75,34 @@ func gtxFor(ops *op.Ops, w, h int) layout.Context {
 		Ops:         ops,
 		Metric:      unit.Metric{PxPerDp: 1, PxPerSp: 1},
 		Constraints: layout.Exact(image.Pt(w, h)),
+	}
+}
+
+// TestHelp: ? in the window shows ed's keys, as nodes sys/view lays out
+// as rows, and esc closes them, back to the text: help needs no
+// terminal (`todo/04-gio/02-term`).
+func TestHelp(t *testing.T) {
+	note := filepath.Join(t.TempDir(), "note")
+	os.WriteFile(note, []byte("alpha\n"), 0o644)
+	bin := programs(t)
+	env := []string{"HOME=" + t.TempDir(),
+		"PATH=" + bin + ":" + os.Getenv("PATH")}
+	v, router, settle := alone(t, env, bin+"/ed", "-s", note)
+	settle()
+	p := v.s.order[0]
+	router.Queue(key.EditEvent{Text: "?"})
+	settle()
+	rows := ""
+	for _, l := range p.list() {
+		rows += stripText(l) + "\n"
+	}
+	if p.tree == nil || p.tree.Kind != "help" ||
+		!strings.Contains(rows, "line start") {
+		t.Fatalf("? showed:\n%s", rows)
+	}
+	router.Queue(key.Event{Name: key.NameEscape, State: key.Press})
+	settle()
+	if !p.isText() {
+		t.Errorf("esc left %q, not ed's text", p.tree.Kind)
 	}
 }

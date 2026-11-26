@@ -16,7 +16,7 @@ func (m *fm) bind() {
 	// G, the pages and t are the view's, listed here for help until the
 	// keys are settled
 	b("G", "last file", nil)
-	b("t", "layout: folder, thumbs", nil)
+	b("t", "layout: rows, thumbs", nil)
 	b("i", "add file", func() { m.create("touch", touch) })
 	b(
 		"I",

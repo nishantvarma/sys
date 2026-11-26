@@ -1,17 +1,11 @@
 what works only on a terminal
 
 some of fm and ed works only there, so a window does not carry it. the
-test for each: can every view do it in messages alone?
-  help      only keys and words, yet ? gives up
-            (`fm/4-main/10-help.go:/needs the terminal/`,
-            `ed/3-mode/07-help.go:/needs the terminal/`): send it as
-            nodes and wait for a key; a view keeps some keys, t among
-            them, so not any key can close it
-  pickers   the pickers need a terminal
-            (`fm/4-main/22-pick.go:/m.t == nil/`): draw the choices
-            through the view, or run the picker beside the window and
-            take its answer
+test for each: can every view do it in messages alone? help can, as
+nodes a view lays out (`outline/help.go:/func Help/`), and a picker runs
+fzy beside the window, in st
+(`fm/4-main/22-pick.go:/is a pick off the terminal/`). left:
   beside    only o and e run beside a window
             (`fm/4-main/13-spawn.go:/Off the terminal, in a window/`): v,
             w and F could, their output kept readable
-the check: ? shows help from fm -w and ed -w.
+the check: v, w and F from fm -w.

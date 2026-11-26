@@ -122,7 +122,8 @@ tools — every one a script in sh/, replaceable
   o      open the row beside you, or in the frame's ed (o)
   w      wipe, at home (w)
   F      format (lint -f)
-  f s m  the finders (f, s, m — each piped through fzy)
+  f s m  the finders (f, s, m — each piped through fzy; in a
+         window fzy runs beside it, in st)
   b      say the row out loud (c)
   v      version control (v)
   V      gitk

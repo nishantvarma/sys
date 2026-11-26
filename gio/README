@@ -37,6 +37,10 @@ file says it, and ed or fm, following cur, show it, the eye going there;
 what is no file opens beside. p -a lands in tmux's marked or last pane,
 for the window has no shell yet.
 
+? shows a program's keys here as rows, which esc closes, and fm's
+finders, f, s and m, run fzy beside the window, in st, fm taking the
+line chosen.
+
 careful: closing the window drops what ed has not saved. q in fm asks
 first, as in tmux: while ed holds work unsaved it says so, and a second q
 ends the frame anyway.
@@ -44,4 +48,4 @@ ends the frame anyway.
 not here yet
     - a shell: its slot says so. the plan runs it through tmux's control
       mode (`todo/03-studio/03-shell`)
-    - help and the pickers (`todo/04-gio/02-term`)
+    - v, w and F, which fm runs on its terminal (`todo/04-gio/02-term`)

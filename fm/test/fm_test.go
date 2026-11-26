@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"testing"
@@ -392,5 +393,37 @@ func TestPromptResize(t *testing.T) {
 	if !until(asks) {
 		t.Errorf("resized, the bottom line is %q, not the prompt",
 			bottom())
+	}
+}
+
+// TestWindowed: off the terminal, in a window, ? shows fm's keys as rows,
+// each a key and what it does, which esc closes; and a finder's pick runs
+// beside the window, in st, where fzy chooses, and fm goes to the file
+// chosen. Stand-ins play the finder, st, fzy and zoxide.
+func TestWindowed(t *testing.T) {
+	dir := t.TempDir()
+	for _, f := range []string{"alpha", "beta"} {
+		os.WriteFile(filepath.Join(dir, f), nil, 0o644)
+	}
+	stand := t.TempDir()
+	for name, body := range map[string]string{
+		"f":      "echo beta",          // the finder: one hit
+		"st":     "shift; exec \"$@\"", // st -e cmd: the cmd
+		"fzy":    "head -n 1",          // the first line, chosen
+		"zoxide": "",
+	} {
+		os.WriteFile(filepath.Join(stand, name),
+			[]byte("#!/bin/sh\n"+body+"\n"), 0o755)
+	}
+	press := fm(t, dir, "PATH="+stand+":"+os.Getenv("PATH"))
+	if got, _ := press("?", ""); !regexp.MustCompile(`\?\s+help`).
+		MatchString(got) {
+		t.Errorf("? showed %q, not fm's keys", got)
+	}
+	if got, _ := press("ESC", ""); got != ">alpha beta" {
+		t.Errorf("esc left %q, not fm's rows", got)
+	}
+	if got, said := press("f", ""); got != "alpha >beta" {
+		t.Errorf("a pick off the terminal: %q %q", got, said)
 	}
 }
