@@ -28,27 +28,35 @@ The case, carried through: design/arch open in ed
 	            source, is back
 
 Why it is ed's
-  A lens of the text is a view of what ed holds, so it is ed's view's, as
-  rows and thumbs are fm's view's. It reads the lines as they are, unsaved
-  ones too: the outline is of what is being typed, not of the file as it
-  was saved. Nothing outside ed knows which lens shows: no state file, no
-  second program, and no frame needed, for ed in any pane has all three.
-  ed's editor is the same but for one line: Tab is listed in its keys,
-  for ? to show, and acts in the view, as ctrl-v does
-  (`ed/3-mode/03-normalkeys.go:/Tab is the view's/`).
+  A lens is a way ed shows what it holds, so ed says which shows, and
+  draws it: the text for source, and for the others a tree of its items,
+  which a view lays out as it lays out fm's folder. Every view of ed draws
+  what ed sends, the terminal's and gio's window alike, so each shows the
+  same lens with nothing of its own to keep. It reads the lines as they
+  are, unsaved ones too: the outline is of what is being typed, not of
+  the file as it was saved. No state file, no second program, and no
+  frame needed: ed in any pane or window has all three.
+
+On the wire
+  ed names its lenses on the tags of the tree it draws, and says the one
+  shown, but source, in its state. A view draws the names as a bar over
+  the text (`view/bar.go:/func Bar/`), and a press on one comes back as a
+  key, LENS, whose text is the lens's name (`tty/term.go:/KLens/`).
 
 Read, never typed
   In outline and render no key types, so none changes the text out of
   sight. A move, or a click on an item, puts ed's cursor on its line, so
-  source opens where the outline was; enter, a right click or a double
-  tap goes to source there; esc goes back as it was; ctrl-s saves, as in
-  every mode (`ed/4-view/36-lenskey.go:/lensKey/`).
+  source opens where the outline was; enter, esc, a right click or a
+  double tap goes to source there; ctrl-s saves, as in every mode
+  (`ed/7-loop/16-lenskey.go:/lensKey/`).
 
 What is where
-	ed's terminal view    the lens shown, the bar, the keys in a lens
-	                      (`ed/4-view/32-lenses.go`)
-	sys/view              outline and render, drawn as it draws fm, the
-	                      bar in place of its head
+	ed                    the lens shown, the trees it draws, and the
+	                      keys in a lens (`ed/7-loop/14-lenses.go`)
+	sys/view              outline and render, drawn as it draws fm, and
+	                      the bar over them
+	ed's terminal view,   draw what ed sends, the bar in place of the
+	gio's window          view's head
 	outline.Text          the items, by their indent
 	sys/picture           a note's render, its picture
 
@@ -56,10 +64,7 @@ What it costs
   - the bar and its rule are two lines of every ed, in any pane: the
     bar alone under twelve lines high, as fm's head is there, and
     neither under three
-  - Tab in normal is the view's, so f Tab finds no tab; in insert Tab
-    types one, as before
-  - in gio's window ed stays source: the bar is the terminal view's, and
-    the window draws ed's text itself
+  - Tab in normal turns the lens; in insert it types a tab, as before
 
 Given up
   - studio show, a lens of its own beside ed: what it showed of the text

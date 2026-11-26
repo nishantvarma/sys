@@ -68,6 +68,12 @@ func (v *Term) Handle(k tty.Key) (outline.Key, bool) {
 		return outline.Key{}, false
 	}
 	if to, moved := v.move(name); moved {
+		// the cursor goes with the key, for a program that draws only
+		// after a burst of keys, ed among them, hears the next move
+		// from here and not from where it drew last
+		for _, r := range v.rows() {
+			r.Cur = r.ID == to
+		}
 		return outline.Key{Node: to}, true
 	}
 	return theirs, true

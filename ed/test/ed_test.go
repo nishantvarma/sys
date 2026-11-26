@@ -34,10 +34,14 @@ func built(t *testing.T) string {
 	return filepath.Join(dir, "ed")
 }
 
-// shown is what ed drew last: its lines, its mode, and its word.
+// shown is what ed drew last: its lines, its mode, and its word; the
+// kind of tree it drew, and its state and tags, for the lens.
 type shown struct {
 	lines      []string
 	mode, said string
+	kind       string
+	state      []string
+	tags       []string
 }
 
 // ed is ed -s on a file holding text, env the last of its environment,
@@ -79,6 +83,8 @@ func on(t *testing.T, file string, env ...string) func(outline.Key) shown {
 			s.lines = append(s.lines, k.Text)
 		}
 		s.mode, s.said = m.Draw.State[0], m.Draw.Status
+		s.kind, s.state = m.Draw.Tree.Kind, m.Draw.State
+		s.tags = m.Draw.Tree.Tags
 		return s
 	}
 	next()

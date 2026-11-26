@@ -11,8 +11,8 @@
 // only that repeat spelled out: 3w is w w w, dispatch replaying the
 // key, so nothing here needs to know a count exists. . replays a whole
 // change the same way, its keys typed again, so no verb knows of it either.
-// Tab is the view's, which turns the lens it shows (`design/lens`), as
-// ctrl-v is the view's paste: it is here to be listed, and acts there.
+// Tab turns the lens ed shows (`design/lens`), which every view of it
+// draws; in insert it types a tab.
 func normalKeys() []binding {
 	return append([]binding{
 		{"h", "left", (*editor).left},
@@ -72,7 +72,8 @@ func normalKeys() []binding {
 		{"s", "save", (*editor).doSave},
 		{"R", "reload", (*editor).reload},
 		{"q", "quit (2× discard)", (*editor).quit},
-		{tty.KTab, "next lens: source, outline, render", nil},
+		{tty.KTab, "next lens: source, outline, render",
+			(*editor).turnLens},
 		{"?", "help", (*editor).help},
 	}, chordKeys()...)
 }

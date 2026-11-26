@@ -116,6 +116,48 @@ func TestPrintable(t *testing.T) {
 	}
 }
 
+// The bar names each lens, the one shown lit, and a press on a name, or
+// on tab, the next lens, names that lens; the state says which shows.
+func TestBar(t *testing.T) {
+	names := []string{"source", "outline", "render"}
+	on := Shown(names, []string{"normal", "+", "outline"})
+	runs, at := Bar(names, on, 60)
+	text := ""
+	for _, r := range runs {
+		text += r.Text
+	}
+	if on != 1 || len([]rune(text)) != 60 ||
+		!strings.HasPrefix(text, "  source  outline  render") {
+		t.Errorf("bar %d: %q", on, text)
+	}
+	for _, r := range runs {
+		if r.Text == " outline " && (r.Ground != tty.Rule || !r.Bold) {
+			t.Errorf("the lens shown is not lit: %+v", r)
+		}
+	}
+	if len(at) != 4 || at[2].Lens != "render" || at[3].Lens != "render" ||
+		at[2].From != 18 {
+		t.Errorf("chips: %+v", at)
+	}
+	if Shown(names, []string{"normal"}) != 0 {
+		t.Error("with no lens said, the first is not the one shown")
+	}
+}
+
+// A move moves the view's own cursor too, so that a burst of keys, which
+// a program draws only after the last, goes on from the move before: j j
+// is two rows down, not one twice.
+func TestBurst(t *testing.T) {
+	n := &outline.Node{ID: "/a", Kids: []*outline.Node{
+		{ID: "/a/b", Text: "b", Cur: true}, {ID: "/a/c", Text: "c"},
+		{ID: "/a/d", Text: "d"}}}
+	_, v := region(n, 20, 8)
+	v.Handle(tty.Key{Rune: 'j'})
+	if ev, _ := v.Handle(tty.Key{Rune: 'j'}); ev.Node != "/a/d" {
+		t.Errorf("j j landed on %q, not /a/d", ev.Node)
+	}
+}
+
 // A key given to the view moves its cursor and hands the program only
 // where it landed; t is the view's own, and the program hears nothing; a
 // digit, and any key not the view's, is the program's.

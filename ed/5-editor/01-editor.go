@@ -17,6 +17,7 @@ type editor struct {
 	// the insert under way is no change . can type again: the mouse
 	// dragged in it, or an undo or a redo was done in it
 	unkept bool
+	lens   int // the lens shown, of lenses (`design/lens`)
 	// the insert under way owes a snapshot, which its first edit takes
 	// (pay)
 	owed bool

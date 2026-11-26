@@ -53,6 +53,9 @@ const (
 	KMouse   = "MOUSE"
 	KMouseUp = "MOUSEUP"
 	KDrag    = "DRAG"
+	// KLens is a press on a lens's name, as a view of a program with
+	// lenses shows them (`design/lens`): Key.Text names the lens.
+	KLens = "LENS"
 )
 
 // A mouse key's Button, as the terminal's SGR report gives it: its low

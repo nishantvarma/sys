@@ -8,6 +8,7 @@ import (
 
 	"sys/outline"
 	"sys/tty"
+	"sys/view"
 )
 
 // -- a line, as the window draws it: runs of text, a rune a column
@@ -71,17 +72,58 @@ func home(p string) string {
 
 // list is the pane as sys/view lays it out, in the region the pane is,
 // as on the terminal: the head, the layouts, the rows or the cards, the
-// bottom line
+// bottom line; a program with lenses has its bar in place of the head,
+// as ed's terminal view puts it (`ed/4-view/34-lensed.go`)
 func (p *pane) list() []*strip {
 	var lines []*strip
 	for _, rs := range p.v.Lines() {
-		k := &strip{}
-		for _, r := range rs {
-			k.add(r.Text, r.Color, r.Ground, r.Bold)
-		}
-		lines = append(lines, k)
+		lines = append(lines, stripOf(rs))
+	}
+	if p.tops() > 0 && len(lines) > 0 {
+		lines[0], _ = p.bar()
 	}
 	return lines
+}
+
+// stripOf is a line of sys/view's runs as the window draws it
+func stripOf(rs []view.Run) *strip {
+	k := &strip{}
+	for _, r := range rs {
+		k.add(r.Text, r.Color, r.Ground, r.Bold)
+	}
+	return k
+}
+
+// -- the lenses, a program's ways to see its thing, which it names on its
+// tree's tags, ed's (`design/lens`)
+
+// tops is the lines a pane keeps over a text for its program's lenses:
+// the bar and its rule, as sys/view gives them (view.Tops); none for a
+// program with no lenses
+func (p *pane) tops() int {
+	if p.tree == nil || len(p.tree.Tags) == 0 {
+		return 0
+	}
+	return view.Tops(p.high)
+}
+
+// bar is the pane's top line, its program's lenses as sys/view lays them
+// out, the one its state says lit, and where each chip stands
+func (p *pane) bar() (*strip, []view.Chip) {
+	names := p.tree.Tags
+	runs, at := view.Bar(names, view.Shown(names, p.state), p.cols)
+	return stripOf(runs), at
+}
+
+// barAt is the lens a press at column x of the bar names, "" for none
+func (p *pane) barAt(x int) string {
+	_, at := p.bar()
+	for _, c := range at {
+		if c.From <= x && x < c.To {
+			return c.Lens
+		}
+	}
+	return ""
 }
 
 // -- a text, ed's: its lines after their numbers, and its status
@@ -90,13 +132,14 @@ func (p *pane) list() []*strip {
 // the last needs, and two blanks (`ed/4-view/01-look.go`)
 func gutter(n int) int { return max(3, len(strconv.Itoa(n))) + 3 }
 
-// source is ed's pane, as ed draws it on the terminal: a line a row and
-// the status at the bottom, nothing on top
+// source is ed's pane, as ed draws it on the terminal: the bar and its
+// rule on top, then a line a row, and the status at the bottom
 func (p *pane) source() []*strip {
 	if p.tree == nil || len(p.rows) == 0 {
 		return nil
 	}
-	body := max(1, p.high-1)
+	top := p.tops()
+	body := max(1, p.high-1-top)
 	p.first = max(0, min(p.first, p.cur))
 	if p.cur >= p.first+body {
 		p.first = p.cur - body + 1
@@ -109,6 +152,13 @@ func (p *pane) source() []*strip {
 		p.off = col - wide + 1
 	}
 	var lines []*strip
+	if top > 0 {
+		bar, _ := p.bar()
+		lines = append(lines, bar)
+	}
+	if top > 1 {
+		lines = append(lines, stripOf(view.Rule(p.cols)))
+	}
 	for i := p.first; i < p.first+body; i++ {
 		if i < len(p.rows) {
 			lines = append(lines, p.line(i, g))
@@ -196,8 +246,10 @@ func cell(k *strip, s string, sel, cursor, insert bool) {
 // from the pane's corner: the line's id, and the rune counted from 1, its
 // end past the line's end; "" off the lines
 func (p *pane) spot(x, y int) (string, int) {
+	y -= p.tops()
 	i := p.first + y
-	if p.tree == nil || y >= p.high-1 || i >= len(p.rows) {
+	if p.tree == nil || y < 0 || y >= p.high-1-p.tops() ||
+		i >= len(p.rows) {
 		return "", 0
 	}
 	col := x - gutter(len(p.rows)) + p.off

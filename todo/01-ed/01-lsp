@@ -3,7 +3,7 @@ a language server, beside ed and not in it
 ed stays an editor. what a server knows reaches the person by what sys
 has already, so the terminal and gio show it alike:
   symbols, diagnostics   a lens of the text ed holds, derived and
-                         read only (`ed/4-view/32-lenses.go`)
+                         read only (`ed/7-loop/14-lenses.go`)
   go to definition       an address said to cur, which ed -f follows
                          (`design/pronoun:/Verbs default their noun/`)
   a word's meaning       p asks for it before the files, as it asks c

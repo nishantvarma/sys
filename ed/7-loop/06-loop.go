@@ -17,6 +17,11 @@ func (e *editor) loop() {
 		if !ok {
 			break
 		}
+		// a press on a lens's name, on a view's bar, shows that lens
+		if ev.Name == tty.KLens {
+			e.toLens(ev.Text)
+			continue
+		}
 		// a key on a line, as a click or a lens says one, puts the
 		// cursor there first, and a landing alone is nothing more; a
 		// drag moves the head alone; a paste lands where it falls,
@@ -39,12 +44,22 @@ func (e *editor) loop() {
 				e.place(p)
 				e.unkept = e.unkept || e.mode == e.ins
 			}
+			// in a lens, enter on an item, a right click's too, is
+			// source on its line, and no key of the text's
+			if e.lens > 0 && ev.Name == tty.KEnter {
+				e.lens = 0
+				continue
+			}
 			if ev.Name == "" {
 				continue
 			}
 		}
 		k := keyOf(ev)
 		if k.Name == tty.KResize { // redraw at the top of the loop
+			continue
+		}
+		if e.lens > 0 { // nothing is typed in a lens but source
+			e.lensKey(k)
 			continue
 		}
 		e.msg = ""

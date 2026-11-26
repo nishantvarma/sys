@@ -5,9 +5,12 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"time"
+
+	"sys/outline"
 )
 
 // TestLens: on the terminal ed's bar names its lenses, and Tab turns from
@@ -96,4 +99,42 @@ func TestLens(t *testing.T) {
 	until("Tab from the render left no source", func(s []string) bool {
 		return bar(s) && !has(s, "▼") && at(s, "3:1")
 	})
+}
+
+// TestLensStream: the lens is what ed draws, so every view of it shows
+// the same: the text names its lenses, Tab draws the note's items as the
+// outline, its name in ed's state, and a key on an item puts the cursor
+// on its line; there letters type nothing, enter is source on the line,
+// a press on a lens's name shows it, and esc is source again.
+func TestLensStream(t *testing.T) {
+	file, press := ed(t, "t\nup\n  a\n    → b  go\nlow\n  b\n")
+	s := keys(press, "TAB")
+	if strings.Join(s.tags, " ") != "source outline render" ||
+		s.kind != "outline" || !slices.Contains(s.state, "outline") {
+		t.Fatalf("Tab drew %q %v %v, not the outline", s.kind, s.state,
+			s.tags)
+	}
+	if got := strings.Join(s.lines, "|"); got !=
+		"t|up|  a|    → b  go|low|  b" {
+		t.Errorf("the outline's rows: %q", got)
+	}
+	press(outline.Key{Node: file + ":5"})
+	if s = keys(press, "x", "d"); s.kind != "outline" ||
+		strings.Join(s.lines, "|") != "t|up|  a|    → b  go|low|  b" {
+		t.Errorf("x d in the outline did %q %q", s.kind, s.lines)
+	}
+	if s = keys(press, "ENTER"); s.kind != "text" || s.lines[4] != "low" {
+		t.Fatalf("enter drew %q, not source", s.kind)
+	}
+	if s = keys(press, "ESC", "d"); s.lines[4] != "ow" {
+		t.Errorf("source after enter was not on line 5: %q",
+			s.lines[4])
+	}
+	s = press(outline.Key{Name: "LENS", Text: "render"})
+	if s.kind != "picture" || !slices.Contains(s.state, "render") {
+		t.Errorf("a press on render drew %q %v", s.kind, s.state)
+	}
+	if s = keys(press, "ESC"); s.kind != "text" {
+		t.Errorf("esc in the render drew %q, not source", s.kind)
+	}
 }

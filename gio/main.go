@@ -244,6 +244,11 @@ func (v *window) pressedAt(at image.Point, cw, h int) {
 		}
 		cx, cy := (at.X-x.area.Min.X)/cw, (at.Y-x.area.Min.Y)/h
 		switch {
+		case cy == 0 && x.p.tops() > 0:
+			if name := x.p.barAt(cx); name != "" {
+				lens := object{"name": tty.KLens, "text": name}
+				x.p.send("key", lens)
+			}
 		case x.p.isText() && cy == x.p.high-1:
 			if name := x.p.modeWord(cx); name != "" {
 				x.p.key(name, "")
