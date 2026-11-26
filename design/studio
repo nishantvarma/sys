@@ -27,8 +27,8 @@ Built on sys, not beside it
   (README:/the word you are on/).
 
   Target: the shelf reads, and page/py is a lens on a page; studio lays
-  fm, ed and a shell out in tmux, where ed's lenses show the text and
-  studio show its diff. No page holds them all yet.
+  fm, ed and a shell out in tmux, where ed's lenses show the text. No
+  page holds them all yet.
 
   1  a thing is a file or a folder
   2  a lens shows a thing          source, outline, graph, run, diff
@@ -46,8 +46,8 @@ take from it, still open: `todo/03-studio/06-entry`.
 
 The case, carried through: medium/page/py, node
   medium/page/ is the studio's own source: the renderers, their check, a
-  README. ed's lenses and `studio show` draw it in the terminal, and the
-  page will (`todo/03-studio/04-page`).
+  README. ed's lenses draw it in the terminal, and the page will
+  (`todo/03-studio/04-page`).
 
   thing     page/py : node                             the id
   source    node as written, lines 311..328            nothing makes it

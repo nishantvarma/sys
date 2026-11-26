@@ -25,7 +25,7 @@ the keys — ` is your prefix; press it twice to type one
             selection when there is one
   ` Enter   this pane to master, swapped with the one there
 
-A pane whose program asks for the mouse, ed, fm and the lens among them,
+A pane whose program asks for the mouse, ed and fm among them,
 takes the buttons itself and means the same by them: ed hands its word,
 or its selection when the click falls in it, to p, and fm hears a right
 click as enter. A drag in any other pane selects for X too, its primary

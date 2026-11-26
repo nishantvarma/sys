@@ -377,13 +377,13 @@ func TestVi(t *testing.T) {
 // on the same cell, as a right press does, is enter on it, the program's
 // open, but on the head's path a right press goes there as a left one
 // does; a middle press hands it to the shell and says nothing to the
-// program; the wheel moves the cursor. A left press on a chip is its key,
-// and on the other layout's name turns to it.
+// program; the wheel moves the cursor. A left press on the head's chip,
+// t, turns the layout, and so does one on the other layout's name. Each
+// comes through Handle, as a host that reads the terminal hands it on.
 func TestMouse(t *testing.T) {
 	t.Setenv("PATH", "") // no p to send anything with
 	v := New(nil, "", looks)
 	v.In(0, 2, 40, 12)
-	v.Chips([2]string{"m", "next lens"})
 	v.last = tree()
 	v.drawn("")
 	at := func(b, x, y int) tty.Key {
@@ -400,8 +400,6 @@ func TestMouse(t *testing.T) {
 		{at(tty.MRight, 3, 3), true, "", "/a"},
 		{at(tty.MMiddle, 4, 9), false, "", ""},
 		{at(tty.MWheelDown, 0, 0), true, "", "/a/c"},
-		{at(tty.MLeft, 15, 3), true, "m", ""},
-		{at(tty.MLeft, 10, 6), false, "", ""},
 	} {
 		ev, said := v.Handle(c.k)
 		if said != c.said || ev.Name != c.name || ev.Node != c.node {
@@ -409,7 +407,15 @@ func TestMouse(t *testing.T) {
 				ev.Name, ev.Node, c.said, c.name, c.node)
 		}
 	}
-	if v.layout() != "thumbs" {
-		t.Errorf("a press on thumbs left the layout %s", v.layout())
+	// the chip stands at the head's right: " t  layout", 10 wide
+	if _, said := v.Handle(at(tty.MLeft, 31, 3)); said ||
+		v.layout() != "thumbs" {
+		t.Errorf("a press on the t chip left the layout %s",
+			v.layout())
+	}
+	v.drawn("")
+	if _, said := v.Handle(at(tty.MLeft, 3, 6)); said ||
+		v.layout() != "rows" {
+		t.Errorf("a press on rows left the layout %s", v.layout())
 	}
 }

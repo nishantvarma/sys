@@ -27,14 +27,6 @@ type Look struct {
 	Color, Mark, Word, Said string
 }
 
-// Tab is one of the program's ways to see its thing, the switch line's in
-// place of the view's layouts (Tabs): its name, a tally of what it shows,
-// whether it is the one shown, and whether it waits to be built.
-type Tab struct {
-	Name, Tally string
-	On, Waits   bool
-}
-
 // Term is the view: the tree drawn last, the program's word and state,
 // its own layout, and the lines it drew; in a region, the rows and
 // columns it is given.
@@ -49,10 +41,8 @@ type Term struct {
 	region bool     // in x, y, w, h, not the whole terminal
 	x, y   int
 	w, h   int
-	top    int         // a picture's first line shown
-	drew   []line      // the lines drawn last, all but the bottom one
-	keys   [][2]string // the program's keys the head shows (Chips)
-	tabs   []Tab       // the program's tabs (Tabs), nil for the layouts
+	top    int    // a picture's first line shown
+	drew   []line // the lines drawn last, all but the bottom one
 	// the last left press, for a second soon after on its cell (mouse)
 	press  time.Time
 	px, py int
@@ -98,18 +88,6 @@ func (v *Term) Draw(n *outline.Node, status string, state []string) {
 	}
 	v.last, v.status, v.state = n, status, state
 	v.show(status)
-}
-
-// Chips are the keys the head shows at its right, each a key and what it
-// does, the program's before the view's own; a range, 1..4, is a key.
-func (v *Term) Chips(keys ...[2]string) {
-	v.keys = keys
-}
-
-// Tabs are the program's ways to see its thing, which the switch line
-// shows in place of the view's layouts; nil gives the layouts back.
-func (v *Term) Tabs(tabs []Tab) {
-	v.tabs = tabs
 }
 
 // Size is how much the view shows at once: the terminal, or its region.

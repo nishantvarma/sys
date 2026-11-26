@@ -1,11 +1,11 @@
 // studio is sys's frame: fm, the thing at fm's cursor in ed, and a
-// shell, side by side, each running as it is; a slot that runs studio
-// show adds a lens, the thing seen another way. The frame is a note,
-// read by its indent (outline.Text): its lines stack down, the lines
-// under one go across, and so on, turn about. The
-// same note lays out as tmux panes in the terminal and as panes on a
-// page. cur, which fm writes as its cursor moves, is all the panes
-// share, and a slot's name is how a program reaches it.
+// shell, side by side, each running as it is, ed's lenses showing the
+// thing the ways ed sees it (`design/lens`). The frame is a note, read
+// by its indent (outline.Text): its lines stack down, the lines under one
+// go across, and so on, turn about. The same note lays out as tmux panes
+// in the terminal and as panes on a page. cur, which fm writes as its
+// cursor moves, is all the panes share, and a slot's name is how a
+// program reaches it.
 //
 //	studio [-n] [frame]              the frame in a tmux window: this
 //	                                 one, around the shell alone in it,
@@ -14,12 +14,8 @@
 //	studio page [frame]              the frame as a page, on stdout
 //	studio picture note [page.html]  a note's picture as a page, on the
 //	                                 skeleton given, or sys's own
-//	studio lens [name]               the window's lens, or set it
 //	studio send slot text...         paste text into a slot, then enter
 //	studio read slot                 a slot's screen, as text
-//	studio show [-w | -s]            the lens: cur through the window's
-//	                                 lens, as nodes a view draws; a slot
-//	                                 runs it
 //	studio close window pane         a pane of the frame ended: its hook
 //	                                 runs it, and when the pane was the
 //	                                 face, fm, the frame ends with it
@@ -46,8 +42,6 @@ import (
 	"sys/picture"
 	"sys/state"
 	"sys/tty"
-	"sys/view"
-	"sys/watch"
 )
 
 func main() {

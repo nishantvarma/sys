@@ -1,8 +1,7 @@
 // Package state is the files a tmux window keeps in ~/.config/sys: its cur,
 // the address the last verb, view or click was about, which `sh/c` keeps and
-// fm, ed and the lens say; its lens, which studio's verbs set; and its
-// unsaved, the file ed in the window's frame holds unsaved, which fm's q
-// reads. Each file holds one line, written whole.
+// fm and ed say; and its unsaved, the file ed in the window's frame holds
+// unsaved, which fm's q reads. Each file holds one line, written whole.
 package state
 
 import (

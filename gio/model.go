@@ -25,8 +25,8 @@ type in struct {
 }
 
 // app is one program as the window holds it: what it drew last, a
-// prompt it asked, and how it is laid out. What is no text, fm's folder
-// or a lens, sys/view lays out, as on the terminal, moving the cursor
+// prompt it asked, and how it is laid out. What is no text, fm's folder,
+// sys/view lays out, as on the terminal, moving the cursor
 // itself and handing the program the rest; a text, ed's, is drawn here,
 // a line a row (source).
 type app struct {
@@ -46,20 +46,15 @@ type app struct {
 }
 
 // looks are how the window draws the kinds of the programs it hosts, as
-// they tell their terminal views: fm's (`fm/1-fs/21-looks.go`) and the
-// lens's (`studio/4-lens/03-looks.go`). Down a pipe a program says none.
+// they tell their terminal views: fm's (`fm/1-fs/21-looks.go`). Down a
+// pipe a program says none.
 var looks = map[string]view.Look{
 	"bad": {Color: tty.Minus, Mark: "@", Word: "broken link",
 		Said: tty.Gone},
-	"link":  {Color: tty.Link, Mark: "@", Word: "link"},
-	"dir":   {Color: tty.Accent, Mark: "/", Word: "folder"},
-	"exec":  {Color: tty.Plus, Mark: "*", Word: "program"},
-	"file":  {Word: "file"},
-	"add":   {Color: tty.Plus},
-	"del":   {Color: tty.Minus},
-	"hunk":  {Color: tty.Link},
-	"meta":  {Color: tty.Faint},
-	"waits": {Color: tty.Faint},
+	"link": {Color: tty.Link, Mark: "@", Word: "link"},
+	"dir":  {Color: tty.Accent, Mark: "/", Word: "folder"},
+	"exec": {Color: tty.Plus, Mark: "*", Word: "program"},
+	"file": {Word: "file"},
 }
 
 func newApp(out *json.Encoder) app {

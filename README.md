@@ -22,11 +22,10 @@ rebuild away.
     studio    the frame: fm, ed on the thing at fm's cursor, and a shell,
               as tmux panes or as a page; `studio/frame` is the layout, a
               note, and a program reaches each pane by its name, as the
-              mouse's three buttons do (`design/mouse`); `studio show` is
-              a lens beside ed's, cur's diff; run from a shell alone in
-              its window it lays the frame out there, the shell its
-              shell; q in fm ends the frame, asking first while ed holds
-              work unsaved, and a shell that exits ends alone
+              mouse's three buttons do (`design/mouse`); run from a
+              shell alone in its window it lays the frame out there, the
+              shell its shell; q in fm ends the frame, asking first while
+              ed holds work unsaved, and a shell that exits ends alone
     tangle    literate tangler: weaves a tree of code chunks into one main.go
 
 and the packages they share:
@@ -40,8 +39,8 @@ and the packages they share:
               or as runs of text for a host that is no terminal, gio
     watch     says when files change in a folder: how a program follows
               cur
-    state     a tmux window's own files, cur and the lens: where each is
-              kept, read, and written whole
+    state     a tmux window's own files, cur and what ed holds unsaved:
+              where each is kept, read, and written whole
     picture   a note as its parts and the messages between them, laid
               out in cells: SVG on a page, runes on a terminal;
               `design/arch` is sys drawn that way, and `./build` makes
@@ -87,7 +86,7 @@ file, `fm` with none opens on it, and everything that isn't ours takes
 it as `` `{c} `` — ``git add `{c}``, ``wc -l `{c}``.
 
 Everything that selects says it and nothing else does: fm's cursor as it
-moves, and the lens's, a click moving either; a left click on a word in
+moves, a click moving it too; a left click on a word in
 any pane but theirs and ed's, which take the mouse for themselves; and ed
 on save — with the line it saved at, so `e` reopens there. `ed -f` and
 `fm -f` follow cur, and so a frame goes where anything says. One cur per

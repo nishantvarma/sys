@@ -87,8 +87,8 @@ revisit when
 
 a gesture source outside tmux meets a consumer that must be reached
 while already running. a second gesture source alone changes nothing;
-it execs p, as tmux does. ed is one now, and fm and the lens through
-sys/view: a right or a middle click there hands its word to p
+it execs p, as tmux does. ed is one now, and fm through sys/view, which
+ed's lenses draw with too: a right or a middle click there hands its word to p
 (`ed/4-view/29-plumb.go`), and p takes wdir from the pane
 (`sh/p:/pane_current_path/`), ed's cwd, not the edited file's folder. a
 word relative to that folder misses until p takes -w.

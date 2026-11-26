@@ -1,7 +1,7 @@
 sys: its parts, and the messages between them
   studio lays the pieces out from a note, studio/frame: fm, ed on what
   fm's cursor is on, and a shell. fm says its row to cur, and fm -f and
-  ed -f follow it, as a lens shows what is derived from it. Each piece
+  ed -f follow it, ed through its lenses. Each piece
   draws through outline, whose views are the terminal, gio's window,
   and the page next. A right-click is the word: tmux hands it to p, p
   asks c what it names, and o opens it.
@@ -19,8 +19,6 @@ sh              the verbs: a script each, run by name
     → ed        +line file
 pieces          studio, and what it lays out from a note, a slot each
   studio        the frame: its slots, each reached by name
-  lens          what is derived from the file: its diff
-    → outline   draw
   fm            moves between things; its row is cur
     → outline   draw
   ed            edits a thing, seen as source, outline or picture; a
@@ -28,18 +26,17 @@ pieces          studio, and what it lays out from a note, a slot each
     → outline   draw
     → p         a right click's word
 outline         the tree a view draws, in messages
-  → lens        key
   → fm          key
   → ed          key
   view          the terminal: fm's layouts, and ed's lenses
   window        gio, at the end of a pipe, a JSON line each way
   page          the browser; next
 libraries       what the pieces share, beside outline
-  state         a window's cur and lens: where, read, written whole
+  state         a window's cur and unsaved: where, read, written whole
   tty           raw mode, keys and clicks, escapes, and a wake
   watch         when a file changes: how cur is followed
   picture       a note as parts and messages: this one
 files           the tree: one outline, from the root to an item in a note
-  config        cur, the lens and c's log, in ~/.config/sys
+  config        cur, unsaved and c's log, in ~/.config/sys
   notes         rule todo design
   medium        pages, and the shelf: a folder in the browser

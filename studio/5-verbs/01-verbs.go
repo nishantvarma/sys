@@ -3,10 +3,8 @@
 var verbs = map[string]func(args []string) error{
 	"page":    pageVerb,
 	"picture": pictureVerb,
-	"lens":    lensVerb,
 	"send":    sendVerb,
 	"read":    readVerb,
-	"show":    showVerb,
 	"close":   closeVerb,
 	"slots":   slotsVerb,
 }

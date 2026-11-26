@@ -1,5 +1,5 @@
 // sys's windows in gio: an extension beside the terminal, and the proof
-// that sys's programs need none: fm, ed and the lens run here as they are.
+// that sys's programs need none: fm and ed run here as they are.
 // With no argument it is `window`, the view at the other end of a
 // program's pipe, as fm -w starts it. -studio dir lays studio/frame out, as
 // `studio slots` says it, each slot's program at the end of a pipe. Only

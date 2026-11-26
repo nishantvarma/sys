@@ -4,12 +4,11 @@ studio: fm, the thing at its cursor in ed, and a shell
   part of its parent; the rest of the line is what runs in it, and a
   slot that names nothing keeps a shell. fm -f and ed -f follow cur, so
   ed edits whatever fm's cursor is on, and both go where a click
-  anywhere says. ed's own lenses, source, outline and picture, turn with
-  Tab (design/lens); a slot that runs studio show adds diff and run. A
-  slot's name is how a program reaches it: studio send shell make pastes
-  make into the shell, and studio read shell reads it; e opens a text in
-  ed, o a folder in fm, and a middle click hands a word to shell
-  (design/mouse). fm's slot is the frame's face: its q ends the
+  anywhere says. ed's lenses, source, outline and picture, turn with Tab
+  (design/lens). A slot's name is how a program reaches it: studio send
+  shell make pastes make into the shell, and studio read shell reads it;
+  e opens a text in ed, o a folder in fm, and a middle click hands a word
+  to shell (design/mouse). fm's slot is the frame's face: its q ends the
   frame, asking first while ed holds work unsaved; q in ed or a lens
   ends nothing, and a shell that exits ends alone.
 top     70%

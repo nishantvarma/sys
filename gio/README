@@ -1,6 +1,6 @@
 gio: sys's views drawn by gio (gioui.org), a window beside the terminal,
-and the check that sys's programs need no terminal: fm, ed and the lens
-run here as they are, each at the end of a pipe (-s), and what is no
+and the check that sys's programs need no terminal: fm and ed run here
+as they are, each at the end of a pipe (-s), and what is no
 text is laid out by sys/view, the terminal's own view, whose lines this
 draws as runs (`view/term.go:/Lines is the screen/`).
 
@@ -20,8 +20,8 @@ what is where
                 that knows gio
     ft.go       text by freetype, sharp as the terminal's
     host.go     the frame's slots, a program in each
-    model.go    a program as the window holds it: sys/view for a folder
-                or a lens, a text drawn here
+    model.go    a program as the window holds it: sys/view for a
+                folder, a text drawn here
     look.go     ed's text, and sys/view's lines, as strips
 
 keys: ctrl-w the next pane; ctrl-v paste; f11 full screen; the other

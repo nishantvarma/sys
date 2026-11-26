@@ -1,7 +1,7 @@
 mouse: acme's three buttons, said in sys's verbs
 
-A button means one thing in every pane: the shell's, ed's, fm's and the
-lens's. Each is a verb sys has already.
+A button means one thing in every pane: the shell's, ed's and fm's.
+Each is a verb sys has already.
 
 	left     this     c       the text becomes cur, and every view on
 	                          cur goes there; the eye stays
@@ -11,8 +11,8 @@ lens's. Each is a verb sys has already.
 The case, carried through: the shell in a frame prints sh/o:24, as
 grep -n prints a hit.
 
-	left     cur is sh/o at line 24: ed -f shows the line, fm -f stands
-	         in sh on o, the lens turns to o's diff
+	left     cur is sh/o at line 24: ed -f shows the line, in the lens
+	         it shows, and fm -f stands in sh on o
 	right    the same, and the eye goes to ed, on line 24
 	middle   the path, whole, lands at the shell's prompt after what is
 	         typed there, git log -p; Return runs it
@@ -51,13 +51,14 @@ What is where
 	resolve    sh/c                              text to an address
 	dispatch   sh/o, sh/e, sh/p -a               an address to a program,
 	                                             or to the frame's slot
-	views      ed -f, fm -f, the lens            follow cur
+	views      ed -f, fm -f                      follow cur
   Nothing new runs: no plumber, no socket, no table but o's
   (`design/plumbing`). A view hands its clicks on as ideas: fm hears a
   right click as enter, its own open, which goes into a folder and opens
-  a file. A key the screen shows is a button: a left click on a chip of
-  the head, m next lens, presses m, and one on the layout not in use
-  turns to it.
+  a file, and ed's outline hears it as source on the item's line. A key
+  the screen shows is a button: a left click on fm's chip, t layout,
+  presses t, one on the layout not in use turns to it, and one on a lens
+  named on ed's bar turns to that lens (`design/lens`).
 
 Given up
   ed's middle click no longer pastes X's selection: shift and a middle

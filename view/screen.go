@@ -3,7 +3,6 @@ package view
 import (
 	"fmt"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"unicode"
 
@@ -261,79 +260,28 @@ func (v *Term) crumbs(p string) []string {
 }
 
 // chips is the keys the head shows, at most room columns of them: the
-// program's (Chips), then the view's own, t for the layout, while the
-// view lays out a folder. Each key stands in a chip and what it does after
-// it; a range, 1..4, is its two ends in chips. Where each chip stands,
-// from the chips' first column, is a spot that presses its key, but a
-// range, which is no one key.
+// view's own, t for the layout, while it lays out rows or thumbs. A key
+// stands in a chip, and what it does after it; where the chip stands,
+// from the chips' first column, is a spot that presses the key.
 func (v *Term) chips(room int) (*ink, []spot) {
-	keys := v.keys
-	if v.last != nil && !v.isPicture() {
-		own := [2]string{"t", "layout"}
-		keys = append(keys[:len(keys):len(keys)], own)
-	}
 	k := &ink{}
-	var at []spot
-	for i, c := range keys {
-		next := &ink{}
-		if i > 0 {
-			next.add("   ", "", "", false)
-		}
-		a, b, ranged := strings.Cut(c[0], "..")
-		start := next.w
-		next.add(" "+a+" ", tty.Fore, tty.Rule, false)
-		if ranged {
-			next.add("..", tty.Quiet, "", false)
-			next.add(" "+b+" ", tty.Fore, tty.Rule, false)
-		}
-		next.add(" "+c[1], tty.Soft, "", false)
-		if k.w+next.w > room {
-			break
-		}
-		if !ranged {
-			at = append(at, spot{x: k.w + start, key: c[0]})
-		}
-		at = append(at, spot{x: k.w + next.w})
-		k.runs, k.w = append(k.runs, next.runs...), k.w+next.w
+	if v.last == nil || v.isPicture() {
+		return k, nil
 	}
-	return k, at
+	k.add(" t ", tty.Fore, tty.Rule, false)
+	k.add(" layout", tty.Soft, "", false)
+	if k.w > room {
+		return &ink{}, nil
+	}
+	return k, []spot{{x: 0, key: "t"}, {x: k.w}}
 }
 
-// switches is the line over the body: the program's tabs, when it has
-// some (Tabs), else the view's layouts, the one in use lit and the other
-// a click's to turn to. A tab is its
-// name, in a chip while it is the one shown and dim while it waits to be
-// built, then its tally, a count or a diff's +2 −1, and its number.
+// switches is the line over the body: the view's layouts, the one in use
+// lit and the other a click's to turn to; none for a picture.
 func (v *Term) switches(w int) line {
 	k := (&ink{}).add(" ", "", "", false)
 	var spots []spot
-	switch {
-	case v.tabs != nil:
-		for i, t := range v.tabs {
-			fg, bg := tty.Soft, ""
-			switch {
-			case t.On:
-				fg, bg = tty.Fore, tty.Rule
-			case t.Waits:
-				fg = tty.Quiet
-			}
-			k.add(" "+printable(t.Name)+" ", fg, bg, t.On)
-			tally := strings.Fields(printable(t.Tally))
-			for _, word := range tally {
-				c := tty.Soft
-				switch {
-				case strings.HasPrefix(word, "+"):
-					c = tty.Plus
-				case strings.HasPrefix(word, "−"),
-					strings.HasPrefix(word, "-"):
-					c = tty.Minus
-				}
-				k.add(word+" ", c, "", false)
-			}
-			k.add(strconv.Itoa(i+1), tty.Quiet, "", false)
-			k.add("  ", "", "", false)
-		}
-	case !v.isPicture():
+	if !v.isPicture() {
 		for _, name := range layouts {
 			on := name == v.layout()
 			c, key := tty.Quiet, "t"
