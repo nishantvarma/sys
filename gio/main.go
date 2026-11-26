@@ -64,6 +64,7 @@ type window struct {
 	focused bool
 	full    bool
 	hits    []hit // where each pane was drawn last, for a click
+	held    *pane // where the left button went down, for a drag
 }
 
 type hit struct {
@@ -230,6 +231,46 @@ func (v *window) lay(gtx layout.Context, slots []slot, r image.Rectangle,
 	}
 }
 
+// under is the pane at a point, and the cell there, counted from its
+// corner
+func (v *window) under(at image.Point, cw, h int) (*pane, int, int, bool) {
+	for _, x := range v.hits {
+		if at.In(x.area) {
+			return x.p, (at.X - x.area.Min.X) / cw,
+				(at.Y - x.area.Min.Y) / h, true
+		}
+	}
+	return nil, 0, 0, false
+}
+
+// pointed is a mouse event, the three buttons as in any pane
+// (`design/mouse`): a left press picks (pressedAt), and a move with it
+// held drags a text's selection; a right press looks (look), a middle one
+// hands on (do), and the wheel moves (wheel), each on the pane under it
+func (v *window) pointed(e pointer.Event, cw, h int) {
+	at := e.Position.Round()
+	p, x, y, ok := v.under(at, cw, h)
+	switch {
+	case e.Kind == pointer.Release:
+		v.held = nil
+	case !ok:
+	case e.Kind == pointer.Press &&
+		e.Buttons.Contain(pointer.ButtonPrimary):
+		v.pressedAt(at, cw, h)
+		v.held = p
+	case e.Kind == pointer.Drag && p == v.held:
+		p.drag(x, y)
+	case e.Kind == pointer.Press &&
+		e.Buttons.Contain(pointer.ButtonSecondary):
+		v.look(p, x, y)
+	case e.Kind == pointer.Press &&
+		e.Buttons.Contain(pointer.ButtonTertiary):
+		p.do(x, y)
+	case e.Kind == pointer.Scroll && e.Scroll.Y != 0:
+		p.wheel(e.Scroll.Y)
+	}
+}
+
 // pressedAt is a press at a point: the eye goes to the pane there, and
 // the press to its row, or to its text's line and rune
 func (v *window) pressedAt(at image.Point, cw, h int) {
@@ -274,7 +315,7 @@ var named = map[key.Name]string{
 // input does what came in since the last frame; toggle is whether f11
 // asked for the other mode, full screen or not. A key goes as tty names
 // it, ctrl and a letter as C- and the letter, ctrl-c as tty's INT; ctrl-v
-// pastes, and a press is the left button's alone
+// pastes, and the mouse is as in any pane (pointed)
 func (v *window) input(gtx layout.Context) (toggle bool) {
 	all := key.ModCtrl | key.ModShift | key.ModAlt
 	filters := []event.Filter{
@@ -283,7 +324,11 @@ func (v *window) input(gtx layout.Context) (toggle bool) {
 			Target: &v.tag,
 			Type:   "application/text",
 		},
-		pointer.Filter{Target: &v.tag, Kinds: pointer.Press},
+		pointer.Filter{Target: &v.tag,
+			Kinds: pointer.Press | pointer.Drag | pointer.Release |
+				pointer.Scroll,
+			ScrollY: pointer.ScrollRange{Min: -1 << 30,
+				Max: 1 << 30}},
 		key.Filter{Focus: &v.tag, Optional: all},
 		key.Filter{Focus: &v.tag, Name: key.NameTab, Optional: all},
 	}
@@ -327,10 +372,7 @@ func (v *window) input(gtx layout.Context) (toggle bool) {
 		case transfer.DataEvent:
 			paste(p, e)
 		case pointer.Event:
-			if e.Buttons.Contain(pointer.ButtonPrimary) {
-				at := e.Position.Round()
-				v.pressedAt(at, v.text.cell, gtx.Dp(cellH))
-			}
+			v.pointed(e, v.text.cell, gtx.Dp(cellH))
 		}
 	}
 }

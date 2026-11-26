@@ -53,6 +53,10 @@ type studio struct {
 	// the window's unsaved file, where ed names work it holds unsaved
 	unsaved string
 	events  chan news
+	// the frame's folder, and its programs' world, outside tmux: what a
+	// look says cur in, as they hear it (look)
+	dir string
+	env []string
 }
 
 // start lays studio/frame out on dir: each slot that runs something runs
@@ -72,6 +76,7 @@ func start(dir string) (*studio, error) {
 	env := slices.DeleteFunc(os.Environ(), func(v string) bool {
 		return strings.HasPrefix(v, "TMUX")
 	})
+	s.dir, s.env = dir, env
 	curf := state.Path("cur", "none")
 	s.unsaved = state.Path("unsaved", "none")
 	if err := os.MkdirAll(filepath.Dir(curf), 0o755); err != nil {

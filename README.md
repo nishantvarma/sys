@@ -31,7 +31,8 @@ rebuild away.
 and the packages they share:
 
     outline   the tree a view draws, and the messages between a program
-              and its view; a note read into that tree by its indent
+              and its view; a note read into that tree by its indent,
+              and what a click on a text names
     tty       the shared terminal layer: raw mode, escape codes,
               key and click decoding, line input
     view      the outline drawn on a terminal: fm's layouts, rows and

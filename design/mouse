@@ -25,7 +25,10 @@ In a frame, the frame is where it lands
   and fm run with -f, following cur, so opening a thing there is saying
   it and moving the eye: nothing opens beside, and the frame keeps its
   shape. A plain window names no pane, so there a verb opens one below,
-  in the stack beside the shell (`tmux/conf:/main-vertical/`).
+  in the stack beside the shell (`tmux/conf:/main-vertical/`). gio's
+  frame follows cur too, with no tmux to name its panes: a right click
+  on a file says it, and the eye goes to ed, or to fm for a folder
+  (`gio/mouse.go:/is a right press at cell/`).
 
 Look never runs
   o shows a thing, and the shell runs one: a script is text, so a right

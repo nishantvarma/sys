@@ -11,6 +11,7 @@ func (v *term) Draw(n *outline.Node, status string, state []string) {
 	}
 	if v.ended {
 		v.ended = false
-		tty.Put(tty.Primary, selected(n)) // off X there is none to set
+		// off X there is none to set
+		tty.Put(tty.Primary, outline.Selected(n))
 	}
 }

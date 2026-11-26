@@ -246,11 +246,21 @@ func cell(k *strip, s string, sel, cursor, insert bool) {
 // from the pane's corner: the line's id, and the rune counted from 1, its
 // end past the line's end; "" off the lines
 func (p *pane) spot(x, y int) (string, int) {
+	i, r := p.lineAt(x, y)
+	if i < 0 {
+		return "", 0
+	}
+	return p.rows[i].ID, r
+}
+
+// lineAt is the line, by its index, and the rune a cell of a text shows,
+// as spot says them; -1 off the lines, on the bar or the status line
+func (p *pane) lineAt(x, y int) (int, int) {
 	y -= p.tops()
 	i := p.first + y
 	if p.tree == nil || y < 0 || y >= p.high-1-p.tops() ||
 		i >= len(p.rows) {
-		return "", 0
+		return -1, 0
 	}
 	col := x - gutter(len(p.rows)) + p.off
 	r, vis := 0, 0
@@ -265,7 +275,7 @@ func (p *pane) spot(x, y int) (string, int) {
 		vis += w
 		r++
 	}
-	return p.rows[i].ID, r + 1
+	return i, r + 1
 }
 
 // line is ed's paintLine: the number, then the text, tabs to their stops,

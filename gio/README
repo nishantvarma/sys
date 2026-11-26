@@ -23,11 +23,19 @@ what is where
     model.go    a program as the window holds it: sys/view for a
                 folder, a text drawn here
     look.go     ed's text, and sys/view's lines, as strips
+    mouse.go    the three buttons and the wheel, as on the terminal
 
 keys: ctrl-w the next pane; ctrl-v paste; f11 full screen; the other
 chords, ctrl-c, -x, -z, -y and -s, are ed's, as on the terminal. ed's
 lenses are here as there, for ed draws them: Tab, or a press on a name
 on the bar over its text (`design/lens`).
+
+mouse: as on the terminal (`design/mouse`). a drag in ed's text selects,
+the wheel moves, a right click opens, and a middle click hands the word,
+or the selection it falls in, to p -a. in the frame a right click on a
+file says it, and ed or fm, following cur, show it, the eye going there;
+what is no file opens beside. p -a lands in tmux's marked or last pane,
+for the window has no shell yet.
 
 careful: closing the window drops what ed has not saved. q in fm asks
 first, as in tmux: while ed holds work unsaved it says so, and a second q
@@ -37,5 +45,3 @@ not here yet
     - a shell: its slot says so. the plan runs it through tmux's control
       mode (`todo/03-studio/03-shell`)
     - help and the pickers (`todo/04-gio/02-term`)
-    - a drag in ed's text, the wheel, and the right and middle clicks,
-      as on the terminal (`design/mouse`)
