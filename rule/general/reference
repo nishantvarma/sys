@@ -20,7 +20,7 @@ resolution is sam's: first match forward. a pattern need not be unique
 to be a function, only short and load-bearing — the words that are the
 point, not a line that churns.
 
-  grep -rnoE '`[a-zA-Z0-9][a-zA-Z0-9._-]*(/[a-zA-Z0-9._-]+)+(:/[^/`]+/)?`'
+  grep -rnoE '`[a-z0-9][a-z0-9._-]*(/[a-z0-9._-]+)+(:/[^/`]+/)?`'
 
 the path separator is the discriminator. backticks also hold code —
 `sort`, `column -t` — and code carries none, so a reference is decidable

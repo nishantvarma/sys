@@ -1,2 +1,1 @@
-rewrite: when an attempt is wrong at its core, throw it out and build again
-from scratch. do not patch it until it works.
+rewrite: when an attempt is wrong at its core, throw it out and build again from scratch. do not patch it until it works.
