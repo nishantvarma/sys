@@ -3,7 +3,7 @@
 // a snapshot. Mostly that is one key; a verb that enters insert runs on
 // through esc, and a count rides with the key it multiplies. Keys that
 // changed nothing are dropped, so a motion never displaces the change, and
-// neither does . itself: it only queues keys. An insert a drag began, or
+// neither does . itself: it only queues keys. An insert a drag was part of, or
 // one with an undo in it, is not kept: its keys alone do not make it again.
 func (e *editor) keep() {
 	if e.mode != e.nor || e.count > 0 {

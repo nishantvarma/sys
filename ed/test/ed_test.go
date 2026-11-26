@@ -100,19 +100,26 @@ func keys(press func(outline.Key) shown, ks ...string) shown {
 
 // A drag selects from where the press put the cursor to where it goes,
 // stopping at a line's last rune when it goes past the end, as in any
-// editor, and goes into insert, so typing replaces the selection and the
-// line break stays.
+// editor, and leaves ed in the mode it was in: in normal the selection is
+// the verbs', so c types over it and the line break stays, and . does the
+// same to the next selection, as after one made by keys.
 func TestDrag(t *testing.T) {
 	file, press := ed(t, "hello world\nsecond line\n")
 	line := file + ":1"
 	press(outline.Key{Node: line, At: 7})
 	s := press(outline.Key{Name: "DRAG", Node: line, At: 30})
-	if s.mode != "insert" {
-		t.Errorf("a drag left ed in %s, not insert", s.mode)
+	if s.mode != "normal" {
+		t.Errorf("a drag left ed in %s, not normal", s.mode)
 	}
-	s = keys(press, "X")
+	s = keys(press, "c", "X", "ESC")
 	if got := strings.Join(s.lines, "|"); got != "hello X|second line" {
-		t.Errorf("typed over a drag past the end: %q", got)
+		t.Errorf("changed a drag past the end: %q", got)
+	}
+	press(outline.Key{Node: file + ":2", At: 1})
+	press(outline.Key{Name: "DRAG", Node: file + ":2", At: 6})
+	s = keys(press, ".")
+	if got := strings.Join(s.lines, "|"); got != "hello X|X line" {
+		t.Errorf(". after a change to a drag: %q", got)
 	}
 }
 

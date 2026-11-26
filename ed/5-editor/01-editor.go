@@ -14,8 +14,8 @@ type editor struct {
 	count int  // a pending numeric prefix; 0 means none, i.e. once
 	armed bool // a dirty-quit was requested once
 	done  bool
-	// the insert under way is no change . can type again: a drag of the
-	// mouse began it, or an undo or a redo was done in it
+	// the insert under way is no change . can type again: the mouse
+	// dragged in it, or an undo or a redo was done in it
 	unkept bool
 	// the insert under way owes a snapshot, which its first edit takes
 	// (pay)

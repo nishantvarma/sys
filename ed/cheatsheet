@@ -68,9 +68,10 @@ Tab, enter, backspace, arrows work.
 
 mouse and X — the buttons as in any pane (design/mouse), in either mode
   click        the cursor there
-  drag         select, and go into insert, so typing replaces it and
-               backspace takes it; esc keeps it selected for the verbs.
-               what it selects is X's primary selection
+  drag         select, as a motion does, in the mode ed is in: in
+               normal the verbs take it, c to type over it; insert is
+               only i's, or the mode's. what it selects is X's primary
+               selection
   the mode     click the status line's first word to switch: insert
                back to normal, normal into insert
   right        open what the word there names (p): in a frame a file
@@ -92,7 +93,7 @@ the clipboard.
 
 Insert is a plain editor, with these and the mouse: a person on the
 mouse need not leave it. ctrl-c copies, and q quits, but in a frame q is
-fm's. . types no change a drag was part of, nor an insert that undid.
+fm's. . types no insert a drag was part of, nor one that undid.
 
 find
   /            literal search
