@@ -12,7 +12,8 @@ turns from one to the next:
 
 The case, carried through: design/arch open in ed
 	the bar     source  outline  picture, at the top of ed in every lens,
-	            the one shown lit: a press on a name turns to it
+	            over a rule as fm's head is, the one shown lit: a press
+	            on a name turns to it
 	Tab         the outline: a row an item, two columns in a level, the
 	            item the cursor is in lit
 	j, enter    the next item, then source on its line
@@ -45,8 +46,9 @@ What is where
 	sys/picture           the picture's layout
 
 What it costs
-  - the bar is a line of every ed, in any pane: a pane under three lines
-    high keeps it off
+  - the bar and its rule are two lines of every ed, in any pane: the
+    bar alone under twelve lines high, as fm's head is there, and
+    neither under three
   - Tab in normal is the view's, so f Tab finds no tab; in insert Tab
     types one, as before
   - in gio's window ed stays source: the bar and the region are the

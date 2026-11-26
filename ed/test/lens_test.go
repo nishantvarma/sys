@@ -63,16 +63,22 @@ func TestLens(t *testing.T) {
 	bar := func(s []string) bool {
 		return strings.Contains(s[0], "source  outline  picture")
 	}
+	// ruled is whether the line under the bar is a rule, as under fm's
+	// head, in every lens
+	ruled := func(s []string) bool {
+		return len(s) > 1 && s[1] != "" &&
+			strings.Trim(s[1], "─") == ""
+	}
 	at := func(s []string, where string) bool {
 		return strings.HasSuffix(strings.TrimSpace(s[len(s)-1]), where)
 	}
 
 	until("no bar over the source", func(s []string) bool {
-		return bar(s) && has(s, "up") && at(s, "1:1")
+		return bar(s) && ruled(s) && has(s, "up") && at(s, "1:1")
 	})
 	tm("send-keys", "Tab")
 	until("Tab showed no outline", func(s []string) bool {
-		return bar(s) && has(s, "rows  thumbs") &&
+		return bar(s) && ruled(s) && has(s, "rows  thumbs") &&
 			has(s, "    → b  go")
 	})
 	tm("send-keys", "j", "j")

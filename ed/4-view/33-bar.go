@@ -41,23 +41,36 @@ type chip struct {
 	from, to, lens int
 }
 
-// tops is the lines the bar takes, h high: one, or none in a pane too
-// short to spare it.
+// tops is the lines over the text, h high: the bar and a rule under it,
+// as fm's view keeps its head and a rule (sys/view's chrome); the bar
+// alone in a pane under twelve lines high, as the view keeps its head
+// alone there; and neither in a pane too short to spare a line.
 func tops(h int) int {
-	if h < 3 {
+	switch {
+	case h < 3:
 		return 0
+	case h < 12:
+		return 1
 	}
-	return 1
+	return 2
 }
 
-// onBar is whether k is a left press on the bar, and the lens its chip
-// turns to, -1 between chips. The bar takes no other key: a press of
-// another button there is a press on no line.
+// ruled is the rule under the bar, w wide, as sys/view draws its own.
+func ruled(w int) string {
+	return tty.Paint(strings.Repeat("─", max(0, w)), tty.Rule, tty.Ground,
+		false)
+}
+
+// onBar is whether k is a press on the bar, and for a left one the lens
+// its chip turns to, -1 between chips or for any other press there: the
+// bar is no line and no item. A button let go there goes on as any does.
 func (v *term) onBar(k tty.Key) (int, bool) {
 	w, h := v.t.Size()
-	if k.Name != tty.KMouse || k.Button != tty.MLeft || k.Y != 1 ||
-		tops(h) == 0 {
+	if k.Name != tty.KMouse || k.Y != 1 || tops(h) == 0 {
 		return 0, false
+	}
+	if k.Button != tty.MLeft {
+		return -1, true
 	}
 	_, at := v.bar(w)
 	for _, c := range at {

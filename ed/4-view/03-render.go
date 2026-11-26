@@ -18,6 +18,9 @@ func (v *term) render(
 		bar, _ := v.bar(w)
 		rows = append(rows, bar)
 	}
+	if top > 1 {
+		rows = append(rows, ruled(w))
+	}
 	for r := 0; r < body; r++ {
 		idx := v.top + r
 		if idx >= len(n.Kids) {
