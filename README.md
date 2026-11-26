@@ -10,7 +10,9 @@ rebuild away.
 
     ed        modal editor, kakoune-flavoured: select first,
               then act on the selection; `ed -f` edits whatever cur
-              names, and follows it while nothing is unsaved
+              names, and follows it while nothing is unsaved; Tab turns
+              its lens, the text as written, its outline or its picture
+              (`design/lens`)
     fm        single-pane file manager: vim keys, a remembered cursor per
               directory, and it shells out to your own tools instead of
               reimplementing them; `fm -f` goes where cur is said
@@ -21,10 +23,10 @@ rebuild away.
               as tmux panes or as a page; `studio/frame` is the layout, a
               note, and a program reaches each pane by its name, as the
               mouse's three buttons do (`design/mouse`); `studio show` is
-              the lens, the thing at cur seen another way; run from a
-              shell alone in its window it lays the frame out there, the
-              shell its shell; q in fm ends the frame, asking first while
-              ed holds work unsaved, and a shell that exits ends alone
+              a lens beside ed's, cur's diff; run from a shell alone in
+              its window it lays the frame out there, the shell its
+              shell; q in fm ends the frame, asking first while ed holds
+              work unsaved, and a shell that exits ends alone
     tangle    literate tangler: weaves a tree of code chunks into one main.go
 
 and the packages they share:
@@ -33,7 +35,7 @@ and the packages they share:
               and its view; a note read into that tree by its indent
     tty       the shared terminal layer: raw mode, escape codes,
               key and click decoding, line input
-    view      the outline drawn on a terminal: fm's layouts, folder and
+    view      the outline drawn on a terminal: fm's layouts, rows and
               thumbs, on the whole screen or in a region a host gives,
               or as runs of text for a host that is no terminal, gio
     watch     says when files change in a folder: how a program follows
@@ -117,10 +119,11 @@ The outline does not stop at a file. A note is an outline too, by its
 indent, so one tree runs from the root, the topmost thing, down through
 folders and files to a single item in a note. Two panes work it: fm walks
 the folders, a level at a time, and ed beside it edits the file at fm's
-cursor, whose items are its indent. ed stays an editor: what more is
-known of a file's structure is for something beside it to say.
-outline.Text reads a note into that tree by its indent, as Python is
-read, for what draws a note another way: studio's frame and its picture.
+cursor, whose items are its indent. ed shows the file three ways, its
+lenses: as written, as its outline and as its picture, and only the
+first is typed in (`design/lens`). outline.Text reads a note into that
+tree by its indent, as Python is read, for what draws a note another
+way: studio's frame, and ed's outline and picture.
 
 ## everything talks in messages
 

@@ -192,10 +192,11 @@ func (v *Term) page(word string) []line {
 	return append(out, bottom)
 }
 
-// Lines is the screen as Draw left it, for a host that is no terminal and
-// draws it itself, as gio does: a line a row, h of them for the region it
-// is in (In), the bottom line last, each the runs it is drawn in. Where a
-// click falls is At's, as on the terminal.
+// Lines is the screen as Draw left it, for a host that draws it itself:
+// one that is no terminal, as gio is, or one that frames the terminal
+// with lines of its own, as ed does (Paint). A line a row, h of them for
+// the region it is in (In), the bottom line last, each the runs it is
+// drawn in. Where a click falls is At's, as on the terminal.
 func (v *Term) Lines() [][]Run {
 	var out [][]Run
 	for _, l := range v.page(v.status) {

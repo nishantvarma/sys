@@ -4,9 +4,10 @@ the keys, decided last, once the ideas are settled
              click and a button say one thing, and the wire carries ideas
   vi         digits a count, 3j, and a row by :N or NG; g first and G
              last everywhere; l in, as right is
-  m and t    m is memory in fm and the bracket in ed, so the next lens
-             moves to gt and gT; t is till in ed, so the layout turns by
-             another key. q is decided: fm's q ends the frame
+  m and t    m is memory in fm and the bracket in ed; ed's next lens is
+             Tab (`design/lens`), and in a lens, where nothing is typed,
+             t turns the layout as in fm, though in source it is till.
+             q is decided: fm's q ends the frame
              (`studio/5-verbs/10-closeverb.go:/closeVerb/`)
   the frame  ctrl-w, vim's window prefix, which no slot binds: h j k l
              move the eye, : the frame's words, q closes a slot

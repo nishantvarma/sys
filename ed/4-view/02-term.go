@@ -5,7 +5,9 @@
 // in, the mode it said last, whether the left button is dragging, and
 // whether a drag has ended, for the next draw to put its selection on X's
 // primary; and the last press, which a second at the same cell soon after
-// makes a double tap.
+// makes a double tap. The lens it shows is its own too (lenses), and so
+// is sys/view, which draws the lenses after source, with what it drew
+// last.
 type term struct {
 	t        *tty.Term
 	top, off int
@@ -15,4 +17,7 @@ type term struct {
 	ended    bool
 	press    time.Time
 	px, py   int
+	lens     int           // the lens shown, of lenses
+	seen     *view.Term    // the view that draws the lenses after source
+	items    *outline.Node // what it drew last (itemsOf)
 }

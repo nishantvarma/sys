@@ -241,7 +241,7 @@ func TestLayouts(t *testing.T) {
 		" b                            t  layout",
 		strings.Repeat("─", 40),
 		"",
-		" folder  thumbs",
+		" rows  thumbs",
 		"",
 	}
 	rows := []string{"▌ 1  b/", "  2  c", "", "", "", ""}
@@ -403,7 +403,7 @@ func TestMouse(t *testing.T) {
 		{at(tty.MLeft, 15, 3), true, "m", ""},
 		{at(tty.MLeft, 10, 6), false, "", ""},
 	} {
-		ev, said := v.mouse(c.k)
+		ev, said := v.Handle(c.k)
 		if said != c.said || ev.Name != c.name || ev.Node != c.node {
 			t.Errorf("%d: %v %q on %q, want %v %q on %q", i, said,
 				ev.Name, ev.Node, c.said, c.name, c.node)

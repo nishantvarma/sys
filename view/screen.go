@@ -24,9 +24,9 @@ const (
 	cardGap = 2
 )
 
-// layouts are the view's ways to lay a folder out, in the order t turns
-// through them: its rows, and thumbs, a card a thing.
-var layouts = []string{"folder", "thumbs"}
+// layouts are the view's ways to lay a folder or a note's items out, in
+// the order t turns through them: rows, and thumbs, a card a thing.
+var layouts = []string{"rows", "thumbs"}
 
 // ink is a line as it is drawn: its runs, each in its look, and how many
 // columns they take.
@@ -89,11 +89,17 @@ func (k *ink) clip(n int) *ink {
 	return k
 }
 
-// String is the line in the terminal's words: each run painted, the
-// view's own colour the palette's foreground on its ground.
+// String is the line in the terminal's words (Paint).
 func (k *ink) String() string {
+	return Paint(k.runs)
+}
+
+// Paint is a line's runs in the terminal's words, as a host that frames
+// the terminal itself takes Lines, ed among them: each run painted, the
+// view's own colour the palette's foreground on its ground.
+func Paint(runs []Run) string {
 	var b strings.Builder
-	for _, r := range k.runs {
+	for _, r := range runs {
 		fg, bg := r.Color, r.Ground
 		if fg == "" {
 			fg = tty.Fore
@@ -343,7 +349,7 @@ func (v *Term) switches(w int) line {
 	return line{k.clip(w).pad(w, ""), spots}
 }
 
-// layout is the name of the layout in use: the folder until t turns it.
+// layout is the name of the layout in use: rows until t turns it.
 func (v *Term) layout() string {
 	return layouts[v.lay]
 }

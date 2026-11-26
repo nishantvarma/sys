@@ -20,6 +20,7 @@ import (
 	"sys/outline"
 	"sys/state"
 	"sys/tty"
+	"sys/view"
 	"sys/watch"
 )
 

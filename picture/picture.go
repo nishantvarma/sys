@@ -1,9 +1,9 @@
 // Package picture is a note drawn as its parts and the messages between
 // them: a box an item, a message an item that starts with →. It lays them
 // out in cells, as a terminal shows text, so that one layout draws as SVG
-// on a page and as runes in a terminal; studio's picture lens draws it so,
-// and studio picture makes its page. Each part keeps its item's address,
-// so a click on one names it (At).
+// on a page and as runes in a terminal; ed's picture lens draws it so
+// (`design/lens`), and studio picture makes its page. Each part keeps its
+// item's address, so a click on one names it (At).
 package picture
 
 import "sys/outline"

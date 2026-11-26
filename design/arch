@@ -19,18 +19,19 @@ sh              the verbs: a script each, run by name
     → ed        +line file
 pieces          studio, and what it lays out from a note, a slot each
   studio        the frame: its slots, each reached by name
-  lens          what is derived from the thing: diff, picture
+  lens          what is derived from the file: its diff
     → outline   draw
   fm            moves between things; its row is cur
     → outline   draw
-  ed            edits a thing; a save says c, -f follows cur instead
+  ed            edits a thing, seen as source, outline or picture; a
+                save says c, -f follows cur instead
     → outline   draw
     → p         a right click's word
 outline         the tree a view draws, in messages
   → lens        key
   → fm          key
   → ed          key
-  view          the terminal: fm's layouts, and a picture
+  view          the terminal: fm's layouts, and ed's lenses
   window        gio, at the end of a pipe, a JSON line each way
   page          the browser; next
 libraries       what the pieces share, beside outline

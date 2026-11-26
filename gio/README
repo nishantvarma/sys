@@ -37,3 +37,5 @@ not here yet
     - help and the pickers (`todo/04-gio/02-term`)
     - a drag in ed's text, the wheel, and the right and middle clicks,
       as on the terminal (`design/mouse`)
+    - ed's lenses: in the window ed stays source, for the bar is the
+      terminal view's (`design/lens`)

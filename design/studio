@@ -17,16 +17,18 @@ Built on sys, not beside it
   The studio is ed, fm and the rest of sys; studio, the program, only lays
   them out (studio/frame). ed edits a thing, fm moves between things, tty
   is the terminal both stand on, and tangle stitches a page from its parts.
-  A lens shows what is derived from a thing, never what is typed, which is
-  ed's (design/todo:/typed at rest/).
+  A lens shows a thing one way. What is typed is ed's
+  (design/todo:/typed at rest/), and so are the lenses of the text it
+  holds: source, its outline and its picture (design/lens). The rest are
+  derived from the thing, never typed.
   A need goes into one of those first, as a few lines, and becomes a new
   piece only when it fits none of them. The terminal pane runs fm and ed
   as they are; the thing every lens is on is fm's cur, which c names
   (README:/the word you are on/).
 
   Target: the shelf reads, and page/py is a lens on a page; studio lays
-  fm, ed and a shell out in tmux, and studio show is the lenses there. No
-  page holds them all yet.
+  fm, ed and a shell out in tmux, where ed's lenses show the text and
+  studio show its diff. No page holds them all yet.
 
   1  a thing is a file or a folder
   2  a lens shows a thing          source, outline, graph, run, diff
@@ -44,7 +46,7 @@ take from it, still open: `todo/03-studio/06-entry`.
 
 The case, carried through: medium/page/py, node
   medium/page/ is the studio's own source: the renderers, their check, a
-  README. `studio show` draws the lenses on it in the terminal, and the
+  README. ed's lenses and `studio show` draw it in the terminal, and the
   page will (`todo/03-studio/04-page`).
 
   thing     page/py : node                             the id

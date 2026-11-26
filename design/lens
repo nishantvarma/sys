@@ -1,0 +1,53 @@
+lens: one text, three ways to see it, in ed
+
+A lens is a way to see the thing at cur (`design/studio:/a lens shows a
+thing/`). ed holds the text, so ed's view shows it three ways, and Tab
+turns from one to the next:
+
+	source     the text as written, the only lens typed in
+	outline    its items by their indent, as rows, or as thumbs with t,
+	           as fm lays out a folder
+	picture    its parts and the messages between them, as sys/picture
+	           lays them out
+
+The case, carried through: design/arch open in ed
+	the bar     source  outline  picture, at the top of ed in every lens,
+	            the one shown lit: a press on a name turns to it
+	Tab         the outline: a row an item, two columns in a level, the
+	            item the cursor is in lit
+	j, enter    the next item, then source on its line
+	Tab Tab     the picture: the pieces as boxes and the messages between
+	            them; Tab once more, or a press on source, is back
+
+Why it is ed's
+  A lens of the text is a view of what ed holds, so it is ed's view's, as
+  rows and thumbs are fm's view's. It reads the lines as they are, unsaved
+  ones too: the outline is of what is being typed, not of the file as it
+  was saved. Nothing outside ed knows which lens shows: no state file, no
+  second program, and no frame needed, for ed in any pane has all three.
+  ed's editor is the same but for one line: Tab is listed in its keys,
+  for ? to show, and acts in the view, as ctrl-v does
+  (`ed/3-mode/03-normalkeys.go:/Tab is the view's/`).
+
+Read, never typed
+  In outline and picture no key types, so none changes the text out of
+  sight. A move, or a click on an item, puts ed's cursor on its line, so
+  source opens where the outline was; enter, a right click or a double
+  tap goes to source there; esc goes back as it was; ctrl-s saves, as in
+  every mode (`ed/4-view/36-lenskey.go:/lensKey/`).
+
+What is where
+	ed's terminal view    the lens shown, the bar, the keys in a lens
+	                      (`ed/4-view/32-lenses.go`)
+	sys/view              outline and picture, drawn in the region under
+	                      the bar, as it draws fm
+	outline.Text          the items, by their indent
+	sys/picture           the picture's layout
+
+What it costs
+  - the bar is a line of every ed, in any pane: a pane under three lines
+    high keeps it off
+  - Tab in normal is the view's, so f Tab finds no tab; in insert Tab
+    types one, as before
+  - in gio's window ed stays source: the bar and the region are the
+    terminal view's, and the window draws ed's text itself

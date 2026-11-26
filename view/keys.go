@@ -44,8 +44,13 @@ func (v *Term) Key() (outline.Key, bool) {
 // thumbs right and left too, where rows have no left or right, and the
 // program hears them. The program hears where the cursor landed, and every
 // other key, a digit too, for a row's number takes the keys after it, and
-// only Key reads keys; false when there is nothing for it to hear.
+// only Key reads keys; false when there is nothing for it to hear. A mouse
+// report is a click, as Key reads one (mouse), so a host that reads the
+// terminal itself, as ed does, hands the view its clicks too.
 func (v *Term) Handle(k tty.Key) (outline.Key, bool) {
+	if k.Name == tty.KMouse || k.Name == tty.KMouseUp {
+		return v.mouse(k)
+	}
 	name, text := k.Token(), k.Text
 	if arrow, ok := vi[name]; ok {
 		name, text = arrow, ""
