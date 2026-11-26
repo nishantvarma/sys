@@ -13,7 +13,7 @@ import (
 // TestLens: on the terminal ed's bar names its lenses, and Tab turns from
 // source to the outline, the note's items as rows under the bar; there j
 // moves to the next item, and enter goes back to source on its line. A
-// press on the bar's picture turns there, the note drawn as its parts and
+// press on the bar's render turns there, the note drawn as its parts and
 // messages, and Tab from the last lens is source again. The lenses are
 // the terminal view's, so tmux holds ed, on a server of the test's own,
 // and a press is the bytes a terminal sends for one.
@@ -61,7 +61,7 @@ func TestLens(t *testing.T) {
 		return strings.Contains(strings.Join(s, "\n"), text)
 	}
 	bar := func(s []string) bool {
-		return strings.Contains(s[0], "source  outline  picture")
+		return strings.Contains(s[0], "source  outline  render")
 	}
 	// ruled is whether the line under the bar is a rule, as under fm's
 	// head, in every lens
@@ -88,12 +88,12 @@ func TestLens(t *testing.T) {
 			return bar(s) && !has(s, "rows  thumbs") &&
 				at(s, "3:1")
 		})
-	x := strings.Index(screen()[0], "picture") + 1 // its column, from 1
+	x := strings.Index(screen()[0], "render") + 1 // its column, from 1
 	tm("send-keys", "-l", fmt.Sprintf("\x1b[<0;%d;1M\x1b[<0;%d;1m", x, x))
-	until("a press on the bar's picture drew no picture",
+	until("a press on the bar's render drew no picture",
 		func(s []string) bool { return bar(s) && has(s, "▼") })
 	tm("send-keys", "Tab")
-	until("Tab from the picture left no source", func(s []string) bool {
+	until("Tab from the render left no source", func(s []string) bool {
 		return bar(s) && !has(s, "▼") && at(s, "3:1")
 	})
 }

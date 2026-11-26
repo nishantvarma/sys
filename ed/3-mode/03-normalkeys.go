@@ -72,7 +72,7 @@ func normalKeys() []binding {
 		{"s", "save", (*editor).doSave},
 		{"R", "reload", (*editor).reload},
 		{"q", "quit (2× discard)", (*editor).quit},
-		{tty.KTab, "next lens: source, outline, picture", nil},
+		{tty.KTab, "next lens: source, outline, render", nil},
 		{"?", "help", (*editor).help},
 	}, chordKeys()...)
 }

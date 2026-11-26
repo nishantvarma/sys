@@ -11,7 +11,7 @@ rebuild away.
     ed        modal editor, kakoune-flavoured: select first,
               then act on the selection; `ed -f` edits whatever cur
               names, and follows it while nothing is unsaved; Tab turns
-              its lens, the text as written, its outline or its picture
+              its lens, the text as written, its outline or its render
               (`design/lens`)
     fm        single-pane file manager: vim keys, a remembered cursor per
               directory, and it shells out to your own tools instead of
@@ -119,10 +119,10 @@ indent, so one tree runs from the root, the topmost thing, down through
 folders and files to a single item in a note. Two panes work it: fm walks
 the folders, a level at a time, and ed beside it edits the file at fm's
 cursor, whose items are its indent. ed shows the file three ways, its
-lenses: as written, as its outline and as its picture, and only the
+lenses: as written, as its outline and as its render, and only the
 first is typed in (`design/lens`). outline.Text reads a note into that
 tree by its indent, as Python is read, for what draws a note another
-way: studio's frame, and ed's outline and picture.
+way: studio's frame, and ed's outline and render.
 
 ## everything talks in messages
 

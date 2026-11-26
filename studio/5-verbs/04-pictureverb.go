@@ -1,6 +1,6 @@
 // pictureVerb writes a note's picture as a page, `design/arch`'s say, on the
-// skeleton, `medium/page.html`, or the one given: ed's picture lens on a
-// page. An error in the note says its line.
+// skeleton, `medium/page.html`, or the one given: what ed's render lens
+// shows, on a page. An error in the note says its line.
 func pictureVerb(args []string) error {
 	if len(args) < 1 || len(args) > 2 {
 		return errors.New("usage: studio picture note [page.html]")

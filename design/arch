@@ -21,7 +21,7 @@ pieces          studio, and what it lays out from a note, a slot each
   studio        the frame: its slots, each reached by name
   fm            moves between things; its row is cur
     → outline   draw
-  ed            edits a thing, seen as source, outline or picture; a
+  ed            edits a thing, seen as source, outline or render; a
                 save says c, -f follows cur instead
     → outline   draw
     → p         a right click's word

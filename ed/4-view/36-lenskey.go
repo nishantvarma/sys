@@ -5,7 +5,7 @@
 // left click on an item, is a key on its line, which puts ed's cursor
 // there and so keeps the view's on that item; a right click or a double
 // tap on one goes to source on its line; t lays the outline out as rows
-// or as thumbs, the picture scrolls, and a middle click hands an item to
+// or as thumbs, the render scrolls, and a middle click hands an item to
 // the shell. Any other key is nothing here, a resize, which draws again.
 func (v *term) lensKey(k tty.Key) outline.Key {
 	again := outline.Key{Name: tty.KResize}
@@ -51,7 +51,7 @@ func (v *term) mine(id string) bool {
 }
 
 // cursor is the item the view's cursor is on, as the outline drew it
-// last; none in the picture, which has no cursor.
+// last; none in the render, a picture, which has no cursor.
 func (v *term) cursor() string {
 	if v.items == nil || v.items.Kind == "picture" {
 		return ""

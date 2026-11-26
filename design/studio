@@ -19,7 +19,7 @@ Built on sys, not beside it
   is the terminal both stand on, and tangle stitches a page from its parts.
   A lens shows a thing one way. What is typed is ed's
   (design/todo:/typed at rest/), and so are the lenses of the text it
-  holds: source, its outline and its picture (design/lens). The rest are
+  holds: source, its outline and its render (design/lens). The rest are
   derived from the thing, never typed.
   A need goes into one of those first, as a few lines, and becomes a new
   piece only when it fits none of them. The terminal pane runs fm and ed
