@@ -1,0 +1,6 @@
+studio -w, the frame in a window
+
+fm -w and ed -w open their view in gio's window, and the frame opens by
+gio's own name, window -studio
+(`gio/main.go:/lay studio's frame out/`): studio -w would say it as the
+other two do, and window would stay the name of gio's program alone.

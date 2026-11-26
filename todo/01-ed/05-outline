@@ -1,0 +1,8 @@
+the outline lens reads prose a line an item
+
+outline.Text takes each line at one indent as an item of its own
+(`outline/text.go:/func Text/`), so a paragraph of prose is as many rows
+as it has lines, and code is its indent. the outline wants what a writer
+marks: a paragraph one item, its first words its text, and the items
+under it; and thumbs that say more than item, the kind's word, on every
+card.

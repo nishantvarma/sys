@@ -1,0 +1,9 @@
+the render lens draws a note's picture and nothing else yet
+
+render is what the source makes for a person to see (`design/lens`), and
+a note's picture is the one renderer there is: a note not written as
+parts and messages says why, or draws a lone box. next, a renderer per
+kind, asked by kind as the view asks a primitive
+(`design/view:/asked by kind/`): markdown as the page reads it, a scene's
+animation, a video, in gio's window, where more than runes can show; and
+the page drawing the same trees ed sends (`todo/03-studio/04-page`).
