@@ -18,12 +18,14 @@ grep -n prints a hit.
 	         typed there, git log -p; Return runs it
 
 In a frame, the frame is where it lands
-  A frame's slots are reached by name (`studio/frame`), and the three
-  verbs name theirs: e reaches ed, o a folder's fm, and p -a the shell
-  (`studio/5-verbs/15-paneverb.go`). ed and fm run with -f, following
-  cur, so opening a thing there is saying it and moving the eye: nothing
-  opens beside, and the frame keeps its shape. Outside a frame, or in
-  one with no slot by that name, a verb opens a pane beside, as before.
+  A frame's panes carry their slots' names, @slot (`studio/frame`), and
+  the three verbs name theirs: e reaches ed, o a folder's fm, and p -a
+  the shell. They ask tmux for the pane by its name, not studio, so the
+  rule is one: the pane named for the verb, else a pane of its own. ed
+  and fm run with -f, following cur, so opening a thing there is saying
+  it and moving the eye: nothing opens beside, and the frame keeps its
+  shape. A plain window names no pane, so there a verb opens one below,
+  in the stack beside the shell (`tmux/conf:/main-vertical/`).
 
 Look never runs
   o shows a thing, and the shell runs one: a script is text, so a right

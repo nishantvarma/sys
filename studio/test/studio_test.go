@@ -61,7 +61,8 @@ func settle(ok func() bool) bool {
 // frame, the other program and the shells at their prompt, and the window
 // with them; a shell that exits ends alone, and so does a face that ends
 // while ed names work it holds unsaved, as after a crash; and a shell
-// running a command stays, its window then a plain one.
+// running a command stays, its window then a plain one, whose pane is
+// named for no slot.
 func TestEnd(t *testing.T) {
 	if _, err := exec.LookPath("tmux"); err != nil {
 		t.Skip("no tmux")
@@ -111,7 +112,8 @@ func TestEnd(t *testing.T) {
 		slot := map[string]string{}
 		for n, says := range map[string]string{"a": "in a",
 			"b": "in b", "one": "", "two": ""} {
-			slot[n] = tm("show", "-wv", "-t", w, "@studio-"+n)
+			slot[n] = tm("list-panes", "-t", w, "-f",
+				"#{==:#{@slot},"+n+"}", "-F", "#{pane_id}")
 			if !settle(shows(slot[n], says)) {
 				t.Fatalf("slot %s never showed %q", n, says)
 			}
@@ -173,7 +175,8 @@ func TestEnd(t *testing.T) {
 		t.Errorf("the face ended over a busy shell: %v", panes(w))
 	}
 	if !settle(func() bool {
-		return tm("show", "-wqv", "-t", w, "@studio-frame") == ""
+		return tm("show", "-wqv", "-t", w, "@studio-frame") == "" &&
+			tm("show", "-pqv", "-t", slot["two"], "@slot") == ""
 	}) {
 		t.Error("the window left is still the frame's")
 	}
@@ -250,7 +253,8 @@ func TestMouse(t *testing.T) {
 	w := tm("show", "-gv", "@studio")
 	slot := map[string]string{}
 	for _, n := range []string{"fm", "ed", "shell"} {
-		slot[n] = tm("show", "-wv", "-t", w, "@studio-"+n)
+		slot[n] = tm("list-panes", "-t", w, "-f",
+			"#{==:#{@slot},"+n+"}", "-F", "#{pane_id}")
 	}
 	shows := func(p, s string) bool {
 		return strings.Contains(tm("capture-pane", "-pJ", "-t", p), s)
@@ -264,10 +268,14 @@ func TestMouse(t *testing.T) {
 		tm("run-shell", strings.Join(append([]string{"p", p},
 			mode...), " "))
 	}
-	eye := func() string { return tm("display", "-p", "-t", w,
-		"#{pane_id}") }
-	count := func(w string) string { return tm("display", "-p", "-t",
-		w, "#{window_panes}") }
+	eye := func() string {
+		return tm("display", "-p", "-t", w,
+			"#{pane_id}")
+	}
+	count := func(w string) string {
+		return tm("display", "-p", "-t",
+			w, "#{window_panes}")
+	}
 
 	for _, c := range []struct{ word, eye string }{
 		{"a.txt", "ed"}, {"sub,", "fm"}, {"./run.sh", "ed"},

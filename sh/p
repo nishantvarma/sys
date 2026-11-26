@@ -44,16 +44,18 @@ n=$"text
 if (~ $mode -a && ~ $"* *' '*) n=$"*
 if not if (! ~ $"text http://* https://*) n=`{c $"text}
 
-# the shell takes it at its prompt: the pane you marked, else the frame's
-# shell, the eye going with it, else the last pane. a pane found so takes
-# it only while a shell waits at its prompt, for a program there would
-# read the text as its keys. it goes as a paste, not keys, bracketed for a
-# program that asks, so nothing in it runs: Return is yours.
+# the shell takes it at its prompt: the pane you marked, else the pane
+# named shell, @slot, a frame's, the eye going with it, else the last
+# pane. a pane found so takes it only while a shell waits at its prompt,
+# for a program there would read the text as its keys. it goes as a
+# paste, not keys, bracketed for a program that asks, so nothing in it
+# runs: Return is yours.
 if (~ $mode -a) {
 	eye=()
 	dst='{marked}'
 	if (~ `{tmux display -p '#{pane_marked_set}'} 0) {
-		dst=`{studio pane shell >[2]/dev/null}
+		dst=`{tmux list-panes -t $TMUX_PANE -f '#{==:#{@slot},shell}' \
+			-F '#{pane_id}' >[2]/dev/null}
 		if (~ $#dst 0) dst='{last}'
 		if not eye=$dst
 		sh=`{tmux show -gv default-shell | sed 's,.*/,,'}

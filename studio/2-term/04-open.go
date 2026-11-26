@@ -8,10 +8,12 @@
 // frame; and a pane's end runs closeVerb, which ends the frame when the
 // pane was its face, fm's slot (face).
 // Its borders are drawn in the rule's colour, the palette's, as the
-// samples drew the frame. The window keeps each slot's pane by name,
-// @studio-name, the frame it was laid out from, @studio-frame, its face,
-// @studio-face, and the shell it was laid out around, @studio-here; and it
-// becomes the studio a program in another window reaches, @studio.
+// samples drew the frame. Each slot's pane carries the slot's name,
+// @slot, which is how e, o and p -a find it, asking tmux and not studio
+// (`design/mouse`). The window keeps the frame it was laid out from,
+// @studio-frame, its face, @studio-face, and the shell it was laid out
+// around, @studio-here; and it becomes the studio a program in another
+// window reaches, @studio.
 func (f *frame) open(dir, here string, dry bool) error {
 	t := &tmux{dry: dry}
 	top, err := here, error(nil)
@@ -61,8 +63,8 @@ func (f *frame) open(dir, here string, dry bool) error {
 				"-e", "STUDIO=" + s.name, "-c", dir, s.cmd}
 			cmds = append(cmds, run)
 		}
-		cmds = append(cmds, []string{"set", "-w", "-t", win,
-			"@studio-" + s.name, panes[s]})
+		cmds = append(cmds, []string{"set", "-p", "-t", panes[s],
+			"@slot", s.name})
 	}
 	for _, o := range borders {
 		cmds = append(cmds, []string{"set", "-w", "-t", win, o,

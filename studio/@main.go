@@ -25,8 +25,6 @@
 //	                                face, fm, the frame ends with it
 //	studio slots [frame]            the frame's slots as JSON, for a
 //	                                host that lays them out itself
-//	studio pane slot                the pane of a slot of this window's
-//	                                frame: where e, o and p -a land
 package main
 
 import (

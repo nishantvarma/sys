@@ -8,10 +8,11 @@ if (~ $#* 0) exit
 # o shows a thing and never runs one: a script is text, which e opens, and
 # running is the shell's, where a middle click hands it (design/mouse).
 #
-# a folder, in a frame, is the slot named fm's: it runs fm -f, on cur
-# already, so the eye goes there; else an fm opens beside.
+# a folder, in a frame, is the pane named fm's, @slot: it runs fm -f, on
+# cur already, so the eye goes there; else an fm opens below.
 fn folder {
-	fm=`{studio pane fm >[2]/dev/null}
+	fm=`{tmux list-panes -t $TMUX_PANE -f '#{==:#{@slot},fm}' \
+		-F '#{pane_id}' >[2]/dev/null}
 	if (~ $#fm 0 || ! tmux select-pane -t $fm >[2]/dev/null)
 		spawn -t fm `{readlink -f $1}
 }
