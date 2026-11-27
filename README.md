@@ -245,9 +245,9 @@ Each target is tangled, vetted and compiled, so `bin/tangle` must already
 exist — it's tangled by itself. go's own tools read the tangled `main.go`
 and never the chunks, which are no package: `go vet ./...` and gopls
 choke on them, and `go vet main.go` in a target's folder is the way, as
-`build` vets each. A `<<name>>` that names no chunk stops the tangle. `build` also copies `sh/` into `bin/`, so the
-compiled programs and the scripts they call end up in one place — put
-`bin/` on your `$PATH` and that's the whole environment. No install step,
-no config — small enough to read in one sitting, and meant to stay that
-way. `check` runs every check the tree ships, the packages' tests among
-them.
+`build` vets each. A `<<name>>` that names no chunk stops the tangle. `build`
+also copies `sh/` into `bin/`, so the compiled programs and the scripts they
+call end up in one place — put `bin/` on your `$PATH` and that's the whole
+environment. No install step, no config — small enough to read in one sitting,
+and meant to stay that way. `check` runs every check the tree ships, the
+packages' tests among them.
