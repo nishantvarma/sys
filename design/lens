@@ -75,12 +75,12 @@ The tabs in tmux
   carries its slot, @slot, its name, @tab, and its frame, @frame; e finds
   the source tab by its name and shows it first
   (`sh/e:/studio tab source/`). The tab line is the slot's, drawn on the
-  border over it in the palette's chips (`studio/2-term/12-bar.go`), and
+  border over it in the palette's chips (`studio/2-term/12-bar/01-bar.go`), and
   each name on it is a button: tmux marks ranges on a border line, each
   with a mouse key of its own, and a press on one sends studio tab what l
   would, the tab at that place, or the panel's new terminal or close
   (`tmux/conf:/a frame's tab line/`). A tab that ends gives its place to
-  the next (`studio/5-verbs/19-died.go`), and the frame's end ends the
+  the next (`studio/2-term/21-died.go`), and the frame's end ends the
   tabs waiting with it.
 
 The tabs in gio's window

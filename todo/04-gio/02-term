@@ -4,7 +4,7 @@ some of fm and ed works only there, so a window does not carry it. the
 test for each: can every view do it in messages alone? help can, as
 nodes a view lays out (`outline/help.go:/func Help/`), and a picker runs
 fzy beside the window, in st
-(`fm/4-main/22-pick.go:/is a pick off the terminal/`). left:
+(`fm/4-main/22-pick/02-beside.go:/is a pick off the terminal/`). left:
   beside    only o and e run beside a window
             (`fm/4-main/13-spawn.go:/Off the terminal, in a window/`): v,
             w and F could, their output kept readable

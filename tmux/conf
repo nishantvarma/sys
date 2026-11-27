@@ -113,7 +113,7 @@ bind-key -T copy-mode-vi MouseDown2Pane if-shell -F "#{selection_present}" {
 }
 
 # a frame's tab line, the border over a slot of tabs, names them, each name
-# a button, a control range by its place (studio/2-term/12-bar.go): a
+# a button, a control range by its place (studio/2-term/12-bar/01-bar.go): a
 # press sends studio tab what l would, the tab at that place, and the
 # panel's + and × a new terminal and a close, its error, if any, said on
 # tmux's message line. the pane is the one whose border it is; a press on

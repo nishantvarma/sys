@@ -11,9 +11,3 @@ func (e *editor) selToEnd() bool {
 	})
 	return true
 }
-
-func (e *editor) deleteToEnd() {
-	if e.selToEnd() {
-		e.del()
-	}
-}

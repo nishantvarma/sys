@@ -350,7 +350,7 @@ func (s *studio) showTab(slot string, p *pane) {
 
 // drop takes a tab that ended out of its slot's tabs, the next taking its
 // place when it was the one shown, as a tab in tmux gives its place
-// (`studio/5-verbs/19-died.go`); false for a slot's last, which stays,
+// (`studio/2-term/21-died.go`); false for a slot's last, which stays,
 // ended
 func (s *studio) drop(p *pane) bool {
 	tabs := s.tabs[p.name]

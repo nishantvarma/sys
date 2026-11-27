@@ -1,5 +1,3 @@
-const countMax = 9999 // caps a fat-fingered prefix so the replay can't hang
-
 func (normalMode) key(e *editor, k tty.Key) {
 	tok := k.Token()
 	if tok != "q" { // any other key disarms a pending dirty-quit

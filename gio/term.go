@@ -96,7 +96,7 @@ func (t *typist) run(f *os.File) {
 // newterm opens a terminal as a tab of the panel, named by the next
 // number free among its tabs, and shows it with the eye on it, the panel
 // too when it was hidden, as l new does in tmux
-// (`studio/5-verbs/18-newtab.go`); a last tab that ended goes for it
+// (`studio/2-term/20-newtab.go`); a last tab that ended goes for it
 func (s *studio) newterm() {
 	if s.panel == "" {
 		return

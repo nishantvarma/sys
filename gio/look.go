@@ -127,7 +127,7 @@ func (p *pane) barAt(x int) string {
 // -- a text, ed's: its lines after their numbers, and its status
 
 // gutter is ed's: a margin, a line's number in three digits or as many as
-// the last needs, and two blanks (`ed/4-view/01-look.go`)
+// the last needs, and two blanks (`ed/4-view/01-look/02-gutter.go`)
 func gutter(n int) int { return max(3, len(strconv.Itoa(n))) + 3 }
 
 // source is ed's pane, as ed draws it on the terminal: the bar and its
@@ -337,10 +337,10 @@ func (s *studio) tabBar(name string, cols int) (*strip, []view.Chip) {
 }
 
 // panelBar is the panel's bar, cols wide, as tmux's tab line has it
-// (`studio/2-term/12-bar.go`): its n terminals by their place, the one at
-// on lit, then + and, with one to spare, ×; and where each stands, the
-// word a press there asks (turn). No hint of Tab, as a lens's bar has,
-// for in a terminal Tab is the shell's
+// (`studio/2-term/12-bar/01-bar.go`): its n terminals by their place, the
+// one at on lit, then + and, with one to spare, ×; and where each stands,
+// the word a press there asks (turn). No hint of Tab, as a lens's bar
+// has, for in a terminal Tab is the shell's
 func panelBar(n, on, cols int) (*strip, []view.Chip) {
 	k := (&strip{}).add(" ", "", "", false)
 	var chips []view.Chip
