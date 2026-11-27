@@ -99,6 +99,7 @@ control mode, the text protocol -CC runs with echo off as iTerm2 does,
 was turned down here as the road to owning the grid: its client takes
 raw bytes and must be a terminal, and having no tty it never fires
 tmux's mouse bindings, so mouse_word, copy_cursor_word, copy-mode and
-copy-pipe all go (`design/address:/Not a terminal/`). studio's plan
-takes that road, running the shell through control mode and drawing it
-in a slot: `todo/03-studio/03-shell`.
+copy-pipe all go (`design/address:/Not a terminal/`). gio's window
+took another road to a grid of its own: its shells run in a terminal it
+holds itself, st's as sys/vt has it (`gio/term.go`), and control mode
+stays turned down.

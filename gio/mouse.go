@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"sys/outline"
@@ -51,7 +52,12 @@ func (v *window) look(p *pane, x, y int) {
 		}
 		return
 	}
-	text := p.clicked(x, y)
+	v.lookat(p.clicked(x, y))
+}
+
+// lookat opens what text names, as a right press on a text opens it
+// (look)
+func (v *window) lookat(text string) {
 	if text == "" {
 		return
 	}
@@ -74,16 +80,52 @@ func (v *window) look(p *pane, x, y int) {
 }
 
 // do is a middle press at cell x, y of p: a text's word or selection, or
-// a row's address, handed to the shell at its prompt (p -a): in tmux the
-// pane marked, or the last one, for the window has no shell of its own
-func (p *pane) do(x, y int) {
+// a row's address, handed to the shell at its prompt (handon)
+func (v *window) do(p *pane, x, y int) {
+	text := ""
 	if p.isText() {
-		plumb(p.clicked(x, y), "-a")
+		text = p.clicked(x, y)
+	} else if id := p.v.At(x, y); y > 0 {
+		if path, _ := outline.Address(id); filepath.IsAbs(path) {
+			text = id
+		}
+	}
+	if v.frame {
+		v.s.handon(text)
+	} else {
+		plumb(text, "-a")
+	}
+}
+
+// handon hands text to the shell at its prompt, as p -a does: the
+// panel's terminal, shown again if hidden, the eye going there, and the
+// text waiting there for Return; with no terminal left, p -a's own way, to
+// tmux's pane marked, or the last one
+func (s *studio) handon(text string) {
+	t := s.panes[s.panel]
+	switch {
+	case text == "":
+	case t == nil || t.term == nil || t.gone:
+		plumb(text, "-a")
+	default:
+		if s.hidden {
+			s.togglePanel()
+		}
+		t.term.Paste(text)
+		s.focus(slices.Index(s.order, t))
+	}
+}
+
+// say says text to cur, as a left press on a word does in tmux (p -c):
+// fm and ed, following cur, go where it names
+func (s *studio) say(text string) {
+	if text == "" {
 		return
 	}
-	id := p.v.At(x, y)
-	if path, _ := outline.Address(id); y > 0 && filepath.IsAbs(path) {
-		plumb(id, "-a")
+	c := exec.Command("c", text)
+	c.Dir, c.Env = s.dir, s.env
+	if c.Start() == nil {
+		go c.Wait()
 	}
 }
 

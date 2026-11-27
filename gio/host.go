@@ -15,6 +15,7 @@ import (
 
 	"sys/state"
 	"sys/tty"
+	"sys/vt"
 	"sys/watch"
 )
 
@@ -35,18 +36,21 @@ type slot struct {
 type pane struct {
 	app        // the program as the window holds it
 	cmd        *exec.Cmd
+	term       *vt.Term // a shell's screen, for a shell's pane (term.go)
+	pty        *os.File
 	name       string
 	tab        string // the tab it shows, by name; its slot's, for none
 	cols, high int
 	first, off int  // a text's scroll: the first line and column shown
-	gone       bool // its program ended, or a shell, which has none
+	gone       bool // what ran in it ended
 }
 
-// news is one thing for the window's thread: a pane's message or its
-// end, or, with no pane, a change to cur
+// news is one thing for the window's thread: a pane's message, what its
+// shell wrote, or its end, or, with no pane, a change to cur
 type news struct {
 	p     *pane
 	m     *in
+	out   []byte
 	ended bool
 }
 
@@ -74,8 +78,8 @@ type studio struct {
 
 // start lays studio/frame out on dir: each slot that runs something runs
 // it with -s, its view this window, told its slot ($STUDIO), and a shell
-// slot waits, for a shell needs a terminal. cur is watched for the
-// programs that follow it
+// slot a shell in a terminal of the window's own (openterm). cur is
+// watched for the programs that follow it
 func start(dir string) (*studio, error) {
 	out, err := exec.Command("studio", "slots").Output()
 	if err != nil {
@@ -118,16 +122,19 @@ func start(dir string) (*studio, error) {
 		}
 		for i, tb := range tabs {
 			p := &pane{app: newApp(nil), name: sl.Name,
-				tab: tb.Name, gone: tb.Run == ""}
+				tab: tb.Name}
 			s.tabs[sl.Name] = append(s.tabs[sl.Name], p)
 			if i == 0 {
 				s.panes[sl.Name] = p
 				s.order = append(s.order, p)
 			}
-			if !p.gone {
-				if err := s.launch(p, tb.Run); err != nil {
-					return nil, err
-				}
+			if tb.Run == "" {
+				err = s.openterm(p)
+			} else {
+				err = s.launch(p, tb.Run)
+			}
+			if err != nil {
+				return nil, err
 			}
 		}
 	}
@@ -153,8 +160,8 @@ func leaves(slots []slot) []slot {
 }
 
 // focus gives the eye to the first pane from i on with a program, and
-// tells each program whether it has it; fm says its row to cur only
-// then. A lone pane is its program's own, eye and all
+// tells each program whether it has it (eye). A lone pane is its
+// program's own, eye and all
 func (s *studio) focus(i int) {
 	for range s.order {
 		if !s.order[i%len(s.order)].gone {
@@ -167,13 +174,23 @@ func (s *studio) focus(i int) {
 		return
 	}
 	for j, p := range s.order {
-		if !p.gone && p.out != nil {
-			name := tty.KBlur
-			if j == s.eye {
-				name = tty.KFocus
-			}
-			p.key(name, "")
+		p.eye(j == s.eye)
+	}
+}
+
+// eye tells what runs in a pane whether it has the eye: fm says its row
+// to cur only then, and a terminal tells a program that asked (vt.Focus)
+func (p *pane) eye(has bool) {
+	switch {
+	case p.gone:
+	case p.term != nil:
+		p.term.Focus(has)
+	case p.out != nil:
+		name := tty.KBlur
+		if has {
+			name = tty.KFocus
 		}
+		p.key(name, "")
 	}
 }
 
@@ -183,23 +200,30 @@ func (s *studio) handle(e news) (copied string, done bool) {
 	switch {
 	case e.p == nil:
 		// a window's file changed: a size wakes a program to chase
-		// cur; a tab asked shows; the panel hides or shows
+		// cur, a terminal's shell none; a tab asked shows; the panel
+		// hides or shows
 		for _, p := range s.order {
-			if !p.gone && p.cols > 0 {
+			if !p.gone && p.out != nil && p.cols > 0 {
 				size := object{"w": p.cols, "h": p.high}
 				p.send("size", size)
 			}
 		}
 		s.asked()
 		s.hidden = state.Read(s.panelf) == "hidden"
+	case e.out != nil:
+		e.p.term.Write(e.out)
 	case e.ended:
 		// the face's end, fm's, ends the frame: the window goes, and
 		// with it each program's view, so each ends. But while ed
 		// names work it holds unsaved, which fm's second q takes
 		// away, fm ended some other way, as a crash ends it, and the
-		// frame stays for ed to save. Another's end is its own, the
-		// eye moving on from it
+		// frame stays for ed to save. Another's end is its own: a
+		// tab gives its place to the next (drop), and the eye moves
+		// on from it
 		e.p.gone = true
+		if s.drop(e.p) {
+			break
+		}
 		if e.p == s.face && state.Read(s.unsaved) == "" {
 			return "", true
 		}
@@ -264,11 +288,20 @@ func (s *studio) launch(p *pane, run string) error {
 	return nil
 }
 
-// turn shows a slot's tab as studio tab asks it
-// (`studio/5-verbs/22-ask.go`), or a press on the slot's bar names it: the
-// next or the one before, round, one by its place from 1, or one by its
-// name
+// turn does to a slot's tabs what studio tab asks
+// (`studio/5-verbs/22-ask.go`), or a press on the slot's bar names: shows
+// the next or the one before, round, one by its place from 1, or one by
+// its name; opens a terminal in the panel, new; or ends the tab shown,
+// close
 func (s *studio) turn(slot, word string) {
+	switch word {
+	case "new":
+		s.newterm()
+		return
+	case "close":
+		s.closetab(slot)
+		return
+	}
 	tabs := s.tabs[slot]
 	if len(tabs) < 2 {
 		return
@@ -307,14 +340,30 @@ func (s *studio) showTab(slot string, p *pane) {
 	i := slices.Index(s.order, old)
 	s.order[i] = p
 	p.cols, p.high = 0, 0
-	if !old.gone && old.out != nil {
-		old.key(tty.KBlur, "")
-	}
+	old.eye(false)
 	if s.eye == i {
 		s.focus(i)
-	} else if !p.gone && p.out != nil {
-		p.key(tty.KBlur, "")
+	} else {
+		p.eye(false)
 	}
+}
+
+// drop takes a tab that ended out of its slot's tabs, the next taking its
+// place when it was the one shown, as a tab in tmux gives its place
+// (`studio/5-verbs/19-died.go`); false for a slot's last, which stays,
+// ended
+func (s *studio) drop(p *pane) bool {
+	tabs := s.tabs[p.name]
+	i := slices.Index(tabs, p)
+	if i < 0 || len(tabs) < 2 {
+		return false
+	}
+	tabs = slices.Delete(tabs, i, i+1)
+	s.tabs[p.name] = tabs
+	if s.panes[p.name] == p {
+		s.showTab(p.name, tabs[i%len(tabs)])
+	}
+	return true
 }
 
 // asked does what studio tab asked last, once: the window's tab file says
@@ -326,7 +375,11 @@ func (s *studio) asked() {
 	}
 	s.lastAsk = line
 	if f := strings.Fields(line); len(f) >= 2 {
-		s.turn(f[0], f[1])
+		slot := f[0]
+		if slot == "." { // the slot typed in, the eye's
+			slot = s.order[s.eye].name
+		}
+		s.turn(slot, f[1])
 	}
 }
 

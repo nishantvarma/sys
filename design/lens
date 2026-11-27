@@ -91,8 +91,12 @@ The tabs in gio's window
   the window follows it, as it follows cur (`studio/5-verbs/22-ask.go`);
   ed and the lens tell l the slot they run in, which the window has no
   pane to say. studio panel reaches the window's panel the same way, by
-  its panel file (`studio/5-verbs/24-askpanel.go`). A terminal needs tmux,
-  so the window's panel says so.
+  its panel file (`studio/5-verbs/24-askpanel.go`). The panel's
+  terminals are the window's own, each a shell on a pty, its screen st's
+  as sys/vt keeps it (`gio/term.go`), and its tab line has + and ×, as
+  tmux's has. A shell is told no slot, so that what runs from it is in
+  no frame, and l typed there asks of the slot with the eye, the one it
+  was typed in.
 
 Read, never typed
   No key types in the outline, the render or the diff, so none changes the
@@ -114,6 +118,7 @@ What is where
 	                      (`studio/1-frame`)
 	sys/view              outline, render and diff, drawn as it draws fm
 	gio's window          the same tabs, its tab line's names buttons
+	sys/vt                a terminal, st's: the window's panel's shells
 	outline.Note          the note an address names, for ed and the lens
 	outline.Text          the items, by their indent
 	sys/picture           a note's render, its picture
@@ -127,7 +132,7 @@ What it costs
 
 Not built
   - a tab of splits, a terminal split in two (`todo/03-studio/10-panes`)
-  - a terminal in gio's window, and the tabs on the page
+  - the tabs on the page
 
 Given up
   - the lens in ed, Tab turning ed's pane: each way to see the text made

@@ -16,8 +16,9 @@ rebuild away.
               directory, and it shells out to your own tools instead of
               reimplementing them; `fm -f` goes where cur is said
     gio       sys's views in a window, drawn by gio: studio's frame, fm,
-              ed and the lens in it as they are; its own module, built
-              apart (`gio/README`)
+              ed and the lens in it as they are, and its shells in
+              terminals of its own, by vt; its own module, built apart
+              (`gio/README`)
     studio    the frame: the lens view, the thing at fm's cursor seen
               its ways, its source in ed and its outline, render and
               diff by `studio show`; fm; and the terminals, a panel
@@ -38,6 +39,10 @@ and the packages they share:
               and what a click on a text names
     tty       the shared terminal layer: raw mode, escape codes,
               key and click decoding, line input
+    vt        a terminal as a host runs one, st's ported: what a
+              program writes made a screen of cells, and keys, a paste
+              and the mouse made what it reads; a program started on a
+              pty. tty's other side, for gio's window to run terminals
     view      the outline drawn on a terminal: fm's layouts, rows and
               thumbs, and a program's lenses on a tab line in place of its
               head, on the whole screen or in a region a host gives,
@@ -117,8 +122,8 @@ insertmode/key coexist, both under `ed/3-mode`; `<<name>>` takes any path
 suffix that names one chunk. tangle walks the tree and stitches it into a
 single `main.go`. Browse the outline in fm, edit the chunks in ed — no
 markup to learn. `tangle`, `fm`, `ed` and `studio` are each written this
-way; `outline`, `tty`, `view`, `watch`, `state` and `picture` stay plain
-Go packages.
+way; `outline`, `tty`, `vt`, `view`, `watch`, `state` and `picture` stay
+plain Go packages.
 
 The outline does not stop at a file. A note is an outline too, by its
 indent, so one tree runs from the root, the topmost thing, down through

@@ -1,5 +1,6 @@
 // sys's windows in gio: an extension beside the terminal, and the proof
-// that sys's programs need none: fm, ed and the lens run here as they are.
+// that sys's programs need none: fm, ed and the lens run here as they are,
+// and a shell in a terminal of the window's own (term.go).
 // With no argument it is `window`, the view at the other end of a
 // program's pipe, as fm -w starts it. -studio dir lays studio/frame out, as
 // `studio slots` says it, each slot's program at the end of a pipe. Only
@@ -35,6 +36,7 @@ import (
 
 	"sys/tty"
 	"sys/view"
+	"sys/vt"
 )
 
 const (
@@ -65,9 +67,10 @@ type window struct {
 
 	focused bool
 	full    bool
-	hits    []hit    // where each pane was drawn last, for a click
-	bars    []barHit // where each slot's bar was, for a click
-	held    *pane    // where the left button went down, for a drag
+	hits    []hit           // where each pane was drawn last, for a click
+	bars    []barHit        // where each slot's bar was, for a click
+	held    *pane           // where the left button went down, for a drag
+	buttons pointer.Buttons // held, as the last pointer event had them
 }
 
 type hit struct {
@@ -156,9 +159,9 @@ func (v *window) line(gtx layout.Context, k *strip, at image.Point, cw int) {
 }
 
 // slot draws the pane of the slot named in area, telling its program the
-// size when that changes; a shell, which needs a terminal, says so. A slot
-// of tabs has its bar over the tab it shows, each tab's name a button
-// (tabBar)
+// size when that changes; a shell's terminal as st draws one (term), or,
+// its shell ended, says so. A slot of tabs has its bar over the tab it
+// shows, each tab's name a button (tabBar)
 func (v *window) slot(gtx layout.Context, name string, area image.Rectangle,
 	cw int) {
 	p, h := v.s.panes[name], gtx.Dp(cellH)
@@ -170,14 +173,18 @@ func (v *window) slot(gtx layout.Context, name string, area image.Rectangle,
 		v.bars = append(v.bars, barHit{row, name, chips})
 		area.Min.Y += h
 	}
-	if p.out == nil {
-		for y, said := range []string{
-			" " + name + ": a shell needs a terminal; studio in" +
-				" tmux has one",
-			" ctrl-w moves the eye · a click picks"} {
-			k := (&strip{}).add(said, tty.Faint, "", false)
-			v.line(gtx, k, area.Min.Add(image.Pt(0, y*h)), cw)
+	if p.term != nil && p.gone {
+		said := " " + name + ": the shell ended"
+		if name == v.s.panel {
+			said += "; + opens another"
 		}
+		k := (&strip{}).add(said, tty.Faint, "", false)
+		v.line(gtx, k, area.Min, cw)
+		return
+	}
+	if p.term != nil {
+		v.term(gtx, p, area, cw)
+		v.hits = append(v.hits, hit{area, p})
 		return
 	}
 	cols, high := area.Dx()/cw, area.Dy()/h
@@ -267,20 +274,26 @@ func (v *window) under(at image.Point, cw, h int) (*pane, int, int, bool) {
 // (`design/mouse`): a left press picks (pressedAt), on a slot's bar the
 // tab named there too, and a move with it held drags a text's selection; a
 // right press looks (look), a middle one hands on (do), and the wheel
-// moves (wheel), each on the pane under it
+// moves (wheel), each on the pane under it; on a terminal, the mouse is
+// as st has it (mouse)
 func (v *window) pointed(e pointer.Event, cw, h int) {
 	at := e.Position.Round()
+	was := v.buttons
+	v.buttons = e.Buttons
 	p, x, y, ok := v.under(at, cw, h)
 	onBar := slices.ContainsFunc(v.bars, func(b barHit) bool {
 		return at.In(b.area)
 	})
-	switch {
-	case e.Kind == pointer.Release:
+	if e.Kind == pointer.Release {
 		v.held = nil
+	}
+	switch {
 	case onBar && e.Kind == pointer.Press &&
 		e.Buttons.Contain(pointer.ButtonPrimary):
 		v.pressedAt(at, cw, h) // a slot's bar, above its pane
-	case !ok:
+	case ok && p.term != nil:
+		v.mouse(p, e, was, x, y)
+	case !ok, e.Kind == pointer.Release:
 	case e.Kind == pointer.Press &&
 		e.Buttons.Contain(pointer.ButtonPrimary):
 		v.pressedAt(at, cw, h)
@@ -292,7 +305,7 @@ func (v *window) pointed(e pointer.Event, cw, h int) {
 		v.look(p, x, y)
 	case e.Kind == pointer.Press &&
 		e.Buttons.Contain(pointer.ButtonTertiary):
-		p.do(x, y)
+		v.do(p, x, y)
 	case e.Kind == pointer.Scroll && e.Scroll.Y != 0:
 		p.wheel(e.Scroll.Y)
 	}
@@ -354,7 +367,9 @@ var named = map[key.Name]string{
 // input does what came in since the last frame; toggle is whether f11
 // asked for the other mode, full screen or not. A key goes as tty names
 // it, ctrl and a letter as C- and the letter, ctrl-c as tty's INT; ctrl-v
-// pastes, and the mouse is as in any pane (pointed)
+// pastes, and the mouse is as in any pane (pointed). To a terminal a key
+// goes as vt names it (typed), but the window's own, and ctrl-shift-v
+// pastes, as in st
 func (v *window) input(gtx layout.Context) (toggle bool) {
 	all := key.ModCtrl | key.ModShift | key.ModAlt
 	filters := []event.Filter{
@@ -365,7 +380,7 @@ func (v *window) input(gtx layout.Context) (toggle bool) {
 		},
 		pointer.Filter{Target: &v.tag,
 			Kinds: pointer.Press | pointer.Drag | pointer.Release |
-				pointer.Scroll,
+				pointer.Move | pointer.Scroll,
 			ScrollY: pointer.ScrollRange{Min: -1 << 30,
 				Max: 1 << 30}},
 		key.Filter{Focus: &v.tag, Optional: all},
@@ -380,7 +395,10 @@ func (v *window) input(gtx layout.Context) (toggle bool) {
 		switch e := e.(type) {
 		case key.EditEvent:
 			for _, r := range e.Text {
-				if unicode.IsPrint(r) {
+				switch {
+				case p.term != nil:
+					p.term.Type(r, 0)
+				case unicode.IsPrint(r):
 					p.pressed(string(r))
 				}
 			}
@@ -395,6 +413,11 @@ func (v *window) input(gtx layout.Context) (toggle bool) {
 			case e.Modifiers.Contain(key.ModAlt) &&
 				e.Name == "T" && v.frame:
 				v.s.togglePanel()
+			case p.term != nil && ctrl && e.Name == "V" &&
+				e.Modifiers.Contain(key.ModShift):
+				gtx.Execute(clipboard.ReadCmd{Tag: &v.tag})
+			case p.term != nil:
+				typed(p.term, e)
 			case ctrl && e.Name == "C":
 				p.pressed(tty.KInt)
 			case ctrl && e.Name == "V":
@@ -419,14 +442,20 @@ func (v *window) input(gtx layout.Context) (toggle bool) {
 	}
 }
 
-// paste hands ed what the clipboard held, as one key
+// paste hands what the clipboard held to the pane with the eye: ed as
+// one key, a terminal as st pastes (vt.Paste)
 func paste(p *pane, e transfer.DataEvent) {
-	if !p.isText() {
+	if !p.isText() && p.term == nil {
 		return
 	}
 	r := e.Open()
 	defer r.Close()
-	if b, err := io.ReadAll(r); err == nil {
+	b, err := io.ReadAll(r)
+	switch {
+	case err != nil:
+	case p.term != nil:
+		p.term.Paste(string(b))
+	default:
 		p.send("key", object{"name": tty.KPaste, "text": string(b)})
 	}
 }
@@ -555,4 +584,162 @@ func main() {
 		os.Exit(0)
 	}()
 	gioapp.Main()
+}
+
+// -- the terminal, its gio side (term.go)
+
+// term draws a terminal in area: its program told the size when it
+// changes (vt.Setsize), each row a strip in st's colours, and the cursor
+// as st draws it, unless the program hid it: in the shape it asked for
+// while the terminal has the eye, else a box.
+func (v *window) term(gtx layout.Context, p *pane, area image.Rectangle,
+	cw int) {
+	h := gtx.Dp(cellH)
+	cols, rows := max(1, area.Dx()/cw), max(1, area.Dy()/h)
+	if cols != p.cols || rows != p.high {
+		p.cols, p.high = cols, rows
+		p.term.Resize(cols, rows)
+		vt.Setsize(p.pty, cols, rows)
+	}
+	rev := p.term.Reversed()
+	for y := range rows {
+		at := area.Min.Add(image.Pt(0, y*h))
+		v.line(gtx, row(p.term.Line(y), rev), at, cw)
+	}
+	if p.term.Hidden() {
+		return
+	}
+	x, y := p.term.Cursor()
+	at := area.Min.Add(image.Pt(x*cw, y*h))
+	r := image.Rectangle{Min: at, Max: at.Add(image.Pt(cw, h))}
+	ink := hex(code(palette[defaultcs]))
+	switch shape := p.term.Shape(); {
+	case v.s.order[v.s.eye] != p:
+		for _, e := range []image.Rectangle{
+			{r.Min, image.Pt(r.Max.X, r.Min.Y+1)},
+			{image.Pt(r.Min.X, r.Max.Y-1), r.Max},
+			{r.Min, image.Pt(r.Min.X+1, r.Max.Y)},
+			{image.Pt(r.Max.X-1, r.Min.Y), r.Max},
+		} {
+			fill(gtx, e, ink)
+		}
+	case shape == 3 || shape == 4:
+		r.Min.Y = r.Max.Y - 2
+		fill(gtx, r, ink)
+	case shape == 5 || shape == 6:
+		r.Max.X = r.Min.X + 2
+		fill(gtx, r, ink)
+	default:
+		c := p.term.Line(y)[x]
+		k := (&strip{}).add(string(glyph(c)),
+			code(palette[defaultbg]), code(palette[defaultcs]),
+			c.Attr&vt.Bold != 0)
+		v.line(gtx, k, at, cw)
+	}
+}
+
+// termkeys is gio's keys as vt names them; f11 is the window's own
+var termkeys = map[key.Name]vt.Key{
+	key.NameUpArrow: vt.Up, key.NameDownArrow: vt.Down,
+	key.NameLeftArrow: vt.Left, key.NameRightArrow: vt.Right,
+	key.NameHome: vt.Home, key.NameEnd: vt.End,
+	key.NamePageUp: vt.PageUp, key.NamePageDown: vt.PageDown,
+	key.NameDeleteForward: vt.Delete, key.NameDeleteBackward: vt.Backspace,
+	key.NameReturn: vt.Enter, key.NameEnter: vt.Enter,
+	key.NameTab: vt.Tab, key.NameEscape: vt.Esc,
+	key.NameF1: vt.F1, key.NameF2: vt.F2, key.NameF3: vt.F3,
+	key.NameF4: vt.F4, key.NameF5: vt.F5, key.NameF6: vt.F6,
+	key.NameF7: vt.F7, key.NameF8: vt.F8, key.NameF9: vt.F9,
+	key.NameF10: vt.F10, key.NameF12: vt.F12,
+}
+
+// typed hands a terminal a key pressed: a named one as vt names it, with
+// the modifiers held, or, with ctrl or alt held, its rune, which gio then
+// gives as a key and not as text; plain text comes as text (input).
+func typed(t *vt.Term, e key.Event) {
+	m := mods(e.Modifiers)
+	if k, ok := termkeys[e.Name]; ok {
+		t.Key(k, m)
+		return
+	}
+	r := []rune(string(e.Name))
+	switch {
+	case m&(vt.Ctrl|vt.Alt) == 0:
+	case e.Name == key.NameSpace:
+		t.Type(' ', m)
+	case len(r) == 1 && m&vt.Shift == 0:
+		t.Type(unicode.ToLower(r[0]), m)
+	case len(r) == 1:
+		t.Type(r[0], m)
+	}
+}
+
+// mods is gio's modifiers as vt names them
+func mods(m key.Modifiers) vt.Mod {
+	var out vt.Mod
+	if m.Contain(key.ModShift) {
+		out |= vt.Shift
+	}
+	if m.Contain(key.ModCtrl) {
+		out |= vt.Ctrl
+	}
+	if m.Contain(key.ModAlt) {
+		out |= vt.Alt
+	}
+	if m.Contain(key.ModSuper) {
+		out |= vt.Super
+	}
+	return out
+}
+
+// mouse is the mouse on a terminal at cell x, y, was the buttons held
+// before: a program that took the mouse has it, but with shift held, as
+// st keeps it then; else a left press gives the eye and says the word
+// there, a right one looks at it and a middle one hands it to the shell,
+// as on any pane (`design/mouse`); and the wheel is st's (vt.Wheel).
+func (v *window) mouse(p *pane, e pointer.Event, was pointer.Buttons, x,
+	y int) {
+	t, m := p.term, mods(e.Modifiers)
+	if e.Kind == pointer.Scroll {
+		t.Wheel(e.Scroll.Y < 0, x, y, m)
+		return
+	}
+	if t.Mousing() && m&vt.Shift == 0 {
+		switch e.Kind {
+		case pointer.Press:
+			v.s.focus(slices.Index(v.s.order, p))
+			t.Press(button(e.Buttons&^was), x, y, m)
+		case pointer.Release:
+			t.Release(button(was&^e.Buttons), x, y, m)
+		case pointer.Move, pointer.Drag:
+			t.Move(x, y, m)
+		}
+		return
+	}
+	if e.Kind != pointer.Press {
+		return
+	}
+	word := termword(t.Line(y), x)
+	switch button(e.Buttons &^ was) {
+	case 1:
+		v.s.focus(slices.Index(v.s.order, p))
+		v.s.say(word)
+	case 2:
+		v.s.handon(word)
+	case 3:
+		v.lookat(word)
+	}
+}
+
+// button is a button as st numbers them: 1 left, 2 middle, 3 right
+func button(b pointer.Buttons) int {
+	switch {
+	case b.Contain(pointer.ButtonPrimary):
+		return 1
+	case b.Contain(pointer.ButtonTertiary):
+		return 2
+	case b.Contain(pointer.ButtonSecondary):
+		return 3
+	}
+	return 0
 }

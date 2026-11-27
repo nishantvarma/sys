@@ -261,7 +261,10 @@ func TestStudio(t *testing.T) {
 	has("and bare, shows it again",
 		until(func() bool { return !s.hidden }))
 	down("W", key.ModCtrl)
-	has("ctrl-w goes back to fm", s.order[s.eye].name == "fm")
+	has("ctrl-w goes on to the panel's terminal",
+		s.order[s.eye].name == s.panel && s.order[s.eye].term != nil)
+	down("W", key.ModCtrl)
+	has("and back round to fm", s.order[s.eye].name == "fm")
 	char('j')
 	has(
 		"unsaved ed holds as cur moves",

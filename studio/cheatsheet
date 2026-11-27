@@ -17,7 +17,7 @@ the tab line — the names over a slot of tabs, each a button
   ×          close the terminal shown, once there are two
 
 A press sends what l would: l 2, l new, l close. In tmux the first five
-names are buttons, and in gio's window every one; gio runs no terminals.
+names are buttons, and in gio's window every one.
 
 l — the frame's verb, as vi's l steps right: the next tab (sh/l)
   l              the next tab of the slot it runs in

@@ -2,7 +2,8 @@ gio: sys's views drawn by gio (gioui.org), a window beside the terminal,
 and the check that sys's programs need no terminal: fm, ed and the lens
 run here as they are, each at the end of a pipe (-s), and what is no
 text is laid out by sys/view, the terminal's own view, whose lines this
-draws as runs (`view/term.go:/Lines is the screen/`).
+draws as runs (`view/term.go:/Lines is the screen/`). a frame's shell
+runs in a terminal of the window's own, st's as sys/vt has it, on a pty.
 
     gio/build             into bin/window
     gio/build test        vet and tests, on the fm, ed and studio in bin/
@@ -20,6 +21,8 @@ what is where
                 that knows gio
     ft.go       text by freetype, sharp as the terminal's
     host.go     the frame's slots, a program in each
+    term.go     a shell's terminal: its pty, its tabs, its screen as
+                strips
     model.go    a program as the window holds it: sys/view for a
                 folder or the lens, a text drawn here
     look.go     ed's text, and sys/view's lines, as strips
@@ -28,14 +31,18 @@ what is where
 keys: ctrl-w the next pane; ctrl-v paste; f11 full screen; the other
 chords, ctrl-c, -x, -z, -y and -s, are ed's, as on the terminal. a
 frame's keys are as there (`studio/cheatsheet`), and on its tab line
-each tab's name is a button, a click showing that tab.
+each tab's name is a button, a click showing that tab. in a terminal
+every key is its shell's, as st sends it, but ctrl-w, alt-t and f11,
+the window's own, and ctrl-shift-v pastes, as in st.
 
 mouse: as on the terminal (`design/mouse`). a drag in ed's text selects,
 the wheel moves, a right click opens, and a middle click hands the word,
-or the selection it falls in, to p -a. in the frame a right click on a
-file says it, and ed or fm, following cur, show it, the eye going there;
-what is no file opens beside. p -a lands in tmux's marked or last pane,
-for the window has no shell yet.
+or the selection it falls in, to the shell at its prompt: the panel's
+terminal, or, with none, p -a's tmux pane. in the frame a right click on
+a file says it, and ed or fm, following cur, show it, the eye going
+there; what is no file opens beside. on a terminal a left click says
+the word under it, unless the program there took the mouse, which then
+has it, as in st, but with shift held; the wheel is st's.
 
 ? shows a program's keys here as rows, which esc closes, and fm's
 finders, f, s and m, run fzy beside the window, in st, fm taking the
@@ -46,6 +53,6 @@ first, as in tmux: while ed holds work unsaved it says so, and a second q
 ends the frame anyway.
 
 not here yet
-    - a shell: its slot says so. the plan runs it through tmux's control
-      mode (`todo/03-studio/03-shell`)
     - v, w and F, which fm runs on its terminal (`todo/04-gio/02-term`)
+    - a terminal's scrollback and its selection: st has neither, and
+      tmux keeps both

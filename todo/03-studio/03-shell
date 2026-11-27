@@ -1,6 +1,0 @@
-the shell through tmux's control mode
-
-the one slot that is a terminal: tmux in control mode runs it, and studio
-draws its screen in the slot. until then it is a tmux pane, as studio
-lays the frame out, and gio's shell slot says it needs a terminal.
-`design/plumbing:/-CC is a different question/` weighs what it costs.

@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -315,26 +316,54 @@ func (p *pane) line(i, g int) *strip {
 }
 
 // tabBar is a slot of tabs' bar, cols wide, as sys/view lays a bar out
-// (`view/bar.go:/func Bar/`): each tab by its name, a terminal of the
-// panel by its place, the one shown lit; and where each name stands, the
-// tab a press there shows. None for a slot of one tab
+// (`view/bar.go:/func Bar/`): each tab by its name, the one shown lit; and
+// where each name stands, the tab a press there shows. None for a slot of
+// one tab; the panel's is its own (panelBar)
 func (s *studio) tabBar(name string, cols int) (*strip, []view.Chip) {
 	tabs := s.tabs[name]
-	if len(tabs) < 2 {
+	on := slices.Index(tabs, s.panes[name])
+	switch {
+	case name == s.panel:
+		return panelBar(len(tabs), on, cols)
+	case len(tabs) < 2:
 		return nil, nil
 	}
 	var names []string
-	on := 0
-	for i, p := range tabs {
-		n := p.tab
-		if name == s.panel {
-			n = strconv.Itoa(i + 1)
-		}
-		names = append(names, n)
-		if p == s.panes[name] {
-			on = i
-		}
+	for _, p := range tabs {
+		names = append(names, p.tab)
 	}
 	runs, chips := view.Bar(names, on, cols)
 	return stripOf(runs), chips
+}
+
+// panelBar is the panel's bar, cols wide, as tmux's tab line has it
+// (`studio/2-term/12-bar.go`): its n terminals by their place, the one at
+// on lit, then + and, with one to spare, ×; and where each stands, the
+// word a press there asks (turn). No hint of Tab, as a lens's bar has,
+// for in a terminal Tab is the shell's
+func panelBar(n, on, cols int) (*strip, []view.Chip) {
+	k := (&strip{}).add(" ", "", "", false)
+	var chips []view.Chip
+	put := func(label, word string, lit bool) {
+		c := " " + label + " "
+		w := len([]rune(c))
+		if k.w+w > cols {
+			return
+		}
+		fg, bg := tty.Soft, ""
+		if lit {
+			fg, bg = tty.Fore, tty.Rule
+		}
+		chips = append(chips, view.Chip{From: k.w, To: k.w + w,
+			Lens: word})
+		k.add(c, fg, bg, lit)
+	}
+	for i := range n {
+		put(strconv.Itoa(i+1), strconv.Itoa(i+1), i == on)
+	}
+	put("+", "new", false)
+	if n > 1 {
+		put("×", "close", false)
+	}
+	return k.pad(cols, ""), chips
 }

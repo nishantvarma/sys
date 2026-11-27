@@ -22,7 +22,7 @@ func Clicked(text *Node, i, at int) string {
 		}
 		r += n
 	}
-	return wordAt([]rune(ln.Text), at-1)
+	return Word([]rune(ln.Text), at-1)
 }
 
 // Selected is the text under the selection in the lines text holds: the
@@ -39,10 +39,10 @@ func Selected(text *Node) string {
 	return string(b)
 }
 
-// wordAt is the word around rune i of line, a run of runes between
+// Word is the word around rune i of line, a run of runes between
 // blanks, as tmux takes the word under a click
 // (`tmux/conf:/word-separators/`); empty on a blank.
-func wordAt(line []rune, i int) string {
+func Word(line []rune, i int) string {
 	space := func(j int) bool { return line[j] == ' ' || line[j] == '\t' }
 	if i < 0 || i >= len(line) || space(i) {
 		return ""
