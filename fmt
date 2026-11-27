@@ -5,7 +5,12 @@ find . -name '*.go' ! -name '@main.go' ! -name '[0-9]*' -exec gofmt -w {} +
 npx --yes --loglevel=error prettier@3.9.9 --log-level warn \
 	--print-width 79 --single-quote --arrow-parens avoid \
 	--write $(find . -name '*.html' -o -name '*.mjs')
+# a rune is one column, however many bytes it takes, as check counts it
 over=$(find . -name '*.go' ! -name main.go | while read -r f; do
-	expand -t8 "$f" | awk -v f="$f" 'length > 79 {print f ":" FNR}'
+	expand -t8 "$f" | LC_ALL=C awk -v f="$f" '{
+		s = $0
+		gsub(/[\200-\277]/, "", s)
+	}
+	length(s) > 79 {print f ":" FNR}'
 done)
 [ -z "$over" ] || { echo "$over"; exit 1; }

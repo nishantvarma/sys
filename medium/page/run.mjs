@@ -199,7 +199,7 @@ for (const page of pages) {
       await press('j');
       check(
         await until(`${focused}.id === ${json(firstKid)} && ${seen} === 1`),
-        'tiles: j steps into the node\'s nodes',
+        "tiles: j steps into the node's nodes",
       );
       await press('h');
     }
