@@ -333,7 +333,7 @@ func (s *studio) asked() {
 // togglePanel hides the frame's panel, its room going to the slots above,
 // or shows it again, alt-t's; the window's panel file keeps which, for it
 // is the window's state, and studio panel says it there too
-// (`studio/5-verbs/25-askpanel.go`)
+// (`studio/5-verbs/24-askpanel.go`)
 func (s *studio) togglePanel() {
 	if s.panel == "" {
 		return

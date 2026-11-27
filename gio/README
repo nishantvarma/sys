@@ -27,8 +27,8 @@ what is where
 
 keys: ctrl-w the next pane; ctrl-v paste; f11 full screen; the other
 chords, ctrl-c, -x, -z, -y and -s, are ed's, as on the terminal. a
-frame's keys are as there (`studio/cheatsheet`), and on its bar each
-tab's name is a button, a click showing that tab.
+frame's keys are as there (`studio/cheatsheet`), and on its tab line
+each tab's name is a button, a click showing that tab.
 
 mouse: as on the terminal (`design/mouse`). a drag in ed's text selects,
 the wheel moves, a right click opens, and a middle click hands the word,

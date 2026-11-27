@@ -14,10 +14,10 @@
 //	studio page [frame]              the frame as a page, on stdout
 //	studio picture note [page.html]  a note's picture as a page, on the
 //	                                 skeleton given, or sys's own
-//	studio tab [next | prev | number | name | close | menu]
+//	studio tab [next | prev | number | name | close]
 //	                                 turn the tabs of the slot it runs
-//	                                 in, show one, end one, or pick from
-//	                                 tmux's menu of them; bare, say them
+//	                                 in, show one or end one; bare, say
+//	                                 them
 //	studio tab new [command...]      a terminal, a tab of the panel: a
 //	                                 shell, or command
 //	studio panel [hide | show]       hide the panel, the terminals, or

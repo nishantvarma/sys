@@ -5,8 +5,7 @@
 func (t *tmux) tabsOf(win, slot string) ([]tabPane, error) {
 	out, err := t.run("list-panes", "-a", "-f",
 		"#{&&:#{==:#{@frame},"+win+"},#{==:#{@slot},"+slot+"}}",
-		"-F", "#{pane_id} #{window_id} #{pane_dead} #{@tab}"+
-			" #{pane_current_command}")
+		"-F", "#{pane_id} #{window_id} #{pane_dead} #{@tab}")
 	if err != nil {
 		return nil, err
 	}
@@ -16,8 +15,7 @@ func (t *tmux) tabsOf(win, slot string) ([]tabPane, error) {
 		if len(f) < 4 {
 			continue
 		}
-		tp := tabPane{f[0], f[1], f[3], f[2] == "1",
-			strings.Join(f[4:], " ")}
+		tp := tabPane{f[0], f[1], f[3], f[2] == "1"}
 		if tp.dead && tp.window != win {
 			t.run("kill-pane", "-t", tp.pane)
 			continue

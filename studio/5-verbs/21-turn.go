@@ -2,19 +2,19 @@
 // marked *; next and prev show the tab after or before the shown one,
 // round, and a number the tab at that place, from 1; close ends the shown
 // one, the next taking its place; a name shows the tab by that name,
-// wherever it waits; new opens a terminal (newTab); and menu, given a
-// client, opens tmux's own menu of them over the slot (menu). With no pane
-// it runs in no tmux, and the frame's host is gio's window, which takes
-// the ask from the window's state (ask).
+// wherever it waits; and new opens a terminal (newTab). Each is a word a
+// program sends, l's and a press on a tab line's button alike. With no
+// pane it runs in no tmux, and the frame's host is gio's window, which
+// takes the ask from the window's state (ask).
 func turn(slot, pane string, args []string) error {
 	word := ""
 	if len(args) > 0 {
 		word = args[0]
 	}
-	if len(args) > 1 && word != "new" && word != "menu" {
+	if len(args) > 1 && word != "new" {
 		return errors.New("usage: studio tab [-t pane]" +
 			" [next | prev | number | name | close |" +
-			" menu [client] | new [command...]]")
+			" new [command...]]")
 	}
 	if pane == "" {
 		return ask(slot, word)
@@ -33,7 +33,7 @@ func turn(slot, pane string, args []string) error {
 	}
 	_, numbered := strconv.Atoi(word)
 	if word != "" && numbered != nil && !slices.Contains([]string{"next",
-		"prev", "close", "menu"}, word) {
+		"prev", "close"}, word) {
 		return t.showNamed(win, word)
 	}
 	if slot == "" {
@@ -59,12 +59,6 @@ func turn(slot, pane string, args []string) error {
 			fmt.Println(mark + " " + tp.name)
 		}
 		return nil
-	case word == "menu":
-		client := ""
-		if len(args) > 1 {
-			client = args[1]
-		}
-		return t.menu(win, slot, client, tps, at)
 	case numbered == nil:
 		n, _ := strconv.Atoi(word)
 		if n < 1 || n > len(tps) {

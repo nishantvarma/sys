@@ -1,7 +1,7 @@
 // bars puts a slot's tabs on the border over each of its panes, @bar, the
-// one in the frame's window lit; and, once a slot has tabs to name, the
-// frame's window draws each pane's border so, over it, which says nothing
-// over a pane with no tabs to show. A frame of no tabs keeps its rows.
+// one in the frame's window lit, the panel's terminals named by their
+// place; and, once a slot has a bar, the frame's window draws each pane's
+// border so, over it, which says nothing over a pane with no bar.
 func (t *tmux) bars(win, slot string) error {
 	tps, err := t.tabsOf(win, slot)
 	if err != nil {
@@ -20,7 +20,7 @@ func (t *tmux) bars(win, slot string) error {
 			shown = i
 		}
 	}
-	b := bar(names, shown)
+	b := bar(names, shown, slot == panel)
 	for _, tp := range tps {
 		if _, err := t.run("set", "-p", "-t", tp.pane, "@bar",
 			b); err != nil {

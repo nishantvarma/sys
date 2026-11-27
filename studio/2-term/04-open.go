@@ -111,5 +111,8 @@ func (f *frame) open(dir, here string, dry bool) error {
 			return err
 		}
 	}
+	if sh := f.shell(); sh != nil && len(sh.tabs) < 2 {
+		return t.bars(win, sh.name) // the panel's, for its +
+	}
 	return nil
 }

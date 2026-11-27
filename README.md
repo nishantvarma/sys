@@ -39,7 +39,7 @@ and the packages they share:
     tty       the shared terminal layer: raw mode, escape codes,
               key and click decoding, line input
     view      the outline drawn on a terminal: fm's layouts, rows and
-              thumbs, and a program's lenses on a bar in place of its
+              thumbs, and a program's lenses on a tab line in place of its
               head, on the whole screen or in a region a host gives,
               or as runs of text for a host that is no terminal, gio
     watch     says when files change in a folder: how a program follows
