@@ -131,10 +131,11 @@ func TestMouse(t *testing.T) {
 	v, router, settle = alone(t, env, bin+"/fm", "-s", dir)
 	settle()
 	fm := v.s.order[0]
-	// fm's rows start five lines down, under its head and layouts
+	// fm's rows start five lines down, under its head and layouts, .
+	// and .. first, then alpha
 	router.Queue(pointer.Event{Kind: pointer.Press, Source: pointer.Mouse,
 		Buttons:  pointer.ButtonSecondary,
-		Position: at(image.Point{}, cw, 6, 5)})
+		Position: at(image.Point{}, cw, 6, 7)})
 	settle()
 	if head(&fm.app) != filepath.Join(dir, "alpha") {
 		t.Errorf("a right press on alpha left fm in %q", head(&fm.app))

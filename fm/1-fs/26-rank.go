@@ -1,14 +1,12 @@
-// rank is where an entry stands among its folder's: . and .. first, then
-// what is numbered (number), folders among files, then folders and links,
+// rank is where an entry stands among its folder's children: what is
+// numbered (number), folders among files, first; then folders and links;
 // then files.
 func rank(f entry) int {
 	switch {
-	case f.name == "." || f.name == "..":
-		return 0
 	case number(f.name) != "":
-		return 1
+		return 0
 	case f.dir || f.link:
-		return 2
+		return 1
 	}
-	return 3
+	return 2
 }

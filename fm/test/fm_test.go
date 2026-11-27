@@ -125,13 +125,13 @@ func TestReorder(t *testing.T) {
 	for _, c := range []struct {
 		key, row, want, said string
 	}{
-		{"", "01-a", ">01-a 02-b 03-c plain README zz", ""},
-		{"S-DOWN", "", "01-b >02-a 03-c plain README zz", ""},
-		{"S-DOWN", "", "01-b 02-c >03-a plain README zz", ""},
-		{"S-DOWN", "", "01-b 02-c >03-a plain README zz",
+		{"", "01-a", ". .. >01-a 02-b 03-c plain README zz", ""},
+		{"S-DOWN", "", ". .. 01-b >02-a 03-c plain README zz", ""},
+		{"S-DOWN", "", ". .. 01-b 02-c >03-a plain README zz", ""},
+		{"S-DOWN", "", ". .. 01-b 02-c >03-a plain README zz",
 			"not numbered: plain"},
-		{"S-UP", "", "01-b >02-a 03-c plain README zz", ""},
-		{"S-UP", "", ">01-a 02-b 03-c plain README zz", ""},
+		{"S-UP", "", ". .. 01-b >02-a 03-c plain README zz", ""},
+		{"S-UP", "", ". .. >01-a 02-b 03-c plain README zz", ""},
 	} {
 		got, said := press(c.key, c.row)
 		if got != c.want || said != c.said {
@@ -149,6 +149,23 @@ func TestReorder(t *testing.T) {
 	}
 }
 
+// . and .. stand at the top, the folder's own, whether dotfiles show or
+// not, and the cursor starts past them; . shows the dotfiles, among the
+// rest by their rank and name.
+func TestDots(t *testing.T) {
+	dir := t.TempDir()
+	for _, f := range []string{"a", ".b"} {
+		os.WriteFile(filepath.Join(dir, f), nil, 0o644)
+	}
+	press := fm(t, dir)
+	if got, _ := press("", ""); got != ". .. >a" {
+		t.Errorf("dotfiles hidden: %q, not . and .. over a", got)
+	}
+	if got, _ := press(".", ""); got != ". .. .b >a" {
+		t.Errorf("dotfiles shown: %q", got)
+	}
+}
+
 // Two rows whose names differ only in their numbers swap through a third
 // name, so neither is lost; a name either would take that another entry
 // holds, a broken link too, stops the swap and renames nothing.
@@ -158,7 +175,7 @@ func TestReorderNames(t *testing.T) {
 	os.WriteFile(filepath.Join(dir, "02-x"), []byte("second"), 0o644)
 	press := fm(t, dir)
 	press("", "01-x")
-	if got, _ := press("S-DOWN", ""); got != "01-x >02-x" {
+	if got, _ := press("S-DOWN", ""); got != ". .. 01-x >02-x" {
 		t.Errorf("same names: %q, want the cursor on 02-x", got)
 	}
 	if b, _ := os.ReadFile(filepath.Join(dir, "02-x")); string(b) !=
@@ -242,11 +259,11 @@ func TestUp(t *testing.T) {
 		os.MkdirAll(d, 0o755)
 	}
 	press := fm(t, deep)
-	if rows, _ := press("BACKSPACE", ""); rows != "0 >b" {
-		t.Errorf("backspace in a/b shows %q, not a's 0 >b", rows)
+	if rows, _ := press("BACKSPACE", ""); rows != ". .. 0 >b" {
+		t.Errorf("backspace in a/b shows %q, not a's", rows)
 	}
-	if rows, _ := press("", "../.."); rows != "0 >a" {
-		t.Errorf("a key on the folder two up shows %q, not 0 >a",
+	if rows, _ := press("", "../.."); rows != ". .. 0 >a" {
+		t.Errorf("a key on the folder two up shows %q, not its",
 			rows)
 	}
 }
@@ -277,10 +294,10 @@ func TestFollow(t *testing.T) {
 	press := started(t, []string{"-s", "-f", dir}, dir, "HOME="+home)
 	press("", "a")
 	for _, c := range []struct{ cur, want string }{
-		{filepath.Join(sub, "c") + ":3", "b >c"},
-		{sub, "link >sub a"},
-		{filepath.Join(dir, "link"), "link >sub a"},
-		{filepath.Join(dir, "gone"), "link >sub a"},
+		{filepath.Join(sub, "c") + ":3", ". .. b >c"},
+		{sub, ". .. link >sub a"},
+		{filepath.Join(dir, "link"), ". .. link >sub a"},
+		{filepath.Join(dir, "gone"), ". .. link >sub a"},
 	} {
 		say(c.cur)
 		if rows, _ := press("RESIZE", ""); rows != c.want {
@@ -418,10 +435,10 @@ func TestWindowed(t *testing.T) {
 		MatchString(got) {
 		t.Errorf("? showed %q, not fm's keys", got)
 	}
-	if got, _ := press("ESC", ""); got != ">alpha beta" {
+	if got, _ := press("ESC", ""); got != ". .. >alpha beta" {
 		t.Errorf("esc left %q, not fm's rows", got)
 	}
-	if got, said := press("f", ""); got != ">alpha beta" ||
+	if got, said := press("f", ""); got != ". .. >alpha beta" ||
 		said != "pick: needs the terminal" {
 		t.Errorf("a pick off the terminal: %q %q", got, said)
 	}

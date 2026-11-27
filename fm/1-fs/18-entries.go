@@ -1,13 +1,9 @@
-// entries are dir's children as fm shows them: by rank, then by name;
-// dotfiles only when hidden, and with them . and .. too.
+// entries are dir's children as fm shows them: first the folder itself
+// and its parent, . and .., which ReadDir never lists, whatever else
+// shows, for they are the folder's own handles; then its children by rank
+// and by name, dotfiles only when hidden.
 func entries(dir string, hidden bool) []entry {
 	var files []entry
-	if hidden { // ReadDir never lists these two
-		files = []entry{
-			{name: ".", path: dir, dir: true},
-			{name: "..", path: filepath.Dir(dir), dir: true},
-		}
-	}
 	if ents, err := os.ReadDir(dir); err == nil {
 		for _, e := range ents {
 			if hidden || !strings.HasPrefix(e.Name(), ".") {
@@ -23,5 +19,8 @@ func entries(dir string, hidden bool) []entry {
 			return strings.Compare(an, bn)
 		})
 	}
-	return files
+	return append([]entry{
+		{name: ".", path: dir, dir: true},
+		{name: "..", path: filepath.Dir(dir), dir: true},
+	}, files...)
 }

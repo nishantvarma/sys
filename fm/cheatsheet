@@ -29,7 +29,7 @@ find
   f      by name, fuzzy, over the tree
   s      by content, fuzzy
   m      by memory — what was said out loud, newest first, done again
-  .      show hidden, . and .. among them
+  .      show hidden files; . and .. show always, at the top
 
 f and s select and act on nothing: they put the cursor on what you
 picked, and the verb is the next key — enter, e, o, y. A content hit
@@ -49,11 +49,12 @@ A name that starts with a number, 01-a, is in an order: numbered rows
 stand first and in it, a folder among files, for the number is the order
 of a todo's nodes and of a tangle tree's chunks. Then folders, then files.
 
-. and .. are entries in the directory like the rest — ls skipped the
-two by their leading dot, and the hidden file is that accident. Under
-the cursor they make a directory a target like any other: y its path,
-c or x it whole, * or = it. On .. enter is backspace; on . it stays. d refuses
-both, as rm(1) does. A first visit lands past them.
+. and .. are the directory's own entries, always at the top: ls skipped
+them by their leading dot, and hid every dotfile with them by accident,
+so here the dot hides the dotfiles alone. Under the cursor they make a
+directory a target like any other: y its path, c or x it whole, * or =
+it. On .. enter is backspace; on . it stays. d refuses both, as rm(1)
+does. A first visit lands past them.
 
 act
   space    select, then step down

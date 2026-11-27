@@ -143,13 +143,17 @@ func TestStudio(t *testing.T) {
 	char('j')
 	has("ed follows fm to b.txt", strings.HasSuffix(head(ed), "/b.txt"))
 	char('t')
-	cards := fm.v.Lines()
-	has("t lays fm out as thumbs, by sys/view",
-		strings.Contains(said(cards[5]), "sub/") &&
-			strings.Contains(said(cards[6]), "folder"))
+	// a card names sub/ and says it is a folder on the line under
+	cards, thumbs := fm.v.Lines(), false
+	for i := 0; i+1 < len(cards); i++ {
+		thumbs = thumbs || strings.Contains(said(cards[i]), "sub/") &&
+			strings.Contains(said(cards[i+1]), "folder")
+	}
+	has("t lays fm out as thumbs, by sys/view", thumbs)
 	char('t')
-	// a click on a.txt's row: the rows start five lines down
-	at := f32.Pt(100, 6*cellH+5)
+	// a click on a.txt's row: the rows start five lines down, . and ..
+	// first, then sub
+	at := f32.Pt(100, 8*cellH+5)
 	router.Queue(
 		pointer.Event{
 			Kind:     pointer.Press,
