@@ -2,8 +2,9 @@ gio: sys's views drawn by gio (gioui.org), a window beside the terminal,
 and the check that sys's programs need no terminal: fm, ed and the lens
 run here as they are, each at the end of a pipe (-s), and what is no
 text is laid out by sys/view, the terminal's own view, whose lines this
-draws as runs (`view/term.go:/Lines is the screen/`). a frame's shell
-runs in a terminal of the window's own, st's as sys/vt has it, on a pty.
+draws as runs (`view/term.go:/Lines is the screen/`). A frame's shell
+runs in a terminal of the window's own, st's as sys/vt has it, on a pty,
+and each program has one behind its view, its console, for what it runs.
 
     gio/build             into bin/window
     gio/build test        vet and tests, on the fm, ed and studio in bin/
@@ -12,53 +13,54 @@ runs in a terminal of the window's own, st's as sys/vt has it, on a pty.
     fm -w, ed -w file     one program, its view this window
 
 sys's ./build goes first, for the tests and the window run the fm, ed
-and studio in bin/. its own go module, so that sys takes on neither gio
+and studio in bin/. Its own go module, so that sys takes on neither gio
 nor cgo; it needs freetype2 and `DejaVuSansMono.ttf`, and the C headers
 it builds on are unpacked into ~/.cache/sys-gio, nothing installed.
 
-what is where
+What is where
     main.go     the window: input, drawing and the frame; the one file
                 that knows gio
     ft.go       text by freetype, sharp as the terminal's
-    host.go     the frame's slots, a program in each
-    term.go     a shell's terminal: its pty, its tabs, its screen as
-                strips
+    host.go     the frame's slots, a program in each, on its console
+    term.go     a terminal, a shell's or a program's console: its pty,
+                its tabs, its screen as strips
     model.go    a program as the window holds it: sys/view for a
                 folder or the lens, a text drawn here
     look.go     ed's text, and sys/view's lines, as strips
     mouse.go    the three buttons and the wheel, as on the terminal
 
-keys: ctrl-w the next pane; ctrl-v paste; f11 full screen; the other
-chords, ctrl-c, -x, -z, -y and -s, are ed's, as on the terminal. a
+Keys: ctrl-w the next pane; ctrl-v paste; f11 full screen; the other
+chords, ctrl-c, -x, -z, -y and -s, are ed's, as on the terminal. A
 frame's keys and l's words are as there (`studio/cheatsheet`), and on
 its tab line each tab's name is a button, a click showing that tab.
 studio tab and studio panel, run in the frame, ask the window by its
 ask file, which it does in order
-(`design/lens:/The tabs in gio's window/`). in a terminal every key is
+(`design/lens:/The tabs in gio's window/`). In a terminal every key is
 its shell's, as st sends it, but ctrl-w, alt-t and f11, the window's
-own, and ctrl-shift-v pastes, as in st. a terminal ends with its shell,
+own, and ctrl-shift-v pastes, as in st. A terminal ends with its shell,
 though a job it left runs on.
 
-mouse: as on the terminal (`design/mouse`). a drag in ed's text selects,
+Mouse: as on the terminal (`design/mouse`). A drag in ed's text selects,
 the wheel moves, a right click opens, and a middle click hands the word,
 or the selection it falls in, to the shell at its prompt: the panel's
 terminal, while its shell waits there, or, with none, p -a's tmux pane.
-in the frame a right click on a file says it, and ed or fm, following
+In the frame a right click on a file says it, and ed or fm, following
 cur, show it, the eye going there; what is no file opens beside; and the
-eye follows the pointer, a pane moved over taking it. on a terminal a
+eye follows the pointer, a pane moved over taking it. On a terminal a
 left click says the word under it, read in the folder that printed it,
 unless the program there took the mouse, which then has it, as in st,
 but with shift held; the wheel is st's.
 
-? shows a program's keys here as rows, which esc closes; fm's finders,
-f, s and m, need the terminal, for fzy does, and say so.
+? shows a program's keys here as rows, which esc closes. What fm runs,
+fzy for its finders f, s and m, and v, w and F, runs on fm's console,
+which comes to the front of fm's slot while what fm runs writes there,
+its keys going to it, until fm draws again (`design/view:/The console/`).
+fm -w has none to run them on, and says so.
 
-careful: closing the window drops what ed has not saved. q in fm asks
+Careful: closing the window drops what ed has not saved. q in fm asks
 first, as in tmux: while ed holds work unsaved it says so, and a second q
 ends the frame anyway.
 
-not here yet
-    - f, s, m, v, w and F, which fm runs on its terminal
-      (`todo/04-gio/02-term`)
-    - a terminal's scrollback and its selection: st has neither, and
+Not here yet
+    - A terminal's scrollback and its selection: st has neither, and
       tmux keeps both

@@ -1,5 +1,6 @@
 type fm struct {
 	t       *tty.Term
+	cons    *os.File     // a host's terminal for what fm runs (stream)
 	ui      outline.View // shows fm, takes its keys: tty, a window, a host
 	cwd     string
 	last    string

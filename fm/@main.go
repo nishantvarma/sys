@@ -17,6 +17,8 @@ import (
 	"syscall"
 	"time"
 
+	"golang.org/x/term"
+
 	"sys/outline"
 	"sys/state"
 	"sys/tty"

@@ -4,6 +4,7 @@ package vt
 
 import (
 	"io"
+	"os"
 	"os/exec"
 	"strings"
 	"testing"
@@ -39,6 +40,37 @@ func TestStart(t *testing.T) {
 	if got := lines(tm); !strings.Contains(strings.Join(got, "|"),
 		"30 100") {
 		t.Errorf("the screen holds %q", got)
+	}
+}
+
+// TestPiped: a program whose input and output are set already keeps
+// them, as a host's program keeps the pipe it speaks on, and has the pty
+// for its error and its controlling terminal, so that what it runs finds
+// the pty as its terminal, /dev/tty, as fzy finds one.
+func TestPiped(t *testing.T) {
+	var out strings.Builder
+	cmd := exec.Command("sh", "-c",
+		`read x; echo "$x"; echo on the tty >/dev/tty; echo err >&2`)
+	cmd.Stdin, cmd.Stdout = strings.NewReader("piped\n"), &out
+	pty, err := Start(cmd, 80, 24)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer pty.Close()
+	screen, _ := io.ReadAll(pty) // to the pty's end, EIO, once it exits
+	cmd.Wait()
+	if got := out.String(); got != "piped\n" {
+		t.Errorf("the pipe carries %q, not the input given", got)
+	}
+	if s := string(screen); !strings.Contains(s, "on the tty") ||
+		!strings.Contains(s, "err") {
+		t.Errorf("the pty shows %q, not /dev/tty's line and the error",
+			s)
+	}
+	all := exec.Command("true")
+	all.Stdin, all.Stdout, all.Stderr = os.Stdin, os.Stdout, os.Stderr
+	if _, err := Start(all, 80, 24); err == nil {
+		t.Error("a program with all three set started on a pty")
 	}
 }
 

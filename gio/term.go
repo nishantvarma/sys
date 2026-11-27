@@ -1,6 +1,8 @@
 // a terminal in the window: a frame's shell slot runs a shell on a pty,
-// its screen st's, as sys/vt keeps it, a row a strip; main.go draws it
-// and hands it the keys and the mouse, as st hands them
+// and each program has one behind its view, its console, where what it
+// runs runs (`design/view:/console/`); its screen st's, as sys/vt keeps
+// it, a row a strip; main.go draws it and hands it the keys and the
+// mouse, as st hands them
 package main
 
 import (
@@ -37,14 +39,11 @@ const defaultfg, defaultbg, defaultcs = 15, 0, 15
 var groundHex, caretHex = code(palette[defaultbg]), code(palette[defaultcs])
 
 // openterm starts a shell in pane p on a pty, as st starts one: in the
-// frame's folder, in the world its programs have, TERM st's (vt.Start);
+// frame's folder, in the world its programs have, TERM st's (terminal);
 // or what run says, one word as a shell reads it, more as a command and
 // its arguments, as tmux's new-window runs them
-// (`studio/2-term/20-newtab.go`). What it writes comes to the window's
-// thread as news, which puts it on p's screen (handle), until the shell
-// ends, which ends the terminal, as st ends with its shell, though a job
-// it left holds the pty; what p's terminal sends the shell goes by a
-// typist, for the window never waits on a shell slow to read.
+// (`studio/2-term/20-newtab.go`). The shell's end ends the terminal, as
+// st ends with its shell, though a job it left holds the pty.
 func (s *studio) openterm(p *pane, run []string) error {
 	sh := shell()
 	c := exec.Command(sh)
@@ -55,17 +54,37 @@ func (s *studio) openterm(p *pane, run []string) error {
 		c = exec.Command(run[0], run[1:]...)
 	}
 	c.Dir, c.Env = s.dir, s.env
-	f, err := vt.Start(c, 80, 24)
+	t, gone, err := s.terminal(p, c)
 	if err != nil {
 		return err
 	}
-	ty := &typist{wake: make(chan struct{}, 1), gone: make(chan struct{})}
-	p.cmd, p.pty, p.term = c, f, vt.New(80, 24, ty)
-	go ty.run(f)
+	p.cmd, p.term = c, t
 	go func() {
 		c.Wait()
-		f.Close() // which ends the Read under way
+		p.pty.Close() // which ends the Read under way
 	}()
+	go func() {
+		<-gone
+		s.events <- news{p: p, ended: true}
+	}()
+	return nil
+}
+
+// terminal starts c on a pty of pane p's (vt.Start), and is its screen,
+// st's: what c writes there comes to the window's thread as news, which
+// puts it on the screen (handle), until the pty closes, and then gone
+// closes; what the screen sends c goes by a typist, for the window never
+// waits on a program slow to read. It is a shell's, the whole of its
+// pane (openterm), or a program's console, behind its view (launch).
+func (s *studio) terminal(p *pane, c *exec.Cmd) (t *vt.Term,
+	gone <-chan struct{}, err error) {
+	f, err := vt.Start(c, 80, 24)
+	if err != nil {
+		return nil, nil, err
+	}
+	ty := &typist{wake: make(chan struct{}, 1), gone: make(chan struct{})}
+	p.pty = f
+	go ty.run(f)
 	go func() {
 		for b := make([]byte, 32<<10); ; {
 			n, err := f.Read(b)
@@ -78,15 +97,14 @@ func (s *studio) openterm(p *pane, run []string) error {
 			}
 		}
 		close(ty.gone)
-		s.events <- news{p: p, ended: true}
 	}()
-	return nil
+	return vt.New(80, 24, ty), ty.gone, nil
 }
 
-// typist is what a terminal sends its shell, queued without a bound and
-// written to the pty by a goroutine of its own until the shell is gone,
-// so that a key, a paste or an answer vt makes never waits on a shell
-// slow to read, nor the window with it (vt.New)
+// typist is what a terminal sends the program on it, queued without a
+// bound and written to the pty by a goroutine of its own until the pty
+// is gone, so that a key, a paste or an answer vt makes never waits on a
+// program slow to read, nor the window with it (vt.New)
 type typist struct {
 	mu   sync.Mutex
 	q    [][]byte

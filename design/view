@@ -24,8 +24,9 @@ Messages, not calls
     to the program   key: its name, the node it was said on, the rune a
                      click fell on, any text; answer: the line typed;
                      size: how much the view shows
-  A message joins when a view needs one. What only a terminal can do
-  stays with it, and a window says so.
+  A message joins when a view needs one: help is nodes a view lays out
+  (`outline/help.go:/func Help/`). What a program runs is no message: it
+  runs on a terminal, the program's console, below.
 
 Who holds what
   program  the data, the cursor and the selection: what its verbs act on.
@@ -38,6 +39,21 @@ Who holds what
   between  ideas, by name: down, in, rename. A key is one way to say one
            and a click another; ed passes its keys through, for an
            editor's keys are its language.
+
+The console: the terminal what a program runs runs on
+  What a program runs needs a terminal: fzy for a pick, v, a pause. A
+  program is given one as unix gives one, by the host that starts it on
+  it, and what it runs finds it at /dev/tty, as fzy does. Drawn on a
+  terminal, as in a tmux pane, the program steps aside on it for the
+  child's time. Down a pipe, its view elsewhere, it has the console its
+  host gives it, its error and controlling terminal: gio's frame starts
+  each slot's program on a pty of its own, behind its view, as tmux
+  starts each pane's (`gio/host.go:/launch starts what runs in a pane/`).
+  A program sent a key that has not drawn since is acting, and what
+  writes on its console then is what it runs: the slot shows the
+  console, the keys going to it, until the program draws again. o and e
+  write nothing, so they show nothing. A program given none, fm -w,
+  whose window has none to give, or a test, says so.
 
 The status line, at the bottom only, in every view
   The program's word on the left, what just happened or what it asks; on

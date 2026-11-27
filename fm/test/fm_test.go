@@ -14,10 +14,12 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
 	"sys/outline"
+	"sys/vt"
 )
 
 // built is fm made from this tree, as ./build makes it: tangled, then
@@ -56,6 +58,16 @@ func fm(t *testing.T, dir string, env ...string) func(key,
 // is taking away: here it is a stand-in that writes nothing.
 func started(t *testing.T, args []string, dir string, env ...string) func(
 	key, row string) (string, string) {
+	press, _ := begun(t, args, dir, false, env...)
+	return press
+}
+
+// begun is started, and with cons fm's error and controlling terminal a
+// pty, its console, as gio's frame gives one (vt.Start): the pty's other
+// end comes back too, where what fm runs there is read and typed at. Its
+// end hangs fm up first, for a child of fm's may wait there.
+func begun(t *testing.T, args []string, dir string, cons bool,
+	env ...string) (func(key, row string) (string, string), *os.File) {
 	c := exec.Command(built(t), args...)
 	bin := t.TempDir()
 	stand := []byte("#!/bin/sh\n")
@@ -65,10 +77,23 @@ func started(t *testing.T, args []string, dir string, env ...string) func(
 	c.Env = append(c.Env, env...)
 	in, _ := c.StdinPipe()
 	out, _ := c.StdoutPipe()
-	if err := c.Start(); err != nil {
+	var pty *os.File
+	if cons {
+		f, err := vt.Start(c, 80, 24)
+		if err != nil {
+			t.Fatal(err)
+		}
+		pty = f
+	} else if err := c.Start(); err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() { in.Close(); c.Wait() })
+	t.Cleanup(func() {
+		if pty != nil {
+			pty.Close()
+		}
+		in.Close()
+		c.Wait()
+	})
 	dec := json.NewDecoder(bufio.NewReader(out))
 	enc := json.NewEncoder(in)
 	shown := func() (string, string) {
@@ -107,7 +132,7 @@ func started(t *testing.T, args []string, dir string, env ...string) func(
 		}
 		enc.Encode(map[string]outline.Key{"key": k})
 		return shown()
-	}
+	}, pty
 }
 
 // TestReorder: numbered rows stand first and in their order, a folder
@@ -414,9 +439,9 @@ func TestPromptResize(t *testing.T) {
 }
 
 // TestWindowed: off the terminal, in a window, ? shows fm's keys as rows,
-// each a key and what it does, which esc closes; and a finder's pick,
-// whose fzy needs a terminal, says so and moves nothing. Stand-ins play
-// the finder and zoxide.
+// each a key and what it does, which esc closes; and, given no terminal,
+// a finder's pick, whose fzy needs one, says so and moves nothing.
+// Stand-ins play the finder and zoxide.
 func TestWindowed(t *testing.T) {
 	dir := t.TempDir()
 	for _, f := range []string{"alpha", "beta"} {
@@ -441,5 +466,104 @@ func TestWindowed(t *testing.T) {
 	if got, said := press("f", ""); got != ". .. >alpha beta" ||
 		said != "pick: needs the terminal" {
 		t.Errorf("a pick off the terminal: %q %q", got, said)
+	}
+}
+
+// TestConsole: given a console, a pty for its error and controlling
+// terminal, as gio's frame gives one, fm runs what it runs there as on a
+// terminal of its own, and draws on neither: a pick's fzy shows the
+// finder's lines there and takes its choice from there, and fm lands on
+// the line chosen; F's lint writes there and pause holds it, and fm draws
+// again only once a key is typed there. Stand-ins play the finder, fzy,
+// lint, pause and zoxide.
+func TestConsole(t *testing.T) {
+	dir := t.TempDir()
+	for _, f := range []string{"alpha", "beta"} {
+		os.WriteFile(filepath.Join(dir, f), nil, 0o644)
+	}
+	stand := t.TempDir()
+	for name, body := range map[string]string{
+		"f": "echo beta",
+		"fzy": `list=$(cat); echo "fzy has $list" >/dev/tty; ` +
+			`read pick </dev/tty; echo "$pick"`,
+		"lint":   `echo "lint $*"`,
+		"pause":  "echo continue; read x",
+		"zoxide": "",
+	} {
+		os.WriteFile(filepath.Join(stand, name),
+			[]byte("#!/bin/sh\n"+body+"\n"), 0o755)
+	}
+	press, pty := begun(t, []string{"-s", dir}, dir, true,
+		"PATH="+stand+":"+os.Getenv("PATH"))
+	seen := screen(pty)
+	// later presses a key whose act waits on the console, and is fm's
+	// rows once it draws again
+	later := func(key string) <-chan string {
+		drew := make(chan string, 1)
+		go func() {
+			rows, _ := press(key, "")
+			drew <- rows
+		}()
+		return drew
+	}
+	drawn := func(drew <-chan string) string {
+		select {
+		case rows := <-drew:
+			return rows
+		case <-time.After(5 * time.Second):
+			t.Fatal("fm never drew again")
+		}
+		return ""
+	}
+	picked := later("f")
+	if !seen("fzy has beta") {
+		t.Fatal("f's fzy showed nothing on the console")
+	}
+	pty.Write([]byte("beta\n"))
+	if got := drawn(picked); got != ". .. alpha >beta" {
+		t.Errorf("beta picked on the console, and fm shows %q", got)
+	}
+	held := later("F")
+	if !seen("lint -f "+filepath.Join(dir, "beta")) || !seen("continue") {
+		t.Fatal("F's lint and pause showed nothing on the console")
+	}
+	select {
+	case rows := <-held:
+		t.Fatalf("pause held nothing: fm drew %q", rows)
+	case <-time.After(200 * time.Millisecond):
+	}
+	pty.Write([]byte("\n"))
+	if got := drawn(held); got != ". .. alpha >beta" {
+		t.Errorf("a key on the console, and fm shows %q", got)
+	}
+}
+
+// screen reads what is written on a console, from its pty's other end:
+// seen waits, five seconds at most, for text to be among it
+func screen(pty *os.File) (seen func(text string) bool) {
+	var mu sync.Mutex
+	var all strings.Builder
+	go func() {
+		for b := make([]byte, 4096); ; {
+			n, err := pty.Read(b)
+			mu.Lock()
+			all.Write(b[:n])
+			mu.Unlock()
+			if err != nil {
+				return
+			}
+		}
+	}()
+	return func(text string) bool {
+		for end := time.Now().Add(5 * time.Second); time.Now().
+			Before(end); time.Sleep(20 * time.Millisecond) {
+			mu.Lock()
+			ok := strings.Contains(all.String(), text)
+			mu.Unlock()
+			if ok {
+				return true
+			}
+		}
+		return false
 	}
 }

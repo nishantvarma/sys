@@ -3,9 +3,11 @@
 package vt
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
+	"slices"
 	"strings"
 	"syscall"
 
@@ -14,9 +16,12 @@ import (
 
 // Start runs cmd on a new pty cols by rows, as st's ttynew does: in a
 // session of its own, the pty its controlling terminal and its input,
-// output and error. It is the pty's other end: what cmd writes is read
-// from it, and what is written to it cmd reads. Its pty is Linux's,
-// /dev/ptmx and its ioctls, where st's openpty is the C library's.
+// output and error, but for those cmd has set already: a host's program
+// keeps the pipe it speaks on and has the pty for its error alone, where
+// what it runs finds its terminal, /dev/tty. It is the pty's other end:
+// what cmd writes there is read from it, and what is written to it cmd
+// reads. Its pty is Linux's, /dev/ptmx and its ioctls, where st's
+// openpty is the C library's.
 //
 // cmd's environment, as os/exec makes it, the host's and PWD when it
 // has none, loses what would size it otherwise, COLUMNS, LINES and
@@ -52,8 +57,25 @@ func Start(cmd *exec.Cmd, cols, rows int) (*os.File, error) {
 		return nil, err
 	}
 	defer pts.Close()
-	cmd.Stdin, cmd.Stdout, cmd.Stderr = pts, pts, pts
-	cmd.SysProcAttr = &syscall.SysProcAttr{Setsid: true, Setctty: true}
+	// the pty is each of the three cmd leaves unset, and its controlling
+	// terminal through the first of them, as its number in the child
+	unset := []bool{cmd.Stdin == nil, cmd.Stdout == nil, cmd.Stderr == nil}
+	ctty := slices.Index(unset, true)
+	if ctty < 0 {
+		ptm.Close()
+		return nil, errors.New("vt: cmd leaves the pty no descriptor")
+	}
+	if unset[0] {
+		cmd.Stdin = pts
+	}
+	if unset[1] {
+		cmd.Stdout = pts
+	}
+	if unset[2] {
+		cmd.Stderr = pts
+	}
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setsid: true, Setctty: true,
+		Ctty: ctty}
 	cmd.Env = environ(cmd.Environ())
 	if err := cmd.Start(); err != nil {
 		ptm.Close()

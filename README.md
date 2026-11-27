@@ -16,9 +16,9 @@ rebuild away.
               directory, and it shells out to your own tools instead of
               reimplementing them; `fm -f` goes where cur is said
     gio       sys's views in a window, drawn by gio: studio's frame, fm,
-              ed and the lens in it as they are, and its shells in
-              terminals of its own, by vt; its own module, built apart
-              (`gio/README`)
+              ed and the lens in it as they are, and its shells, and
+              what its programs run, in terminals of its own, by vt;
+              its own module, built apart (`gio/README`)
     studio    the frame: the lens view, the thing at fm's cursor seen
               its ways, its source in ed and its outline, render and
               diff by `studio show`; fm; and the panel across the

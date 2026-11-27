@@ -1,7 +1,7 @@
 // the host: studio's frame, its slots each a program at the other end of a
-// pipe speaking -s, or a shell in a terminal of the window's own
-// (term.go); or one pane, at the end of this program's own pipe, as
-// window is
+// pipe speaking -s, with a console behind its view for what it runs, or a
+// shell in a terminal of the window's own (term.go); or one pane, at the
+// end of this program's own pipe, as window is
 package main
 
 import (
@@ -38,9 +38,12 @@ type slot struct {
 }
 
 type pane struct {
-	app        // the program as the window holds it
-	cmd        *exec.Cmd
-	term       *vt.Term // a shell's screen, for a shell's pane (term.go)
+	app // the program as the window holds it
+	cmd *exec.Cmd
+	// the screen the pane shows: a shell's (term.go), or a program's
+	// console while what the program runs writes there (handle)
+	term       *vt.Term
+	cons       *vt.Term // a program's console, behind its view (launch)
 	pty        *os.File
 	name       string
 	tab        string // the tab it shows, by name; its slot's, for none
@@ -240,7 +243,19 @@ func (s *studio) handle(e news) (copied string, done bool) {
 			}
 		}
 	case e.out != nil:
-		e.p.term.Write(e.out)
+		// what writes on a program's console while the program acts on
+		// a key, not drawn since, is what it runs: the console comes
+		// to the front, as a child takes fm's own pane in tmux, until
+		// the program draws again (lower); written at rest it waits
+		// behind
+		t := e.p.term
+		if e.p.cons != nil {
+			t = e.p.cons
+			if e.p.acting {
+				e.p.term = t
+			}
+		}
+		t.Write(e.out)
 	case e.ended:
 		// the face's end, fm's, ends the frame: the window goes, and
 		// with it each program's view, so each ends. But while ed
@@ -262,6 +277,10 @@ func (s *studio) handle(e news) (copied string, done bool) {
 	case e.m.Draw != nil:
 		d := e.m.Draw
 		e.p.tree, e.p.status, e.p.state = d.Tree, d.Status, d.State
+		e.p.acting = false
+		if e.p.term != nil && e.p.term == e.p.cons {
+			s.lower(e.p)
+		}
 		e.p.layout()
 	case e.m.Ask != nil:
 		ask := e.m.Ask
@@ -287,12 +306,17 @@ func piped(r io.Reader, w io.Writer) *studio {
 }
 
 // launch starts what runs in a pane, run, at the other end of a pipe
-// speaking -s, its view this window, told its slot ($STUDIO)
+// speaking -s, its view this window, told its slot ($STUDIO), and on a
+// pty of the pane's own, as tmux starts a pane's program on one: its
+// error and its controlling terminal, its console, where what it runs
+// runs (`design/view:/console/`). The console waits behind the
+// program's view, and comes to the front while what it runs writes
+// there (handle)
 func (s *studio) launch(p *pane, run string) error {
 	args := append(strings.Fields(run), "-s")
 	c := exec.Command(args[0], args[1:]...)
 	c.Env = append(slices.Clip(s.env), "STUDIO="+p.name)
-	c.Dir, c.Stderr = s.dir, os.Stderr
+	c.Dir = s.dir
 	to, err := c.StdinPipe()
 	if err != nil {
 		return err
@@ -301,16 +325,29 @@ func (s *studio) launch(p *pane, run string) error {
 	if err != nil {
 		return err
 	}
-	if err := c.Start(); err != nil {
+	cons, _, err := s.terminal(p, c)
+	if err != nil {
 		return err
 	}
-	p.cmd, p.out = c, json.NewEncoder(to)
+	p.cmd, p.out, p.cons = c, json.NewEncoder(to), cons
 	go func() {
 		feed(from, func(m in) { s.events <- news{p: p, m: &m} })
 		c.Wait()
+		p.pty.Close() // which ends the console's Read under way
 		s.events <- news{p: p, ended: true}
 	}()
 	return nil
+}
+
+// lower puts a program's console behind its view again, as the program
+// draws once what it ran is done: its size is said again as it is drawn,
+// for the console took the slot's changes meanwhile (slot), and it hears
+// whether it has the eye, which its console heard instead (eye)
+func (s *studio) lower(p *pane) {
+	p.term, p.cols, p.high = nil, 0, 0
+	if len(s.order) > 1 {
+		p.eye(s.order[s.eye] == p)
+	}
 }
 
 // turn does to the frame's tabs what studio tab asks of a slot's, or a

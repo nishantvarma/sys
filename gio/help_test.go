@@ -80,7 +80,7 @@ func gtxFor(ops *op.Ops, w, h int) layout.Context {
 
 // TestHelp: ? in the window shows ed's keys, as nodes sys/view lays out
 // as rows, and esc closes them, back to the text: help needs no
-// terminal (`todo/04-gio/02-term`).
+// terminal (`design/view:/help is nodes/`).
 func TestHelp(t *testing.T) {
 	note := filepath.Join(t.TempDir(), "note")
 	os.WriteFile(note, []byte("alpha\n"), 0o644)

@@ -34,6 +34,9 @@ type app struct {
 	tree   *outline.Node
 	status string
 	state  []string
+	// acting: sent a key it has not drawn since, so that what writes on
+	// its console meanwhile is what it runs (handle)
+	acting bool
 
 	asking         bool
 	prompt, answer string
@@ -67,7 +70,10 @@ func newApp(out *json.Encoder) app {
 	return app{out: out, v: view.New(nil, home, looks)}
 }
 
-func (a *app) send(kind string, v any) { a.out.Encode(object{kind: v}) }
+func (a *app) send(kind string, v any) {
+	a.acting = a.acting || kind == "key"
+	a.out.Encode(object{kind: v})
+}
 
 func (a *app) key(name, node string) {
 	a.send("key", outline.Key{Name: name, Node: node})

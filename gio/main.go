@@ -159,9 +159,10 @@ func (v *window) line(gtx layout.Context, k *strip, at image.Point, cw int) {
 }
 
 // slot draws the pane of the slot named in area, telling its program the
-// size when that changes; a shell's terminal as st draws one (term), or,
-// its shell ended, says so. A slot of tabs has its bar over the tab it
-// shows, each tab's name a button (tabBar)
+// size when that changes, and its console; a terminal as st draws one, a
+// shell's or a program's console come to the front (term), or, its shell
+// ended, says so. A slot of tabs has its bar over the tab it shows, each
+// tab's name a button (tabBar)
 func (v *window) slot(gtx layout.Context, name string, area image.Rectangle,
 	cw int) {
 	p, h := v.s.panes[name], gtx.Dp(cellH)
@@ -173,7 +174,7 @@ func (v *window) slot(gtx layout.Context, name string, area image.Rectangle,
 		v.bars = append(v.bars, barHit{row, name, chips})
 		area.Min.Y += h
 	}
-	if p.term != nil && p.gone {
+	if p.term != nil && p.gone && p.cons == nil {
 		said := " " + name + ": the shell ended"
 		if name == v.s.panel {
 			said += "; + opens another"
@@ -192,6 +193,10 @@ func (v *window) slot(gtx layout.Context, name string, area image.Rectangle,
 		p.cols, p.high = cols, high
 		p.v.In(0, 0, cols, high)
 		p.send("size", object{"w": cols, "h": high})
+		if p.cons != nil { // what it runs starts at the slot's size
+			p.cons.Resize(max(1, cols), max(1, high))
+			vt.Setsize(p.pty, max(1, cols), max(1, high))
+		}
 	}
 	var lines []*strip
 	if p.isText() {

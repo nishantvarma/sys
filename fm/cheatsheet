@@ -124,7 +124,8 @@ tools — every one a script in sh/, replaceable
   w      wipe, at home (w)
   F      format (lint -f)
   f s m  the finders (f, s, m — each piped through fzy, which needs
-         the terminal: in a window they say so)
+         a terminal: in gio's frame fm's console, and in fm -w, which
+         has none, they say so)
   b      say the row out loud (c)
   v      version control (v)
   V      gitk

@@ -10,9 +10,10 @@ import (
 // messages alone: a node a key, the key and what it does, which the view
 // lays out as rows, and it waits for esc, enter, q or ? to close. A view
 // keeps some keys, t among them, so not any key can close it
-// (`todo/04-gio/02-term`); a move lands on a row and moves the cursor
-// there. Each key is named as tty.Help names it on the terminal, and each
-// row by its number under the title, so a view's head says title : row.
+// (`design/view:/help is nodes/`); a move lands on a row and moves the
+// cursor there. Each key is named as tty.Help names it on the terminal,
+// and each row by its number under the title, so a view's head says
+// title : row.
 func Help(ui View, title string, keys [][2]string) {
 	n := &Node{ID: title, Kind: "help", Text: title}
 	w := 0
