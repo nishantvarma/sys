@@ -53,6 +53,7 @@ import (
 	"sys/outline"
 	"sys/picture"
 	"sys/state"
+	"sys/tabs"
 	"sys/tty"
 	"sys/view"
 	"sys/watch"

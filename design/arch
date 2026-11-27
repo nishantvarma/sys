@@ -52,6 +52,7 @@ outline         the tree a view draws, in messages
 libraries       what the pieces share, beside outline
   state         a window's cur, unsaved, text and ask: where, read,
                 written
+  tabs          what the tab words mean, for both hosts
   tty           raw mode, keys and clicks, escapes, and a wake
   vt            a terminal, st's: what a program writes, as cells
   watch         when a file changes: how cur is followed

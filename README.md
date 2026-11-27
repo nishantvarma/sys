@@ -52,6 +52,9 @@ and the packages they share:
     state     a window's own files, cur and what ed holds unsaved, its
               name and its text, and what studio asks of gio's window:
               where each is kept, read, and written
+    tabs      what the words that turn a frame's tabs mean, l's and a
+              tab line's press's: one meaning, which tmux's host and gio's
+              window each carry out
     picture   a note as its parts and the messages between them, laid
               out in cells: SVG on a page, runes on a terminal;
               `design/arch` is sys drawn that way, and `./build` makes
@@ -122,8 +125,8 @@ insertmode/key coexist, both under `ed/3-mode`; `<<name>>` takes any path
 suffix that names one chunk. tangle walks the tree and stitches it into a
 single `main.go`. Browse the outline in fm, edit the chunks in ed — no
 markup to learn. `tangle`, `fm`, `ed` and `studio` are each written this
-way; `outline`, `tty`, `vt`, `view`, `watch`, `state` and `picture` stay
-plain Go packages.
+way; `outline`, `tty`, `vt`, `view`, `watch`, `state`, `tabs` and
+`picture` stay plain Go packages.
 
 The outline does not stop at a file. A note is an outline too, by its
 indent, so one tree runs from the root, the topmost thing, down through

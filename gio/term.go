@@ -182,12 +182,12 @@ func shell() string {
 	return "/bin/sh"
 }
 
-// closetab ends the tab a slot shows, as l close asks: its program hung
-// up, as st hangs up its shell, and the next tab takes its place as it
-// ends (drop). A slot's last tab stays, for it is the slot.
+// closetab ends the tab a slot shows, as l close asks (tabs.Turn): its
+// program hung up, as st hangs up its shell, and the next tab takes its
+// place as it ends (drop).
 func (s *studio) closetab(slot string) {
 	p := s.panes[slot]
-	if p == nil || p.gone || p.cmd == nil || len(s.tabs[slot]) < 2 {
+	if p == nil || p.gone || p.cmd == nil {
 		return
 	}
 	p.cmd.Process.Signal(syscall.SIGHUP)

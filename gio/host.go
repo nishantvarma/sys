@@ -12,10 +12,10 @@ import (
 	"os/exec"
 	"path/filepath"
 	"slices"
-	"strconv"
 	"strings"
 
 	"sys/state"
+	"sys/tabs"
 	"sys/tty"
 	"sys/vt"
 	"sys/watch"
@@ -314,50 +314,38 @@ func (s *studio) launch(p *pane, run string) error {
 }
 
 // turn does to the frame's tabs what studio tab asks of a slot's, or a
-// press on a tab line's button names, the words as studio takes them in
-// tmux (`studio/5-verbs/21-turn.go:/func turn/`): next and prev, round; a
-// number, a place from 1; a name, the tab by that name in any slot;
-// close, the tab shown, but never a slot's last; and new, a terminal
-// running the words after it. The eye goes to the tab shown (show)
+// press on a tab line's button names: what each word means is tabs.Turn's
+// (`tabs/tabs.go:/func Turn/`), as in tmux, carried out here, the eye
+// going to the tab shown (show); an error has no line to be said on here
 func (s *studio) turn(slot string, words []string) {
-	if len(words) == 0 {
+	act, err := tabs.Turn(s.slots(), slot, words)
+	if err != nil {
 		return
 	}
-	switch word := words[0]; word {
-	case "new":
-		s.newterm(words[1:])
-	case "close":
-		s.closetab(slot)
-	case "next", "prev":
-		p, tabs := s.panes[slot], s.tabs[slot]
-		switch {
-		case p == nil:
-		case s.away(p): // the panel, hidden, shows the tab it hid
-			s.show(slot, p)
-		case len(tabs) > 1:
-			d := 1
-			if word == "prev" {
-				d = len(tabs) - 1
-			}
-			i := slices.Index(tabs, p)
-			s.show(slot, tabs[(i+d)%len(tabs)])
-		}
-	default:
-		if n, err := strconv.Atoi(word); err == nil {
-			if tabs := s.tabs[slot]; n >= 1 && n <= len(tabs) {
-				s.show(slot, tabs[n-1])
-			}
-			return
-		}
-		for name, tabs := range s.tabs {
-			for _, p := range tabs {
-				if p.tab == word {
-					s.show(name, p)
-					return
-				}
-			}
-		}
+	switch act.Do {
+	case tabs.New:
+		s.newterm(act.Run)
+	case tabs.Close:
+		s.closetab(act.Slot)
+	case tabs.Show:
+		s.show(act.Slot, s.tabs[act.Slot][act.Tab])
 	}
+}
+
+// slots is the frame's slots as the tab words see them (tabs.Turn): each
+// one's tabs by name, the one in its place, and whether it is hidden
+func (s *studio) slots() []tabs.Slot {
+	var out []tabs.Slot
+	for _, sl := range leaves(s.frame) {
+		in, shown := s.tabs[sl.Name], s.panes[sl.Name]
+		t := tabs.Slot{Name: sl.Name, Shown: slices.Index(in, shown),
+			Hidden: s.away(shown)}
+		for _, p := range in {
+			t.Tabs = append(t.Tabs, p.tab)
+		}
+		out = append(out, t)
+	}
+	return out
 }
 
 // show puts a slot's tab p in its place with the eye on it, as studio

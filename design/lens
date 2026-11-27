@@ -91,7 +91,7 @@ The tabs in gio's window
   The window runs each tab and shows one in its slot's place, the slot's
   tab line over it, each tab's name a button
   (`gio/look.go:/func (s *studio) tabBar/`), and takes the words tmux's
-  frame takes, alike (`gio/host.go:/func (s *studio) turn/`). It has no
+  frame takes, as sys/tabs says them (`tabs/tabs.go:/func Turn/`). It has no
   tmux to ask, so studio tab and studio panel add what they ask to the
   window's ask file, a line an ask, which the window does in order as it
   hears it (`studio/5-verbs/22-ask/02-ask.go`); ed and the lens tell l
@@ -118,6 +118,8 @@ What is where
 	studio show lens      one lens of the lens view (`studio/4-lens`)
 	studio tab, l         a slot's tabs turned, shown, opened, closed
 	                      (`studio/5-verbs/21-turn.go`)
+	sys/tabs              what each of those words means, once, for
+	                      tmux and gio's window alike
 	studio panel          the terminals hidden and shown
 	studio/cheatsheet     the keys, the tab line and l, for use
 	the frame's layout    the golden spiral over the panel
