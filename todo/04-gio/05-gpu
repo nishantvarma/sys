@@ -1,0 +1,8 @@
+gpu: the window's text drawn by the gpu
+
+a run of text is made an image on the cpu, freetype's glyphs blended on
+its ground, and gio shows it pixel for pixel
+(`gio/ft.go:/a run is made here/`). a terminal in the window redraws
+its grid as fast as a program writes: the glyphs kept on the gpu once,
+in a texture, and each cell drawn from it, would leave the cpu out.
+later, when a measure says the cpu is where the time goes.
