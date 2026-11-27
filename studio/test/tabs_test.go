@@ -28,8 +28,11 @@ shell
 // again across the bottom, as a new terminal shows it too; the terminal's
 // exit shows the shell again, and so does its close from its own shell,
 // the tab line naming it no more; a press's error is answered, not
-// failed; close ends the tab shown, the next taking its place; and the
-// face's end ends the parked tabs with the frame.
+// failed; close ends the tab shown, the next taking its place, but not a
+// slot's last; the middle of three that ends gives its place to the
+// next; a terminal's words reach it whole, a space and all; and the
+// face's end ends the parked tabs with the frame, but one running a
+// command, which comes back to the window.
 func TestTabs(t *testing.T) {
 	if _, err := exec.LookPath("tmux"); err != nil {
 		t.Skip("no tmux")
@@ -69,6 +72,19 @@ func TestTabs(t *testing.T) {
 			t.Fatalf("studio %s: %v: %s", strings.Join(args, " "),
 				err, out)
 		}
+	}
+	// fail is a verb that must fail, and what it said
+	fail := func(pane string, args ...string) string {
+		t.Helper()
+		c := exec.Command(studio, args...)
+		c.Dir, c.Env = t.TempDir(), append(env, "TMUX="+server,
+			"TMUX_PANE="+pane)
+		out, err := c.CombinedOutput()
+		if err == nil {
+			t.Errorf("studio %s did not fail",
+				strings.Join(args, " "))
+		}
+		return string(out)
 	}
 	run("", note)
 	w := tm("show", "-gv", "@studio")
@@ -184,6 +200,44 @@ func TestTabs(t *testing.T) {
 	if _, tab := in("view"); tab != "first" || tabs("view") != "first" {
 		t.Errorf("close shows %q, the tabs %q", tab, tabs("view"))
 	}
+	if out := fail(view, "tab", "close"); !strings.Contains(out,
+		"keeps its last tab") {
+		t.Errorf("a slot's last tab closed: %q", out)
+	}
+
+	width := func(p string) string {
+		return tm("display", "-p", "-t", p, "#{pane_width}")
+	}
+	run(shell, "panel", "hide")
+	run(view, "tab", "new")
+	two, tab := in("shell")
+	if tab != "2" || width(two) != tm("display", "-p", "-t", w,
+		"#{window_width}") {
+		t.Errorf("a new terminal, and the hidden panel shows %q", tab)
+	}
+	run(view, "tab", "new")
+	three, _ := in("shell")
+	run("", "tab", "-t", three, "2")
+	tm("send-keys", "-t", two, "exit", "Enter")
+	if !settle(func() bool {
+		_, tab := in("shell")
+		return tab == "3"
+	}) {
+		_, tab := in("shell")
+		t.Errorf("the middle of three ended, and %q shows, not the"+
+			" next", tab)
+	}
+
+	dir := tm("display", "-p", "-t", view, "#{pane_current_path}")
+	run(view, "tab", "new", "sh", "-c", "touch 'a b'; exec sleep 100")
+	busy, _ := in("shell")
+	if !settle(func() bool {
+		_, err := os.Stat(filepath.Join(dir, "a b"))
+		return err == nil
+	}) {
+		t.Error("a terminal's words, one with a space, came split")
+	}
+	run("", "tab", "-t", busy, "1")
 
 	fm, _ := in("fm")
 	tm("send-keys", "-t", fm, "C-d")
@@ -195,5 +249,9 @@ func TestTabs(t *testing.T) {
 		return c.Run() != nil
 	}) {
 		t.Error("the face ended, and the parked tabs stay")
+	}
+	if got := tm("display", "-p", "-t", busy, "#{window_id}"); got != w {
+		t.Errorf("a terminal running a command waits in %s, not the"+
+			" window", got)
 	}
 }

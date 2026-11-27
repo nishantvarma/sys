@@ -2,7 +2,7 @@
 // tmux's styles from tty's palette, lit as sys/view lights a lens on its
 // bar (`view/bar.go:/func Bar/`): each tab by its name, the one shown in
 // a chip. Each name is a button, a control range by its place, and the
-// panel's bar ends in two more, + and, with a tab to spare, × (buttons).
+// panel's bar ends in two more, + and, with a tab to spare, × (tabButtons).
 // A slot of one tab needs no bar, but the panel does, for its +.
 func bar(names []string, shown int, panel bool) string {
 	if len(names) < 2 && !panel {

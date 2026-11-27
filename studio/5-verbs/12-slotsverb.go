@@ -11,6 +11,6 @@ func slotsVerb(args []string) error {
 	if err != nil {
 		return err
 	}
-	return json.NewEncoder(os.Stdout).Encode(placedOf(f.slots,
-		f.shell()))
+	return json.NewEncoder(os.Stdout).Encode(placedOf(f.slots, f.panel,
+		f.face()))
 }

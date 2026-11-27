@@ -3,11 +3,9 @@
 // there; a key on a node reaches it first (see reach), and one on a node
 // gone goes with it; enter, a right click's too, opens what the row names
 // (plumb). Tab turns to the next lens: for a lens fixed, a tab of the
-// frame's lens view, the frame's next tab (turn); else its own next,
-// and a press on a lens's name on its bar that one, its tree naming the
-// lenses on its tags for the bar. Its drawing is a tree, the program's
-// word how the lens sees the thing, and its state the lens shown and a
-// tally of what it shows.
+// frame's lens view, the frame's next tab (turn); else its own next. Its
+// drawing is a tree, the program's word how the lens sees the thing, and
+// its state the lens shown and a tally of what it shows.
 func (l *lensing) run(ui outline.View, t *tty.Term,
 	wt *watch.Watcher) error {
 	var keys chan keyed
@@ -52,9 +50,6 @@ func (l *lensing) run(ui outline.View, t *tty.Term,
 			word, l.msg = l.msg, ""
 		}
 		tr := tree(th, ln)
-		if !l.fixed {
-			tr.Tags = names()
-		}
 		shows := []string{ln.name}
 		if n := tallyOf(tr); n != "" {
 			shows = append(shows, n)
@@ -77,18 +72,17 @@ func (l *lensing) run(ui outline.View, t *tty.Term,
 		case tty.KFocus, tty.KBlur:
 			l.on = ev.Name == tty.KFocus
 		case tty.KTab:
-			if !l.fixed {
+			switch {
+			case !l.fixed:
 				l.lens = (l.lens + 1) % len(lenses)
-				break
-			}
-			err := turn(l.slot, os.Getenv("TMUX_PANE"),
-				[]string{"next"})
-			if err != nil {
-				l.msg = err.Error()
-			}
-		case tty.KLens:
-			if _, i, ok := lensNamed(ev.Text); ok && !l.fixed {
-				l.lens = i
+			case !l.framed:
+				l.msg = "no tabs outside a frame"
+			default:
+				err := turn(l.slot, os.Getenv("TMUX_PANE"),
+					[]string{"next"})
+				if err != nil {
+					l.msg = err.Error()
+				}
 			}
 		case tty.KEnter:
 			plumb(l.at)

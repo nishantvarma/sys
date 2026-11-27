@@ -1,6 +1,6 @@
 // open lays the frame out in dir: in a new tmux window, or, given here, in
-// that pane's window, where it is a shell alone and stays, the frame's
-// shell (shell). The window's pane is split down among the slots, theirs
+// that pane's window, where it is a shell alone and stays, the panel's
+// (layout). The window's pane is split down among the slots, theirs
 // across, and so on; then each slot starts what it runs, told its slot,
 // $STUDIO (state.Slot). First the window's own hooks are set: its layout
 // changing does nothing, for `tmux/conf:/window-layout-changed/` lays a
@@ -9,15 +9,15 @@
 // pane was its face, fm's slot (face).
 // Its borders are drawn in the rule's colour, the palette's, as the
 // samples drew the frame. Each slot's pane carries the slot's name,
-// @slot, which is how e, o and p -a find it, asking tmux and not studio
-// (`design/mouse`), the name of the tab shown in it, @tab, and its
-// frame's window, @frame. A slot of tabs shows its first, and the rest
-// wait out of sight (park), the slot's bar naming them (bars); a tab of
-// one stays, dead, as what runs in it ends, for the next to take its
-// place (closeVerb). The window keeps the frame it was laid out from,
-// @studio-frame, its face, @studio-face, and the shell it was laid out
-// around, @studio-here; and it becomes the studio a program in another
-// window reaches, @studio.
+// @slot, which is how o and p -a find it, asking tmux (`design/mouse`),
+// the name of the tab shown in it, @tab, and its frame's window, @frame.
+// A slot of tabs shows its first, and the rest wait out of sight (park),
+// the slot's bar naming them (bars); a tab of one, and the panel's, stays,
+// dead, as what runs in it ends, for the next to take its place
+// (closeVerb). A tab's command is the note's, which a shell reads. The
+// window keeps the frame it was laid out from, @studio-frame, its face,
+// @studio-face, and the shell it was laid out around, @studio-here; and
+// it becomes the studio a program in another window reaches, @studio.
 func (f *frame) open(dir, here string, dry bool) error {
 	t := &tmux{dry: dry}
 	top, err := here, error(nil)
@@ -53,7 +53,7 @@ func (f *frame) open(dir, here string, dry bool) error {
 	if here != "" {
 		// carve leaves the shell that was here in the first slot: it
 		// trades places with the pane made for the frame's shell
-		if sh := f.shell(); sh != first {
+		if sh := f.panel; sh != first {
 			cmds = append(cmds, []string{"swap-pane", "-d", "-s",
 				here, "-t", panes[sh]})
 			panes[first], panes[sh] = panes[sh], here
@@ -75,6 +75,8 @@ func (f *frame) open(dir, here string, dry bool) error {
 		}
 		if len(s.tabs) > 1 {
 			tabbed = append(tabbed, s)
+		}
+		if len(s.tabs) > 1 || s == f.panel {
 			cmds = append(cmds, []string{"set", "-p", "-t",
 				panes[s], "remain-on-exit", "on"})
 		}
@@ -83,9 +85,9 @@ func (f *frame) open(dir, here string, dry bool) error {
 		cmds = append(cmds, []string{"set", "-w", "-t", win, o,
 			"fg=" + tty.Rule})
 	}
-	if sh := f.shell(); sh != nil {
+	if f.panel != nil {
 		cmds = append(cmds, []string{"set", "-w", "-t", win,
-			"@studio-panel", sh.name})
+			"@studio-panel", f.panel.name})
 	}
 	cmds = append(cmds,
 		[]string{"set", "-w", "-t", win, "@studio-frame", f.note},
@@ -102,7 +104,11 @@ func (f *frame) open(dir, here string, dry bool) error {
 	}
 	for _, s := range tabbed {
 		for _, tb := range s.tabs[1:] {
-			if _, err := t.park(win, dir, s.name, tb.name, tb.cmd,
+			var run []string
+			if tb.cmd != "" {
+				run = []string{tb.cmd}
+			}
+			if _, err := t.park(win, dir, s.name, tb.name, run,
 				told(s.name, win, tb.cmd)); err != nil {
 				return err
 			}
@@ -111,8 +117,8 @@ func (f *frame) open(dir, here string, dry bool) error {
 			return err
 		}
 	}
-	if sh := f.shell(); sh != nil && len(sh.tabs) < 2 {
-		return t.bars(win, sh.name) // the panel's, for its +
+	if f.panel != nil && len(f.panel.tabs) < 2 {
+		return t.bars(win, f.panel.name) // the panel's, for its +
 	}
 	return nil
 }

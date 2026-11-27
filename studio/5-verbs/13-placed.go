@@ -2,7 +2,8 @@
 // among the slots beside it, what runs in it, the slots it is split into,
 // when it has more than one, its tabs, each a name and what runs in it,
 // the first the one shown, and whether it is the frame's panel, its
-// terminals across the bottom, which a host hides and shows (layout).
+// terminals across the bottom, which a host hides and shows (layout), or
+// its face, whose end ends the frame (face).
 type placed struct {
 	Name   string   `json:"name"`
 	Weight int      `json:"weight"`
@@ -10,4 +11,5 @@ type placed struct {
 	Kids   []placed `json:"kids,omitempty"`
 	Tabs   []placed `json:"tabs,omitempty"`
 	Panel  bool     `json:"panel,omitempty"`
+	Face   bool     `json:"face,omitempty"`
 }

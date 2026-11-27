@@ -5,7 +5,7 @@
 // pane's, the one it runs in or the one -t names, as alt-t's binding
 // names it (`tmux/conf:/alt-t hides/`), which is answered on tmux's
 // message line (answered); with no pane it is gio's window's, which keeps
-// its panel in a file (askPanel), as tab asks it of its tabs (turn).
+// its panel itself and is asked, as tab asks of its tabs (ask).
 func panelVerb(args []string) error {
 	pane, named := os.Getenv("TMUX_PANE"), false
 	if len(args) > 1 && args[0] == "-t" {
@@ -18,7 +18,7 @@ func panelVerb(args []string) error {
 	}
 	switch {
 	case pane == "":
-		return askPanel(args)
+		return ask("panel", "", args)
 	case named:
 		return answered(pane, turnPanel(pane, args))
 	}

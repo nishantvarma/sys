@@ -1,5 +1,5 @@
 // lens is one way to see the thing at cur (`design/lens`): its name, which
-// the bar shows and studio lens sets; how it sees the thing, said as the
+// the bar shows and studio show takes; how it sees the thing, said as the
 // program's word; the thing's kids as it sees them, from what the lens is
 // on (thing); the kind of the tree it makes, which a view draws by; and
 // whether it reads the note's text, ed's while ed holds it unsaved, or

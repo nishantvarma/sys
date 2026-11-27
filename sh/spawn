@@ -28,12 +28,12 @@ if (~ $#* 0) exit
 term=()
 if (~ $1 -t) {
 	shift
+	# in a frame a terminal's program opens as a tab of its panel,
+	# where the frame keeps its terminals, in tmux or in gio's
+	# window; out of one studio says so, and it opens beside
+	# (design/lens)
+	if (studio tab new $* >[2]/dev/null) exit
 	if (! ~ $#TMUX 0) {
-		# in a frame a terminal's program opens as a tab of its
-		# terminals, where the frame keeps them (design/lens)
-		frame=`{tmux show -wqv -t $TMUX_PANE @studio-frame \
-			>[2]/dev/null}
-		if (! ~ $#frame 0) if (studio tab new $*) exit
 		dir=`{pwd}
 		tmux split-window -c $"dir $*
 		exit

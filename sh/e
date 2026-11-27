@@ -16,16 +16,10 @@ n=`{c -v e $*}
 if (~ $#n 0) exit
 a=`{m 0}
 
-# in a frame the lens view's source tab, @tab, edits cur, for it runs
-# ed -f: while cur is this file, the tab is shown, the eye goes there, and
-# nothing opens beside. a plain window names no tab, and ed opens below
-# (design/mouse).
-frame=`{tmux show -wqv -t $TMUX_PANE @studio-frame >[2]/dev/null}
-if (~ $"a $"n $"n^:* && ! ~ $#frame 0) {
-	studio tab source >[2]/dev/null
-	ed=`{tmux list-panes -t $TMUX_PANE -f '#{==:#{@tab},source}' \
-		-F '#{pane_id}' >[2]/dev/null}
-	if (! ~ $#ed 0) if (tmux select-pane -t $ed >[2]/dev/null) exit
-}
+# in a frame the lens view's source tab edits cur, for it runs ed -f:
+# while cur is this file, studio shows the tab, in tmux or in gio's
+# window, the eye going there, and nothing opens beside. out of a frame
+# studio says so, and ed opens below (design/mouse).
+if (~ $"a $"n $"n^:*) if (studio tab source >[2]/dev/null) exit
 if (~ $#at 0 && ~ $"a $"n^:*) at='+'^`{echo $"a | sed 's,.*:,,'}
 spawn -t $EDITOR $at $"n

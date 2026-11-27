@@ -1,5 +1,5 @@
-// names is the lenses' names, in order, which the lens puts on its tree's
-// tags for a view's bar (`view/bar.go:/func Bar/`).
+// names is the lenses' names, in order, as a name it does not know is
+// told them (show).
 func names() []string {
 	var out []string
 	for _, l := range lenses {

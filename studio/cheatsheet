@@ -1,10 +1,10 @@
 studio — cheatsheet
 
-The frame is the lens view, fm and the terminals, laid out from the note
-studio/frame (design/lens). A slot of tabs shows one at a time, its tab
-line over it naming them, and the terminals are a panel across the
-bottom. These are the frame's keys, in tmux and in gio's window alike;
-ed's and fm's own are in their cheatsheets.
+The frame is the lens view, fm and the panel, laid out from the note
+studio/frame (`design/lens`). A slot of tabs shows one at a time, its tab
+line over it naming them, and the panel across the bottom holds the
+terminals, each a tab. These are the frame's keys, in tmux and in gio's
+window alike; ed's and fm's own are in their cheatsheets.
 
 the keys
   Tab        in ed or a lens: the lens view's next tab, source, outline,
@@ -19,12 +19,13 @@ the tab line — the names over a slot of tabs, each a button
 A press sends what l would: l 2, l new, l close. In tmux the first five
 names are buttons, and in gio's window every one.
 
-l — the frame's verb, as vi's l steps right: the next tab (sh/l)
+l — the frame's verb, as vi's l steps right: the next tab (`sh/l`)
   l              the next tab of the slot it runs in
   l prev         the one before
   l 2            the tab at that place, from 1, as the tab line numbers it
   l outline      a tab by its name, from any pane of the frame
-  l close        end the tab shown; the next takes its place
+  l close        end the tab shown; the next takes its place, but a
+                 slot keeps its last
   l new [cmd]    a terminal in the panel: a shell, or cmd
   studio tab     say the slot's tabs, * on the one shown
   studio panel   alt-t's verb: hide, show, or bare, turn

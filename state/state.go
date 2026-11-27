@@ -3,9 +3,9 @@
 // fm, ed and the lens say; its unsaved, the file ed in the window's frame
 // holds unsaved, which fm's q reads; its text, what ed holds of that file,
 // which the lens reads in place of the file; and, for a frame's host down
-// a pipe, gio's window, which has no tmux to ask, its tab, what studio tab
-// asks of a slot's tabs, and its panel, hidden or not. Each file is written
-// whole, and each but text holds one line.
+// a pipe, gio's window, which has no tmux to ask, its ask, what studio tab
+// and studio panel ask of the frame, a line an ask. Each file but ask is
+// written whole, and each but text and ask holds one line.
 package state
 
 import (
@@ -73,6 +73,24 @@ func Read(p string) string {
 // Write puts line in a state file, written whole (Put).
 func Write(p, line string) error {
 	return Put(p, []byte(line+"\n"))
+}
+
+// Add puts line at the end of a state file, one that holds what is asked
+// of a window, a line an ask, for its reader to take in order: the line
+// is one write, so that two asks at once are two whole lines.
+func Add(p, line string) error {
+	if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+		return err
+	}
+	f, err := os.OpenFile(p, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+	if err != nil {
+		return err
+	}
+	_, err = f.WriteString(line + "\n")
+	if cerr := f.Close(); err == nil {
+		err = cerr
+	}
+	return err
 }
 
 // Put puts b in a state file: to a file beside it, then renamed onto it,

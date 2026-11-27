@@ -19,7 +19,7 @@ func openVerb(args []string) error {
 		return err
 	}
 	here := ""
-	if p := os.Getenv("TMUX_PANE"); p != "" && f.shell() != nil {
+	if p := os.Getenv("TMUX_PANE"); p != "" && f.panel != nil {
 		n, err := (&tmux{}).run("display", "-p", "-t", p,
 			"#{window_panes}")
 		if err == nil && n == "1" {

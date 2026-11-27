@@ -14,8 +14,9 @@ import (
 )
 
 // TestButtons: on a client of the test's own, tmux's conf sourced, a press
-// on a name on a tab line shows that tab, the panel's + opens a terminal,
-// and its × closes the one shown, each a press where the name is drawn.
+// on a name on a tab line shows that tab, the panel's + opens a terminal
+// in the folder of the pane pressed, and its × closes the one shown, each
+// a press where the name is drawn.
 // The client's presses go in as a terminal sends them; no sys script is on
 // the server's path and it has no display, so no hook moves a pointer.
 func TestButtons(t *testing.T) {
@@ -84,6 +85,15 @@ func TestButtons(t *testing.T) {
 		return p, tab
 	}
 	shell, _ := in("shell")
+	here := t.TempDir() // where the shell goes, for + to open in
+	must("send-keys", "-t", shell, "cd "+here, "Enter")
+	if !settle(func() bool {
+		out, _ := tm("display", "-p", "-t", shell,
+			"#{pane_current_path}")
+		return out == here
+	}) {
+		t.Fatal("the shell never went to the folder")
+	}
 	run(shell, "tab", "new")
 
 	client := exec.Command("script", "-qfc",
@@ -109,8 +119,13 @@ func TestButtons(t *testing.T) {
 	}) {
 		t.Fatal("no client attached")
 	}
-	// the window takes the client's size
-	time.Sleep(300 * time.Millisecond)
+	// the window takes the client's size, less the status line
+	if !settle(func() bool {
+		out, _ := tm("display", "-p", "-t", w, "#{window_height}")
+		return out == "49"
+	}) {
+		t.Fatal("the window never took the client's size")
+	}
 
 	// press is a left click at a cell, 0-based, as a terminal sends one
 	press := func(x, y int) {
@@ -163,6 +178,12 @@ func TestButtons(t *testing.T) {
 	if !shows("shell", "3") {
 		_, got := in("shell")
 		t.Errorf("a press on +, and the panel shows %q", got)
+	}
+	if p, _ := in("shell"); must("display", "-p", "-t", p,
+		"#{pane_current_path}") != here {
+		t.Errorf("+ opened its terminal in %s, not the shell's %s",
+			must("display", "-p", "-t", p, "#{pane_current_path}"),
+			here)
 	}
 	press(on("shell", "×"))
 	if !settle(func() bool {

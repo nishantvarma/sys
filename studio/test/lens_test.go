@@ -101,14 +101,13 @@ const note = "t\nup\n  a\n    → b  go\nlow\n  b\n"
 const noted = "t|up|  a|    → b  go|low|  b"
 
 // TestLens: given no lens, studio show shows every way: the note cur names
-// as its outline, a row an item, the lenses named on its tree's tags and
-// the one shown in its state, the cursor on the item cur's line is in.
-// While ed holds the note unsaved it shows the text ed holds, and the file
-// again once ed lets it go. Tab turns to the render, the note's items as
-// they nest for its picture, and a press on a lens's name to that one;
-// git reads the file as saved, and the diff says so while ed holds the
-// note. A key on a row, once the pane has the eye, says the row to cur;
-// and q, outside a frame, ends it.
+// as its outline, a row an item, the lens shown in its state, the cursor
+// on the item cur's line is in. While ed holds the note unsaved it shows
+// the text ed holds, and the file again once ed lets it go. Tab turns to
+// the render, the note's items as they nest for its picture, and again to
+// the diff; git reads the file as saved, and the diff says so while ed
+// holds the note. A key on a row, once the pane has the eye, says the row
+// to cur; and q, outside a frame, ends it.
 func TestLens(t *testing.T) {
 	home, dir := t.TempDir(), t.TempDir()
 	file := filepath.Join(dir, "note")
@@ -128,11 +127,8 @@ func TestLens(t *testing.T) {
 	press, until, ended := lensOn(t, home, dir, "-s")
 
 	d := until("no outline", shows("outline"))
-	if d.Tree.Kind != "outline" ||
-		strings.Join(d.Tree.Tags, " ") != "outline render diff" ||
-		d.rows() != noted {
-		t.Fatalf("the outline: %q %v %q", d.Tree.Kind, d.Tree.Tags,
-			d.rows())
+	if d.Tree.Kind != "outline" || d.rows() != noted {
+		t.Fatalf("the outline: %q %q", d.Tree.Kind, d.rows())
 	}
 	if i := slices.IndexFunc(d.Tree.Kids,
 		func(k *outline.Node) bool { return k.Cur }); i != 3 {
@@ -155,8 +151,8 @@ func TestLens(t *testing.T) {
 	if d.Tree.Kind != "picture" || d.rows() != "t|up|low" {
 		t.Errorf("the render: %q %q", d.Tree.Kind, d.rows())
 	}
-	press(outline.Key{Name: "LENS", Text: "diff"})
-	d = until("a press on diff showed no diff", shows("diff"))
+	press(outline.Key{Name: "TAB"})
+	d = until("Tab again showed no diff", shows("diff"))
 	if len(d.Tree.Kids) != 1 || d.Tree.Kids[0].Kind != "waits" {
 		t.Errorf("a diff outside git says no why: %q", d.rows())
 	}
@@ -182,9 +178,8 @@ func TestLens(t *testing.T) {
 }
 
 // TestLensOne: given a lens, studio show shows that one alone, as a tab
-// of a frame's lens view does: it names no lenses, for the frame's bar
-// names its tabs, and Tab is the frame's, so outside a frame it says why
-// and shows the same lens.
+// of a frame's lens view does: Tab is the frame's, so outside a frame it
+// says why and shows the same lens.
 func TestLensOne(t *testing.T) {
 	home, dir := t.TempDir(), t.TempDir()
 	file := filepath.Join(dir, "note")
@@ -194,9 +189,8 @@ func TestLensOne(t *testing.T) {
 	os.WriteFile(cur, []byte(file+"\n"), 0o644)
 	press, until, _ := lensOn(t, home, dir, "render", "-s")
 	d := until("no render", shows("render"))
-	if d.Tree.Kind != "picture" || len(d.Tree.Tags) != 0 {
-		t.Fatalf("the render alone: %q, tags %v", d.Tree.Kind,
-			d.Tree.Tags)
+	if d.Tree.Kind != "picture" {
+		t.Fatalf("the render alone: %q", d.Tree.Kind)
 	}
 	press(outline.Key{Name: "TAB"})
 	d = until("Tab outside a frame said nothing", func(d drawn) bool {

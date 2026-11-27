@@ -113,22 +113,20 @@ bind-key -T copy-mode-vi MouseDown2Pane if-shell -F "#{selection_present}" {
 }
 
 # a frame's tab line, the border over a slot of tabs, names them, each name
-# a button, a control range by its place (studio/2-term/12-bar/01-bar.go): a
-# press sends studio tab what l would, the tab at that place, and the
-# panel's + and × a new terminal and a close, its error, if any, said on
-# tmux's message line. the pane is the one whose border it is; a press on
-# the border off a button is tmux's own, a resize.
+# a button, a control range by its place (studio/2-term/12-bar/01-bar.go):
+# a press sends studio tab what l would, the tab at that place, and the
+# panel's + and × a new terminal, in the folder of the pane pressed, and
+# a close, its error, if any, said on tmux's message line. the pane is the
+# one whose border it is; a press on the border off a button is tmux's
+# own, a resize.
 # control ranges are tmux's from 2026; an older one calls these unknown.
 bind-key -n MouseDown1Control0 run-shell -b "studio tab -t #{pane_id} 1"
 bind-key -n MouseDown1Control1 run-shell -b "studio tab -t #{pane_id} 2"
 bind-key -n MouseDown1Control2 run-shell -b "studio tab -t #{pane_id} 3"
 bind-key -n MouseDown1Control3 run-shell -b "studio tab -t #{pane_id} 4"
 bind-key -n MouseDown1Control4 run-shell -b "studio tab -t #{pane_id} 5"
-bind-key -n MouseDown1Control5 {
-	run-shell -b -c "#{pane_current_path}" "studio tab -t #{pane_id} new"
-}
+bind-key -n MouseDown1Control5 run-shell -b "studio tab -t #{pane_id} new"
 bind-key -n MouseDown1Control6 run-shell -b "studio tab -t #{pane_id} close"
-bind-key -n MouseDown1Border select-pane -M
 
 # alt-t hides a frame's panel, its terminals, and shows it again: t, the
 # terminals. a run-shell job has no pane of its own, so the binding names

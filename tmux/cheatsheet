@@ -26,7 +26,7 @@ the keys — ` is your prefix; press it twice to type one
   ` Enter   this pane to master, swapped with the one there
 
 In a frame each name on the tab line over a slot of tabs is a button,
-and alt-t hides the terminals: studio/cheatsheet.
+and alt-t hides the panel, its terminals: `studio/cheatsheet`.
 
 A pane whose program asks for the mouse, ed, fm and the lens among them,
 takes the buttons itself and means the same by them: ed hands its word,
