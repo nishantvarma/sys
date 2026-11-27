@@ -1,10 +1,11 @@
 lens: the thing at cur, seen its ways, as the tabs of one slot
 
-A lens is a way to see the thing at cur (`design/studio:/a lens shows a
-thing/`). The lens view is a slot of the frame whose tabs are its lenses,
-one shown at a time, Tab turning to the next:
+A lens is a way to see the thing at cur, made from it and never typed in
+(`design/studio:/a lens shows a thing/`). The lens view is a slot of the
+frame whose tabs are the thing's source and its lenses, one shown at a
+time, Tab turning to the next:
 
-	source     the text as written, the only lens typed in: ed -f
+	source     the text as written, the one tab typed in: ed -f
 	outline    its items by their indent, as rows, or as thumbs with t,
 	           as fm lays out a folder: studio show outline
 	render     what the text makes for a person to see: for a note its
@@ -22,20 +23,22 @@ view as a tab.
 
 The idea: a frame is slots, and a slot is tabs
 	frame      slots in the order they take room, laid out as a golden
-	           spiral, and the terminals a panel under them (layout)
+	           spiral, over the panel (layout)
 	slot       a place in the frame, by name; its tabs take turns there
 	tab        one program, by name; the slot's tab line names its tabs
-	studio     owns all three, in tmux and in gio's window alike; no
+	panel      the slot shell, across the frame's bottom: its tabs are
+	           terminals, each a shell or a command
+	studio     owns all four, in tmux and in gio's window alike; no
 	           program knows of them
-The lens view is a slot of tabs, and so are the terminals, the panel: l
-new opens a terminal as a tab of it, and what spawn opens in a frame
-comes there too. More shells are tabs, not splits, and the panel's tab
-line numbers them, 1 2 3. Their keys are in studio/cheatsheet.
+The lens view is a slot of tabs, and so is the panel: l new opens a
+terminal as a tab of it, and what spawn opens in a frame comes there
+too. More terminals are tabs, not splits, and the panel's tab line
+numbers them, 1 2 3. Their keys are in `studio/cheatsheet`.
 
 The case, carried through: design/arch at fm's cursor
 	the frame   fm at the left and the lens view at the right, 62% of the
-	            width, over the panel, the terminals, across the bottom,
-	            38% of the height; alt-t hides the panel and shows it
+	            width, over the panel across the bottom, 38% of the
+	            height; alt-t hides the panel and shows it
 	source      ed edits design/arch; its tab line, source  outline
 	            render  diff, is the border over the slot, source lit
 	Tab         in ed runs l, and the outline shows in the slot's place,
@@ -45,9 +48,9 @@ The case, carried through: design/arch at fm's cursor
 	Tab Tab     the render, then the diff; Tab again, the source
 
 Layout: the golden spiral, over the panel
-  The terminals, the first slot that keeps a shell, are the panel: across
-  the frame's bottom, 38% of its height, hidden and shown by studio
-  panel, its room going to the slots above. The rest take the room above
+  The panel, the first slot that keeps a shell, goes across the frame's
+  bottom, 38% of its height, hidden and shown by studio panel, its room
+  going to the slots above. The rest take the room above
   it: the first 1/φ of it, 62%, at its right;
   each after it 62% of what is left, down and across in turn; the last
   what remains, so the rest go on toward the bottom left and the first
@@ -72,39 +75,42 @@ The tabs in tmux
   A slot's pane shows its first tab; the rest wait in a window each of
   the frame's back session, out of the window list, and a tab shown trades
   places with the one there (`studio/2-term/14-show.go`). Each tab's pane
-  carries its slot, @slot, its name, @tab, and its frame, @frame; e finds
-  the source tab by its name and shows it first
-  (`sh/e:/studio tab source/`). The tab line is the slot's, drawn on the
-  border over it in the palette's chips (`studio/2-term/12-bar/01-bar.go`), and
-  each name on it is a button: tmux marks ranges on a border line, each
-  with a mouse key of its own, and a press on one sends studio tab what l
-  would, the tab at that place, or the panel's new terminal or close
+  carries its slot, @slot, its name, @tab, and its frame, @frame; e asks
+  studio to show the source tab, by its name (`sh/e:/studio tab source/`).
+  The tab line is the slot's, drawn on the border over it in the
+  palette's chips (`studio/2-term/12-bar/01-bar.go`), and each name on it
+  is a button: tmux marks ranges on a border line, each with a mouse key
+  of its own, and a press on one sends studio tab what l would, the tab
+  at that place, or the panel's new terminal or close
   (`tmux/conf:/a frame's tab line/`). A tab that ends gives its place to
-  the next (`studio/2-term/21-died.go`), and the frame's end ends the
-  tabs waiting with it.
+  the next (`studio/2-term/22-died.go`), and the frame's end ends the
+  tabs waiting with it, but a terminal running a command, which comes
+  back to the window (`studio/5-verbs/10-closeverb.go`).
 
 The tabs in gio's window
   The window runs each tab and shows one in its slot's place, the slot's
   tab line over it, each tab's name a button
-  (`gio/look.go:/func (s *studio) tabBar/`). It has no tmux
-  to ask, so studio tab puts what is asked in the window's tab file, and
-  the window follows it, as it follows cur (`studio/5-verbs/22-ask.go`);
-  ed and the lens tell l the slot they run in, which the window has no
-  pane to say. studio panel reaches the window's panel the same way, by
-  its panel file (`studio/5-verbs/24-askpanel.go`). The panel's
-  terminals are the window's own, each a shell on a pty, its screen st's
-  as sys/vt keeps it (`gio/term.go`), and its tab line has + and ×, as
-  tmux's has. A shell is told no slot, so that what runs from it is in
-  no frame, and l typed there asks of the slot with the eye, the one it
-  was typed in.
+  (`gio/look.go:/func (s *studio) tabBar/`), and takes the words tmux's
+  frame takes, alike (`gio/host.go:/func (s *studio) turn/`). It has no
+  tmux to ask, so studio tab and studio panel add what they ask to the
+  window's ask file, a line an ask, which the window does in order as it
+  hears it (`studio/5-verbs/22-ask/02-ask.go`); ed and the lens tell l
+  the slot they run in, which the window has no pane to say, and what
+  the window starts is told its frame, $STUDIO_WINDOW, so that a program
+  in no frame asks nothing of it. Whether the panel is hidden the window
+  alone keeps. The panel's terminals are the window's own, each a shell
+  or a command on a pty, its screen st's as sys/vt keeps it
+  (`gio/term.go`), and its tab line has + and ×, as tmux's has. A shell
+  is told no slot, so that what runs from it is in no frame, and l typed
+  there asks of the slot with the eye, the one it was typed in.
 
 Read, never typed
   No key types in the outline, the render or the diff, so none changes the
   text out of sight. A move says where it is to cur; enter, or a right
   click, opens what the row names
   (`studio/4-lens/08-run.go:/func (l *lensing) run/`). Run alone, outside a
-  frame, studio show has every lens and a tab line of its own, which
-  sys/view draws in place of its head (`view/screen.go:/func barred/`).
+  frame, studio show has every lens, Tab turning them, its state saying
+  the one shown.
 
 What is where
 	ed                    the source: the text, and what it holds
@@ -118,7 +124,8 @@ What is where
 	                      (`studio/1-frame`)
 	sys/view              outline, render and diff, drawn as it draws fm
 	gio's window          the same tabs, its tab line's names buttons
-	sys/vt                a terminal, st's: the window's panel's shells
+	sys/vt                a terminal, st's: the window's panel's
+	                      terminals
 	outline.Note          the note an address names, for ed and the lens
 	outline.Text          the items, by their indent
 	sys/picture           a note's render, its picture

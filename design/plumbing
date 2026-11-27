@@ -13,10 +13,11 @@ adds a third participant.
 
 the bus was never vacant
 
-tmux is not a sibling of ed and fm, it is what they run inside: a
-long-lived user server with a namespace, addressable objects, and a way
-to hand a message to one of them. that is the plumber's job, already
-filled and already paid for.
+inside tmux, tmux is not a sibling of ed and fm, it is what they run
+inside: a long-lived user server with a namespace, addressable objects,
+and a way to hand a message to one of them. that is the plumber's job,
+already filled and already paid for. gio's window is the other host,
+and its answer is below (revisit when).
 
 	plumber           tmux
 	the daemon        the server, running regardless
@@ -87,11 +88,14 @@ revisit when
 
 a gesture source outside tmux meets a consumer that must be reached
 while already running. a second gesture source alone changes nothing;
-it execs p, as tmux does. ed is one now, and fm through sys/view, which
-the lens draws with too: a right or a middle click there hands its word to p
-(`ed/4-view/29-plumb.go`), and p takes wdir from the pane
-(`sh/p:/pane_current_path/`), ed's cwd, not the edited file's folder. a
-word relative to that folder misses until p takes -w.
+it execs p, as tmux does. ed is one now: a right or a middle click there
+hands its word to p (`ed/4-view/29-plumb.go`), and p takes wdir from the
+pane (`sh/p:/pane_current_path/`), ed's cwd, not the edited file's
+folder; a word relative to that folder misses until p takes -w. in fm
+and the lens, through sys/view, a right click is the program's own
+enter, and a middle one hands its word to p -a. gio's window is such a
+source, and it met such a consumer, the frame's tabs: it is asked by a
+file, as cur is said (`design/lens:/The tabs in gio's window/`).
 
 -CC is a different question
 

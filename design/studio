@@ -4,7 +4,7 @@ The goal, first: one outline, two renderers
   sys has grown pieces that each read and draw notes their own way: three
   programs read a note's text, and two make a todo page. The first goal
   is fewer. One outline runs from the root through folders and files to a
-  single item of a note (README:/The outline does not stop at a file/). One
+  single item of a note (`README.md:/The outline does not stop/`). One
   reader builds it, medium/page/list. Two views draw it, the terminal's,
   which gio's window draws too, and the page in the browser, with one
   cursor: on the terminal fm walks the folders and ed beside it edits the
@@ -18,21 +18,21 @@ Built on sys, not beside it
   them out (studio/frame). ed edits a thing, fm moves between things, tty
   is the terminal both stand on, and tangle stitches a page from its parts.
   A lens shows a thing one way. What is typed is ed's
-  (design/todo:/typed at rest/); each other way to see it is a lens, a
+  (`design/todo:/typed at rest/`); each other way to see it is a lens, a
   program that follows cur, its outline, its render and its diff, and ed
   and the lenses take turns as the tabs of one slot, the lens view
-  (design/lens). Each lens is derived from the thing, never typed.
+  (`design/lens`). Each lens is derived from the thing, never typed.
   A need goes into one of those first, as a few lines, and becomes a new
   piece only when it fits none of them. The terminal pane runs fm and ed
   as they are; the thing every lens is on is fm's cur, which c names
-  (README:/the word you are on/).
+  (`README.md:/the word you are on/`).
 
   Target: the shelf reads, and page/py is a lens on a page; studio lays
   the lens view, fm and the terminals out in tmux, where the lens view's
   tabs show the text its ways. No page holds them all yet.
 
   1  a thing is a file or a folder
-  2  a lens shows a thing          source, outline, graph, run, diff
+  2  a lens shows a thing          outline, graph, run, diff
   3  an id joins the lenses
   4  the shelf reads               list, show, flip, follow
   5  the terminal acts, and writes a file a lens shows

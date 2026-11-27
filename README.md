@@ -21,8 +21,8 @@ rebuild away.
               (`gio/README`)
     studio    the frame: the lens view, the thing at fm's cursor seen
               its ways, its source in ed and its outline, render and
-              diff by `studio show`; fm; and the terminals, a panel
-              across the bottom; as tmux panes or as a page;
+              diff by `studio show`; fm; and the panel across the
+              bottom, its terminals; as tmux panes or as a page;
               `studio/frame` is a note: its slots in the order they
               take room, a golden spiral, and under a slot its tabs,
               which take turns in it (`design/lens`); a program reaches
@@ -44,14 +44,14 @@ and the packages they share:
               and the mouse made what it reads; a program started on a
               pty. tty's other side, for gio's window to run terminals
     view      the outline drawn on a terminal: fm's layouts, rows and
-              thumbs, and a program's lenses on a tab line in place of its
-              head, on the whole screen or in a region a host gives,
-              or as runs of text for a host that is no terminal, gio
+              thumbs, on the whole screen or in a region a host gives,
+              or as runs of text for a host that is no terminal, gio,
+              and a slot's tab line for it
     watch     says when files change in a folder: how a program follows
               cur
-    state     a tmux window's own files, cur and what ed holds unsaved,
-              its name and its text: where each is kept, read, and
-              written whole
+    state     a window's own files, cur and what ed holds unsaved, its
+              name and its text, and what studio asks of gio's window:
+              where each is kept, read, and written
     picture   a note as its parts and the messages between them, laid
               out in cells: SVG on a page, runes on a terminal;
               `design/arch` is sys drawn that way, and `./build` makes
@@ -96,10 +96,10 @@ verb takes its noun from `c`, so `o`, `e` and `p` with no argument mean this
 file, `fm` with none opens on it, and everything that isn't ours takes
 it as `` `{c} `` — ``git add `{c}``, ``wc -l `{c}``.
 
-Everything that selects says it and nothing else does: fm's cursor as it
-moves, a click moving it too; a left click on a word in
-any pane but theirs and ed's, which take the mouse for themselves; and ed
-on save — with the line it saved at, so `e` reopens there. `ed -f` and
+Everything that selects says it and nothing else does: fm's cursor and
+the lens's row as they move, a click moving either; a left click on a
+word in any pane but fm's, the lens's and ed's, which take the mouse for
+themselves; and ed on save — with the line it saved at, so `e` reopens there. `ed -f` and
 `fm -f` follow cur, and so a frame goes where anything says. One cur per
 tmux window, one log for the machine: each line is a verb and the
 address it was said about, so `m` walks that log newest first — back is
@@ -148,7 +148,7 @@ another by sending it an idea. Nothing is shared but the messages; what a
 piece knows of another is what it was last told. `c` and the `m` log are
 messages already, a verb and the address it was said about, passed
 through files. The messages a program and its view pass are in
-`design/view`.
+`design/view`, and those between programs in `design/arch`.
 
 ## the studio, and where it starts
 
@@ -201,6 +201,7 @@ in POSIX and fm won't notice; it only ever execs these by name.
     xclip         X's selections: fm's and ed's copy, ed's paste, and
                   what tmux's copy mode selects
     fzy, fd, rg   fuzzy pick + search behind f, s and fm's picks
+    copilot       the agent fm's a starts, by sh/a
     ruff          linter/formatter behind lint, and fm's F
     node          prettier behind fmt, via npx; medium/shelf's and
                   medium/page's browser checks

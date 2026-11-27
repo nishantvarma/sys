@@ -1,13 +1,22 @@
 sys: its parts, and the messages between them
   studio lays the pieces out from a note, studio/frame: the lens view,
   what fm's cursor is on seen its ways, its source in ed; fm; and the
-  terminals. fm says its row to cur, and fm -f, ed -f and the lens follow
-  it. Each piece draws through
-  outline, whose views are the terminal, gio's window, and the page next.
-  A right-click is the word: tmux hands it to p, p asks c what it names,
-  and o opens it.
-tmux            the bus: your keys, the word under a click, the shell
-  → p           the word
+  panel, its terminals. Its hosts are tmux and gio's window, alike to
+  every piece. fm and the lens say their row to cur, and fm -f, ed -f
+  and the lens follow it. Each piece draws through outline, whose views
+  are the terminal, gio's window, and the page next. A click's word
+  goes to p, which asks c what it names, and o opens it.
+  Between programs pass messages alone, each plain data, in a file or a
+  word: a window's cur, unsaved, text and ask, in ~/.config/sys
+  (sys/state); a program's slot, $STUDIO, and its frame's window,
+  $STUDIO_WINDOW; a tmux pane's @slot, @tab and @frame; and studio's
+  verbs, tab, panel, send and read, which a tab line's press and alt-t
+  run in tmux, and which ask gio's window by its ask file.
+hosts           where your keys and clicks come in, the frame laid out
+  tmux          the bus: your keys, the word under a click, the shell
+    → p         the word
+  gio           the window: the frame laid out, its terminals on vt
+    → p         the word
 sh              the verbs: a script each, run by name
   c             the pronoun: cur, what the last verb was about
   p             text to the address it names
@@ -41,9 +50,10 @@ outline         the tree a view draws, in messages
   window        gio, at the end of a pipe, a JSON line each way
   page          the browser; next
 libraries       what the pieces share, beside outline
-  state         a window's cur and unsaved, and ed's text: where, read,
-                written whole
+  state         a window's cur, unsaved, text and ask: where, read,
+                written
   tty           raw mode, keys and clicks, escapes, and a wake
+  vt            a terminal, st's: what a program writes, as cells
   watch         when a file changes: how cur is followed
   picture       a note as parts and messages: this one
 files           the tree: one outline, from the root to an item in a note
