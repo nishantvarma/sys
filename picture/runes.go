@@ -209,6 +209,16 @@ func (m *arrow) runesSaid(g cells) {
 // border, ▼ ▲ ▶ ◀ where it arrives, bent once at the middle where the two
 // boxes do not line up; what it carries stands beside it.
 func (f *Picture) Runes() []string {
+	g := f.drawing()
+	for _, m := range f.arrows {
+		m.runesSaid(g)
+	}
+	return g.lines()
+}
+
+// drawing is the picture's boxes and lines in cells, its words aside,
+// which go over them (Runes), and clear of them (say).
+func (f *Picture) drawing() cells {
 	g := grid(f.w, f.h)
 	for _, l := range f.lanes {
 		row := l.y + 1
@@ -230,8 +240,5 @@ func (f *Picture) Runes() []string {
 	for _, m := range f.arrows {
 		m.runes(g)
 	}
-	for _, m := range f.arrows {
-		m.runesSaid(g)
-	}
-	return g.lines()
+	return g
 }

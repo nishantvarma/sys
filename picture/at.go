@@ -21,17 +21,18 @@ func (m *arrow) covers(x, y int) bool {
 }
 
 // At is the address a cell of Runes names, column x and row y from 0: the
-// innermost box that holds it, else the message whose word stands there;
-// "" for none. A click on a picture names what it falls on.
+// message whose word stands there, for runes and the page draw words over
+// the rest, else the innermost box that holds it; "" for none. A click on
+// a picture names what it falls on.
 func (f *Picture) At(x, y int) string {
-	for _, l := range f.lanes {
-		if b := l.inner(x, y); b != nil {
-			return b.at
-		}
-	}
 	for _, m := range f.arrows {
 		if m.covers(x, y) {
 			return m.at
+		}
+	}
+	for _, l := range f.lanes {
+		if b := l.inner(x, y); b != nil {
+			return b.at
 		}
 	}
 	return ""

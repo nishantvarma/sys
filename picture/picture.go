@@ -55,8 +55,8 @@ type Picture struct {
 }
 
 // New is the picture a note's items make (see read), laid out, its
-// messages routed, and room made for what they say. An error in an item
-// starts with its path and line.
+// messages routed, what they say placed clear of the rest (say), and room
+// made for it (fit). An error in an item starts with its path and line.
 func New(items []*outline.Node) (*Picture, error) {
 	f, err := read(items)
 	if err != nil {
@@ -66,6 +66,7 @@ func New(items []*outline.Node) (*Picture, error) {
 	if err := f.route(); err != nil {
 		return nil, err
 	}
+	f.say()
 	f.fit()
 	return f, nil
 }

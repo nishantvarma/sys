@@ -3,6 +3,7 @@ package picture
 import (
 	"fmt"
 	"math"
+	"slices"
 )
 
 // holds is whether b is x, or holds it at any depth.
@@ -26,23 +27,30 @@ func (b *box) title() string {
 	return b.label + "  " + b.note
 }
 
-// apart is the room between two neighbouring boxes, or lanes, where a
-// message runs between them or what they hold. Across: room for its
-// label, or its head at least, else the usual gap. Down: room for a
-// label, else a line.
-func (f *Picture) apart(a, b *box, across bool) int {
+// apart is the room before kids[i], between it and the box beside it,
+// kids[i-1], boxes or lanes, where messages run between what they hold.
+// Across: room for the word of each message whose line crosses there, one
+// past boxes between its ends in the middle gap it crosses, else the
+// usual gap. Down: room for a word, else a line.
+func (f *Picture) apart(kids []*box, i int, across bool) int {
 	g := 1
 	if across {
 		g = gapW
 	}
+	at := func(b *box) int {
+		return slices.IndexFunc(kids, func(k *box) bool {
+			return k.holds(b)
+		})
+	}
 	for _, m := range f.arrows {
-		if a.holds(m.from) && b.holds(m.to) ||
-			b.holds(m.from) && a.holds(m.to) {
-			if across {
-				g = max(g, runes(m.label)+4)
-			} else {
-				g = max(g, gapH)
-			}
+		a, b := at(m.from), at(m.to)
+		lo, hi := min(a, b), max(a, b)
+		switch {
+		case lo < 0:
+		case across && i == (lo+hi+1)/2 && lo < i && i <= hi:
+			g = max(g, runes(m.label)+4)
+		case !across && lo == i-1 && hi == i:
+			g = max(g, gapH)
 		}
 	}
 	return g
@@ -72,12 +80,12 @@ func (b *box) size(depth int, f *Picture) {
 		k.size(depth+1, f)
 		if across {
 			if i > 0 {
-				w += f.apart(b.kids[i-1], k, true)
+				w += f.apart(b.kids, i, true)
 			}
 			w, h = w+k.w, max(h, k.h)
 		} else {
 			if i > 0 {
-				h += f.apart(b.kids[i-1], k, false)
+				h += f.apart(b.kids, i, false)
 			}
 			w, h = max(w, k.w), h+k.h
 		}
@@ -110,7 +118,7 @@ func (b *box) place(x, y, w, h, depth int, f *Picture) {
 	}
 	for i, k := range b.kids {
 		if i > 0 {
-			spare -= f.apart(b.kids[i-1], k, across)
+			spare -= f.apart(b.kids, i, across)
 		}
 		if across {
 			spare -= k.w
@@ -125,7 +133,7 @@ func (b *box) place(x, y, w, h, depth int, f *Picture) {
 	}
 	for i, k := range b.kids {
 		if i > 0 {
-			at += f.apart(b.kids[i-1], k, across)
+			at += f.apart(b.kids, i, across)
 		}
 		share := spare / n
 		if i < spare%n {
@@ -258,7 +266,7 @@ func (f *Picture) lay() {
 	y := 0
 	for i, l := range f.lanes {
 		if i > 0 {
-			y += f.apart(f.lanes[i-1], l, false)
+			y += f.apart(f.lanes, i, false)
 		}
 		l.place(f.left, y, w, l.h, 0, f)
 		y += l.h
@@ -297,6 +305,148 @@ func (f *Picture) route() error {
 		}
 	}
 	return nil
+}
+
+// place is where a message's word can stand: the point it is said at,
+// in cells, and which end of the word is there.
+type place struct {
+	at     [2]float64
+	anchor string
+}
+
+// places are where m's word can stand, the nearest its line's middle
+// first: where route put it; then, beside a line going down, each row
+// between its boxes, outward from the middle, at the side route gave and
+// then the other, a cell from the line, past a bend at the head's side;
+// or over and under a line going across, slid along it either way.
+func (m *arrow) places() []place {
+	out := []place{{m.said, m.anchor}}
+	x0, y0, x1, y1 := m.tail[0], m.tail[1], m.head[0], m.head[1]
+	if y0 == y1 {
+		// the rows over and under the one the line is drawn on
+		r := math.Floor(y0)
+		lo, hi := min(x0, x1), max(x0, x1)
+		half := float64(runes(m.label)) / 2
+		for d := 0.0; d <= hi-lo; d++ {
+			for _, x := range []float64{m.said[0] - d,
+				m.said[0] + d} {
+				if x-half < lo || x+half > hi {
+					continue
+				}
+				for _, y := range []float64{r - 0.8, r + 1.2} {
+					at := [2]float64{x, y}
+					out = append(out, place{at, "middle"})
+				}
+			}
+		}
+		return out
+	}
+	// the rows the line goes down, as runes draws it, bent once
+	iy0, iy1, d := int(y0), int(y1), sign(int(y1)-int(y0))
+	bend := iy1
+	if int(x0) != int(x1) {
+		bend = iy0 + (iy1-iy0)/2
+	}
+	other := map[string]string{"start": "end", "end": "start"}
+	mid := iy0 + (iy1-iy0)/2
+	for k := 0; k <= abs(iy1-iy0); k++ {
+		for _, y := range []int{mid - k, mid + k} {
+			if (y-iy0)*d <= 0 || (iy1-y)*d <= 0 ||
+				y == bend && bend != iy1 {
+				continue
+			}
+			c := float64(int(x1))
+			if (bend-y)*d > 0 {
+				c = float64(int(x0))
+			}
+			for _, a := range []string{m.anchor, other[m.anchor]} {
+				x := c - 0.5
+				if a == "start" {
+					x = c + 1.5
+				}
+				out = append(out, place{[2]float64{x,
+					float64(y)}, a})
+			}
+		}
+	}
+	return out
+}
+
+// abs is n's size, its sign aside.
+func abs(n int) int { return n * sign(n) }
+
+// taken is which cells a word may not stand on: what the picture draws
+// but its words, borders, lanes' labels and lines (drawing), and the
+// whole of each box in a lane, whose own words are in it.
+func (f *Picture) taken() [][]bool {
+	g := f.drawing()
+	t := make([][]bool, len(g))
+	for y, row := range g {
+		t[y] = make([]bool, len(row))
+		for x, r := range row {
+			t[y][x] = r != ' '
+		}
+	}
+	var fill func(b *box)
+	fill = func(b *box) {
+		for y := b.y; y < b.y+b.h && y < len(t); y++ {
+			for x := b.x; x < b.x+b.w && x < len(t[y]); x++ {
+				t[y][x] = true
+			}
+		}
+	}
+	for _, l := range f.lanes {
+		for _, k := range l.kids {
+			fill(k)
+		}
+	}
+	return t
+}
+
+// clear is whether m's word, where it is said now, stands on no cell t
+// has taken; a cell past the picture's side is room fit makes, and a row
+// past its top or bottom is none.
+func (m *arrow) clear(t [][]bool) bool {
+	x0, n := m.span()
+	y := int(math.Floor(m.said[1]))
+	if y < 0 || y >= len(t) {
+		return false
+	}
+	for x := x0; x < x0+n; x++ {
+		if x >= 0 && x < len(t[y]) && t[y][x] {
+			return false
+		}
+	}
+	return true
+}
+
+// say puts what each message says where it stands clear of every box,
+// line and word put before it, as near its line's middle as there is room
+// (places); a word with no room anywhere stays where route put it. So
+// words that four messages across one gap carry, or one over a box the
+// message passes, are each read alone, in runes and on the page alike.
+func (f *Picture) say() {
+	t := f.taken()
+	for _, m := range f.arrows {
+		if runes(m.label) == 0 {
+			continue
+		}
+		ps := m.places()
+		m.said, m.anchor = ps[0].at, ps[0].anchor
+		for _, p := range ps {
+			m.said, m.anchor = p.at, p.anchor
+			if m.clear(t) {
+				break
+			}
+			m.said, m.anchor = ps[0].at, ps[0].anchor
+		}
+		x0, n := m.span()
+		if y := int(math.Floor(m.said[1])); y >= 0 && y < len(t) {
+			for x := max(0, x0); x < x0+n && x < len(t[y]); x++ {
+				t[y][x] = true
+			}
+		}
+	}
 }
 
 // fit makes room for what the messages say: a word beside a line near an

@@ -154,3 +154,56 @@ func TestSVG(t *testing.T) {
 		t.Errorf("svg:\n%s\nwant:\n%s", got, want)
 	}
 }
+
+// arch is a picture shaped as design/arch is: a lane of three boxes, the
+// last holding one; messages across between neighbours and past one, its
+// word longer than the room between any two; messages down, one word
+// long enough to reach the next's line, the rest beside theirs on one
+// row; and a bar.
+const arch = `t
+up
+  a
+    → b  across
+    → c  a long word past b
+    → d  a long word down
+  b
+    → d  down too
+  c
+    inner
+      → d  from inside
+low
+  d
+bar  a note
+`
+
+// Each word stands alone: on no box, no line and no other word, in runes
+// as on the page, which say from one layout; and a cell of a word, one
+// over a box the message passes too, names the message.
+func TestWords(t *testing.T) {
+	f := picture(t, arch)
+	taken := f.taken()
+	seen := map[[2]int]string{}
+	for _, m := range f.arrows {
+		x0, n := m.span()
+		y := int(m.said[1])
+		for x := x0; x < x0+n; x++ {
+			if who, ok := seen[[2]int{x, y}]; ok {
+				t.Errorf("%q and %q stand on %d,%d", who,
+					m.label, x, y)
+			}
+			seen[[2]int{x, y}] = m.label
+			if y < 0 || y >= len(taken) || x < 0 ||
+				x >= len(taken[y]) || taken[y][x] {
+				t.Errorf("%q stands on what is drawn,"+
+					" at %d,%d", m.label, x, y)
+			}
+		}
+		if got := f.At(x0, y); got != m.at {
+			t.Errorf("a click on %q names %q, not %q", m.label,
+				got, m.at)
+		}
+	}
+	if t.Failed() {
+		t.Log("\n" + strings.Join(f.Runes(), "\n"))
+	}
+}
