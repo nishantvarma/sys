@@ -1,3 +1,5 @@
+//go:build linux
+
 package vt
 
 import (
@@ -13,9 +15,16 @@ import (
 // Start runs cmd on a new pty cols by rows, as st's ttynew does: in a
 // session of its own, the pty its controlling terminal and its input,
 // output and error. It is the pty's other end: what cmd writes is read
-// from it, and what is written to it cmd reads. cmd's environment, the
-// host's when it has none, loses what would size it otherwise, COLUMNS,
-// LINES and TERMCAP, and its TERM is st's, as st's execsh has it.
+// from it, and what is written to it cmd reads. Its pty is Linux's,
+// /dev/ptmx and its ioctls, where st's openpty is the C library's.
+//
+// cmd's environment, as os/exec makes it, the host's and PWD when it
+// has none, loses what would size it otherwise, COLUMNS, LINES and
+// TERMCAP, and its TERM is st's, as st's execsh has it. execsh also sets
+// LOGNAME, USER, SHELL and HOME from the password file, which the host's
+// environment says already, and gives back the signals st took; a
+// signal the host ignores stays ignored, for Go cannot undo it between
+// the fork and the exec.
 func Start(cmd *exec.Cmd, cols, rows int) (*os.File, error) {
 	ptm, err := os.OpenFile("/dev/ptmx", os.O_RDWR|syscall.O_NOCTTY, 0)
 	if err != nil {
@@ -45,7 +54,7 @@ func Start(cmd *exec.Cmd, cols, rows int) (*os.File, error) {
 	defer pts.Close()
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = pts, pts, pts
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setsid: true, Setctty: true}
-	cmd.Env = environ(cmd.Env)
+	cmd.Env = environ(cmd.Environ())
 	if err := cmd.Start(); err != nil {
 		ptm.Close()
 		return nil, err
@@ -54,12 +63,25 @@ func Start(cmd *exec.Cmd, cols, rows int) (*os.File, error) {
 }
 
 // Setsize tells the program on pty f its terminal is cols by rows, as
-// st's ttyresize does; the program hears SIGWINCH.
+// st's ttyresize does, in cells alone: the pixels st gives too are the
+// host's window's. The program hears SIGWINCH.
 func Setsize(f *os.File, cols, rows int) error {
 	return ioctl(f, func(fd int) error {
 		return unix.IoctlSetWinsize(fd, unix.TIOCSWINSZ,
 			&unix.Winsize{Row: uint16(rows), Col: uint16(cols)})
 	})
+}
+
+// Foreground is the process group in the foreground of pty f, as tmux
+// asks which program runs in a pane: the shell's own while it waits at
+// its prompt, else the command it runs.
+func Foreground(f *os.File) (int, error) {
+	var g int
+	err := ioctl(f, func(fd int) (err error) {
+		g, err = unix.IoctlGetInt(fd, unix.TIOCGPGRP)
+		return err
+	})
+	return g, err
 }
 
 // ioctl runs do on f's descriptor, as Go's poller lets it be used: f
@@ -78,12 +100,9 @@ func ioctl(f *os.File, do func(fd int) error) error {
 	return derr
 }
 
-// environ is env, or the host's when it is nil, without COLUMNS, LINES,
-// TERMCAP and TERM, and TERM st's.
+// environ is env without COLUMNS, LINES, TERMCAP and TERM, and TERM
+// st's.
 func environ(env []string) []string {
-	if env == nil {
-		env = os.Environ()
-	}
 	out := []string{"TERM=" + termname}
 	for _, kv := range env {
 		switch k, _, _ := strings.Cut(kv, "="); k {

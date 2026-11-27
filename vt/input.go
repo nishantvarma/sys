@@ -291,8 +291,8 @@ func (t *Term) Focus(in bool) {
 
 // Press is a press of mouse button b at cell x, y with mods held: 1 to
 // 3 left, middle and right, 4 and 5 the wheel up and down, 6 and 7 left
-// and right, 8 to 11 more. It goes to a program that took the mouse
-// (Mousing), as st's mousereport sends it.
+// and right, 8 to 11 more. It goes to a program that took the mouse, as
+// st's mousereport sends it; whether the host hands it on is Mousing.
 func (t *Term) Press(b, x, y int, mods Mod) {
 	if b >= 1 && b <= 11 {
 		t.buttons |= 1 << (b - 1)
@@ -314,21 +314,23 @@ func (t *Term) Move(x, y int, mods Mod) {
 }
 
 // Wheel is a turn of the wheel at cell x, y, up or down, as st takes
-// one: to a program that took the mouse, unless shift is held, a press
-// of button 4 or 5, which no release follows; else what st's mouse
-// shortcuts send, config.h's mshortcuts, ^Y or ^E, a page with shift.
+// one: to the program, when the mouse is its (Mousing), a press of
+// button 4 or 5, which no release follows; else what st's mouse
+// shortcuts send, config.h's mshortcuts, a page with shift alone, for
+// st matches a shortcut's modifiers exactly, and ^Y or ^E with any
+// others.
 func (t *Term) Wheel(up bool, x, y int, mods Mod) {
 	b := 5
 	if up {
 		b = 4
 	}
 	switch {
-	case t.Mousing() && mods&Shift == 0:
+	case t.Mousing(mods):
 		t.Press(b, x, y, mods)
 		t.buttons &^= 1 << (b - 1)
-	case mods&Shift != 0 && up:
+	case mods == Shift && up:
 		t.send([]byte("\033[5;2~"), true)
-	case mods&Shift != 0:
+	case mods == Shift:
 		t.send([]byte("\033[6;2~"), true)
 	case up:
 		t.send([]byte("\031"), true)
@@ -346,15 +348,17 @@ const (
 	motion
 )
 
-// report sends the program what the mouse did, st's mousereport: a move
-// only to a new cell and as the program's mode asks, with a button held
-// or with any, a release but in X10's mode or of the wheel, and the
-// button, the modifiers held and the cell as SGR's numbers or X10's
-// bytes, which end at column and row 223.
+// report sends the program what the mouse did, st's mousereport, at a
+// cell of the screen, as st's evcol and evrow keep one there. A move is
+// sent only to a new cell, and only as the program's mode asks: with a
+// button held, or with any. A release is sent except in X10's mode and
+// for the wheel. The button, the modifiers held and the cell go as SGR's
+// numbers or as X10's bytes, which end at column and row 223.
 func (t *Term) report(e event, b, x, y int, mods Mod) {
 	if t.mode&modemouse == 0 {
 		return
 	}
+	x, y = limit(x, 0, t.cols-1), limit(y, 0, t.rows-1)
 	code := 0
 	if e == motion {
 		if x == t.ox && y == t.oy ||

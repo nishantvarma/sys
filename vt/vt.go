@@ -2,11 +2,11 @@
 // program writes, its text and its escape sequences, becomes a screen
 // of cells, and what the host is given, a key, a paste, the mouse,
 // becomes what the program reads. Its sequences mean what st's mean,
-// each function of st.c that reads them one here, named as st names it,
-// and its keys send what st's key table, in config.h, has them send. The
-// window, the drawing, the selection and the printer are the host's, or
-// no one's. tty is the other side, a terminal as a program here sees
-// one.
+// each function of st.c that reads them one here, by st's name less the
+// t most of them begin with, and its keys send what st's key table, in
+// config.h, has them send. The window, the drawing, the selection and
+// the printer are the host's, or no one's. tty is the other side, a
+// terminal as a program here sees one.
 //
 // A Term is st's term and the parts of its window that the program
 // sets, used from one goroutine at a time, as st's one loop uses them.
@@ -26,17 +26,15 @@ type Term struct {
 	mode       mode
 	esc        esc
 	csi        csi
-	str        str
 	trantbl    [4]charset // G0 to G3
 	charset    int        // the one shown, shifted to by SO and SI
 	icharset   int        // the one ESC ( and its kin set
 	tabs       []bool
 	lastc      rune   // the last rune printed, for REP; 0 after a control
 	cut        []byte // a rune the end of a Write cut, for the next
-	title      string
-	shape      int // the cursor's, DECSCUSR's
-	buttons    int // the mouse's held, a bit each from button 1
-	ox, oy     int // where the mouse was last said to be
+	shape      int    // the cursor's, DECSCUSR's
+	buttons    int    // the mouse's held, a bit each from button 1
+	ox, oy     int    // where the mouse was last said to be
 }
 
 // mode is what the program set: st's term.mode and the window's modes,
@@ -117,11 +115,14 @@ const (
 	vtiden    = "\033[?6c" // what DA and DECID answer: a VT102
 )
 
-// New is a terminal cols by rows, what the program reads going to in:
-// st's tnew, the screen blank and the modes reset.
+// New is a terminal cols by rows, at least a cell, what the program
+// reads going to in: st's tnew, the screen blank and the modes reset.
+// in must take what it is given without waiting on the program, which
+// may be busy writing what the host has yet to read: st's ttywrite
+// reads while it waits, and a host queues.
 func New(cols, rows int, in io.Writer) *Term {
 	t := &Term{in: in, c: cursor{attr: Cell{Fg: Fore, Bg: Back}}}
-	t.Resize(cols, rows)
+	t.Resize(max(1, cols), max(1, rows))
 	t.reset()
 	return t
 }
@@ -153,10 +154,11 @@ func (t *Term) Line(y int) []Cell {
 }
 
 // Cursor is the cell the cursor is drawn on: a wide rune's own, when it
-// stands on the cell the rune covers, as st's draw moves it.
+// stands on the cell the rune covers, as st's draw moves it, but never
+// off the line, where a DCH can leave a covered cell (setchar).
 func (t *Term) Cursor() (x, y int) {
 	x, y = t.c.x, t.c.y
-	if t.lines[y][x].Attr&Wdummy != 0 {
+	if t.lines[y][x].Attr&Wdummy != 0 && x > 0 {
 		x--
 	}
 	return x, y
@@ -180,14 +182,9 @@ func (t *Term) Reversed() bool {
 	return t.mode&modereverse != 0
 }
 
-// Mousing is whether the program took the mouse: a press, a release and
-// a move then go to it (Press), unless the host keeps them, as st keeps
-// one made with shift held.
-func (t *Term) Mousing() bool {
-	return t.mode&modemouse != 0
-}
-
-// Title is what the program last named its window, by OSC 0 or 2.
-func (t *Term) Title() string {
-	return t.title
+// Mousing is whether the mouse, with mods held, is the program's: it
+// took the mouse, and shift, st's forcemousemod, does not keep it. A
+// press, a release, a move and the wheel then go to it (Press).
+func (t *Term) Mousing(mods Mod) bool {
+	return t.mode&modemouse != 0 && mods&Shift == 0
 }

@@ -101,7 +101,9 @@ func TestFocus(t *testing.T) {
 }
 
 // TestMouse: a press, a release and a move go to a program that took
-// the mouse, as its modes ask, in X10's bytes or SGR's numbers.
+// the mouse, as its modes ask, in X10's bytes or SGR's numbers, at a
+// cell of the screen; the wheel pages with shift alone, as st's
+// shortcuts match.
 func TestMouse(t *testing.T) {
 	var in bytes.Buffer
 	tm := New(300, 300, &in)
@@ -124,16 +126,19 @@ func TestMouse(t *testing.T) {
 		{"", release(1, 4, 2, 0), ""},
 		{"", wheel(true, 0), "\031"},
 		{"", wheel(false, Shift), "\033[6;2~"},
+		{"", wheel(true, Shift|Ctrl), "\031"},
 		{"\033[?1000h", press(1, 4, 2, 0), "\033[M %#"},
 		{"", release(1, 4, 2, 0), "\033[M#%#"},
 		{"", press(4, 4, 2, 0), "\033[M`%#"},
 		{"", release(4, 4, 2, 0), ""},
-		{"", press(1, 4, 2, Shift|Ctrl), "\033[M4%#"},
+		{"", press(1, 4, 2, Alt|Ctrl), "\033[M8%#"},
 		{"", release(1, 4, 2, 0), "\033[M#%#"},
 		{"", press(1, 230, 2, 0), ""},
 		{"", release(1, 230, 2, 0), ""},
 		{"\033[?1006h", press(3, 229, 0, 0), "\033[<2;230;1M"},
 		{"", release(3, 229, 0, 0), "\033[<2;230;1m"},
+		{"", press(1, 400, 2, 0), "\033[<0;300;3M"},
+		{"", release(1, 400, 2, 0), "\033[<0;300;3m"},
 		{"", move(5, 5), ""},
 		{"\033[?1002h", move(6, 6), ""},
 		{"", press(1, 6, 6, 0), "\033[<0;7;7M"},
@@ -144,8 +149,8 @@ func TestMouse(t *testing.T) {
 		{"", wheel(true, 0), "\033[<64;2;2M"},
 		{"", move(3, 3), "\033[<35;4;4M"},
 		{"", wheel(true, Shift), "\033[5;2~"},
-		{"\033[?9h", press(1, 0, 0, Shift), "\033[<0;1;1M"},
-		{"", release(1, 0, 0, Shift), ""},
+		{"\033[?9h", press(1, 0, 0, Ctrl), "\033[<0;1;1M"},
+		{"", release(1, 0, 0, Ctrl), ""},
 	} {
 		tm.Write([]byte(c.set))
 		if got := sent(&in, c.do); got != c.want {

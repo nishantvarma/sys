@@ -27,10 +27,9 @@ func stripText(k *strip) string {
 	return b.String()
 }
 
-// TestLens: the lens in the window shows as on the terminal: its bar over
-// sys/view's rule, and under it the note cur names, as its outline's rows;
-// Tab turns to the render, the note's picture, and a press on a lens's
-// name on the bar shows that lens.
+// TestLens: the lens in the window shows as on the terminal: the note cur
+// names, as its outline's rows, the lens shown said in its state; Tab
+// turns to the render, the note's picture, and again to the diff.
 func TestLens(t *testing.T) {
 	note := filepath.Join(t.TempDir(), "note")
 	os.WriteFile(note, []byte("t\nup\n  a\n    → b  go\nlow\n  b\n"),
@@ -72,38 +71,29 @@ func TestLens(t *testing.T) {
 		}
 	}
 	p := s.order[0]
-	barred := func(what string) []string {
+	// shows is the lens shown, as its state says it, and what it drew
+	shows := func(what string) string {
 		t.Helper()
 		var ls []string
 		for _, l := range p.list() {
 			ls = append(ls, stripText(l))
 		}
-		if len(ls) < 2 || !strings.HasPrefix(ls[0],
-			"  outline  render  diff") ||
-			strings.Trim(strings.TrimSpace(ls[1]), "─") != "" {
-			t.Fatalf("%s: no bar over a rule:\n%s", what,
-				strings.Join(ls, "\n"))
+		if len(p.state) == 0 || p.state[0] != what {
+			t.Fatalf("the lens says %v, not %s", p.state, what)
 		}
-		return ls
+		return strings.Join(ls, "\n")
 	}
 	settle()
-	ls := barred("outline")
-	if p.tree.Kind != "outline" ||
-		!strings.Contains(strings.Join(ls, "\n"), "    → b  go") {
-		t.Fatalf("the outline drew %q:\n%s", p.tree.Kind,
-			strings.Join(ls, "\n"))
+	if drew := shows("outline"); p.tree.Kind != "outline" ||
+		!strings.Contains(drew, "    → b  go") {
+		t.Fatalf("the outline drew %q:\n%s", p.tree.Kind, drew)
 	}
 	router.Queue(key.Event{Name: key.NameTab, State: key.Press})
 	settle()
-	if p.tree.Kind != "picture" {
+	if shows("render"); p.tree.Kind != "picture" {
 		t.Fatalf("Tab drew %q, not the render", p.tree.Kind)
 	}
-	barred("render")
-	x := strings.Index(ls[0], "diff") * v.text.cell
-	v.pressedAt(image.Pt(x+1, 1), v.text.cell, cellH)
+	router.Queue(key.Event{Name: key.NameTab, State: key.Press})
 	settle()
-	if len(p.state) == 0 || p.state[0] != "diff" {
-		t.Fatalf("a press on diff left the lens %v", p.state)
-	}
-	barred("diff")
+	shows("diff")
 }

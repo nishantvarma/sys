@@ -75,6 +75,8 @@ func TestScreen(t *testing.T) {
 		{"origin mode counts from the region", 3, 4,
 			"\033[2;3r\033[?6h\033[HX",
 			[]string{"", "X", "", ""}, 1, 1},
+		{"a wide rune DCH slid to column 0 is blanked", 5, 1,
+			"中\r\033[Pa", []string{"a"}, 1, 0},
 		{"the other screen keeps this one", 8, 2,
 			"main\033[?1049halt\033[?1049l",
 			[]string{"main", ""}, 4, 0},
@@ -139,22 +141,14 @@ func TestReplies(t *testing.T) {
 	}
 }
 
-// TestTitle: OSC 0 and 2, and st's old k, name the window, ended by BEL
-// or ST; OSC 1, the icon's, does not, and RIS forgets the name.
-func TestTitle(t *testing.T) {
+// TestString: a string, an OSC's, a DCS's or the old title's, is taken
+// up to its end, BEL or ST, and leaves nothing on the screen.
+func TestString(t *testing.T) {
 	tm := New(5, 1, io.Discard)
-	for _, c := range []struct{ in, want string }{
-		{"\033]0;one\a", "one"},
-		{"\033]2;two\033\\", "two"},
-		{"\033]1;icon\a", "two"},
-		{"\033kold\033\\", "old"},
-		{"\033c", ""},
-	} {
-		tm.Write([]byte(c.in))
-		if tm.Title() != c.want {
-			t.Errorf("after %q the title is %q, not %q", c.in,
-				tm.Title(), c.want)
-		}
+	tm.Write([]byte("\033]0;one\aa\033]2;two\033\\b\033Pq#0\033\\c" +
+		"\033kold\033\\d"))
+	if got := lines(tm); got[0] != "abcd" {
+		t.Errorf("strings leave %q on the screen", got[0])
 	}
 }
 
@@ -205,8 +199,9 @@ func TestModes(t *testing.T) {
 		{"\033[?25l", tm.Hidden, true},
 		{"\033[?25h", tm.Hidden, false},
 		{"\033[?5h", tm.Reversed, true},
-		{"\033[?1000h", tm.Mousing, true},
-		{"\033[?1000l", tm.Mousing, false},
+		{"\033[?1000h", func() bool { return tm.Mousing(0) }, true},
+		{"", func() bool { return tm.Mousing(Shift) }, false},
+		{"\033[?1000l", func() bool { return tm.Mousing(0) }, false},
 	} {
 		tm.Write([]byte(c.in))
 		if c.ok() != c.want {
@@ -239,8 +234,8 @@ func TestResize(t *testing.T) {
 	}
 }
 
-// TestReset: RIS resets the terminal's modes and keeps those st keeps in
-// its window, the cursor keys' among them.
+// TestReset: RIS resets the terminal's modes, insert's among them, and
+// keeps those st keeps in its window, the cursor keys' among them.
 func TestReset(t *testing.T) {
 	var in bytes.Buffer
 	tm := New(5, 1, &in)
@@ -251,5 +246,18 @@ func TestReset(t *testing.T) {
 	}
 	if got := lines(tm); got[0] != "" {
 		t.Errorf("and the screen holds %q", got[0])
+	}
+	tm.Write([]byte("ab\rc"))
+	if got := lines(tm); got[0] != "cb" {
+		t.Errorf("insert mode outlived RIS: %q", got[0])
+	}
+}
+
+// TestSmall: a terminal is at least a cell, though asked for none.
+func TestSmall(t *testing.T) {
+	tm := New(0, 0, io.Discard)
+	tm.Write([]byte("ab"))
+	if cols, rows := tm.Size(); cols != 1 || rows != 1 {
+		t.Errorf("asked for 0 by 0, it is %d by %d", cols, rows)
 	}
 }

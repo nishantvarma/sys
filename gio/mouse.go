@@ -8,7 +8,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"slices"
 	"strings"
 
 	"sys/outline"
@@ -35,16 +34,12 @@ func (p *pane) clicked(x, y int) string {
 
 // look is a right press at cell x, y of p. On a row of the view it is
 // enter, the program's own open, and on the head's path a step there;
-// on a text its word, or the selection, opens, as p opens it. In the
-// frame, whose ed and fm follow cur, saying a file is opening it: c says
-// it, as the frame's programs hear it, and the eye goes to ed, the lens
-// view's source tab, for a file and to fm for a folder, as e and o take
-// them in tmux; what is no file p opens beside, as anywhere.
+// on a text its word, or the selection, opens, as p opens it (lookat).
 func (v *window) look(p *pane, x, y int) {
 	if !p.isText() {
 		id := p.v.At(x, y)
 		switch {
-		case id == "" || y == 0 && p.tops() > 0:
+		case id == "":
 		case y == 0:
 			p.key("", id)
 		default:
@@ -52,12 +47,16 @@ func (v *window) look(p *pane, x, y int) {
 		}
 		return
 	}
-	v.lookat(p.clicked(x, y))
+	v.lookat(p.clicked(x, y), v.s.dir)
 }
 
-// lookat opens what text names, as a right press on a text opens it
-// (look)
-func (v *window) lookat(text string) {
+// lookat opens what text names, said in folder dir, as a right press on
+// a text opens it. In the frame, whose ed and fm follow cur, saying a
+// file is opening it: c says it, as the frame's programs hear it, and
+// the lens view's source tab shows for a file, with the eye, and fm for
+// a folder, as e and o take them in tmux (turn); what is no file p opens
+// beside, as anywhere.
+func (v *window) lookat(text, dir string) {
 	if text == "" {
 		return
 	}
@@ -66,14 +65,14 @@ func (v *window) lookat(text string) {
 		return
 	}
 	c := exec.Command("c", text)
-	c.Dir, c.Env = v.s.dir, v.s.env
+	c.Dir, c.Env = dir, v.s.env
 	out, _ := c.Output()
 	fi, err := os.Stat(strings.TrimSpace(string(out)))
 	switch {
 	case err == nil && fi.IsDir():
-		v.s.named("fm")
+		v.s.turn("", []string{"fm"})
 	case err == nil:
-		v.s.named("source")
+		v.s.turn("", []string{"source"})
 	default:
 		plumb(text)
 	}
@@ -91,39 +90,47 @@ func (v *window) do(p *pane, x, y int) {
 		}
 	}
 	if v.frame {
-		v.s.handon(text)
+		v.s.handon(text, v.s.dir)
 	} else {
 		plumb(text, "-a")
 	}
 }
 
-// handon hands text to the shell at its prompt, as p -a does: the
-// panel's terminal, shown again if hidden, the eye going there, and the
-// text waiting there for Return; with no terminal left, p -a's own way, to
-// tmux's pane marked, or the last one
-func (s *studio) handon(text string) {
+// handon hands text, said in folder dir, to the shell at its prompt, as p
+// -a does (`sh/p:/the shell takes it at its prompt/`): what c makes of
+// it, a phrase as it is, after a space, in the panel's terminal, shown
+// again if hidden, the eye going there, and waiting there for Return;
+// but only while its shell waits at its prompt, for a program there
+// would read it as its keys (prompting). With no terminal left, p -a's
+// own way, to tmux's pane marked, or the last one
+func (s *studio) handon(text, dir string) {
 	t := s.panes[s.panel]
 	switch {
 	case text == "":
 	case t == nil || t.term == nil || t.gone:
 		plumb(text, "-a")
+	case !s.prompting(t):
 	default:
-		if s.hidden {
-			s.togglePanel()
+		if !strings.Contains(text, " ") {
+			c := exec.Command("c", text)
+			c.Dir, c.Env = dir, s.env
+			if out, err := c.Output(); err == nil && len(out) > 0 {
+				text = strings.TrimSpace(string(out))
+			}
 		}
-		t.term.Paste(text)
-		s.focus(slices.Index(s.order, t))
+		s.show(s.panel, t)
+		t.term.Paste(" " + text)
 	}
 }
 
-// say says text to cur, as a left press on a word does in tmux (p -c):
-// fm and ed, following cur, go where it names
-func (s *studio) say(text string) {
+// say says text to cur from folder dir, as a left press on a word does in
+// tmux (p -c): fm and ed, following cur, go where it names
+func (s *studio) say(text, dir string) {
 	if text == "" {
 		return
 	}
 	c := exec.Command("c", text)
-	c.Dir, c.Env = s.dir, s.env
+	c.Dir, c.Env = dir, s.env
 	if c.Start() == nil {
 		go c.Wait()
 	}
@@ -157,15 +164,5 @@ func plumb(text string, mode ...string) {
 	c.Stdin = strings.NewReader(text)
 	if c.Start() == nil {
 		go c.Wait()
-	}
-}
-
-// named gives the eye to the pane of the slot or the tab named, when there
-// is one
-func (s *studio) named(name string) {
-	for i, p := range s.order {
-		if (p.name == name || p.tab == name) && !p.gone {
-			s.focus(i)
-		}
 	}
 }

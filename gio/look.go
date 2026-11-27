@@ -73,8 +73,7 @@ func home(p string) string {
 
 // list is the pane as sys/view lays it out, in the region the pane is,
 // as on the terminal: the head, the layouts, the rows or the cards, the
-// bottom line; a program with lenses, the lens, has its bar in place of
-// the head, as sys/view draws it there (`view/screen.go:/func barred/`)
+// bottom line
 func (p *pane) list() []*strip {
 	var lines []*strip
 	for _, rs := range p.v.Lines() {
@@ -92,52 +91,19 @@ func stripOf(rs []view.Run) *strip {
 	return k
 }
 
-// -- the lenses, a program's ways to see its thing, which it names on its
-// tree's tags, the lens's (`design/lens`)
-
-// tops is the lines a pane keeps over a text for its program's lenses:
-// the bar and its rule, as sys/view gives them (view.Tops); none for a
-// program with no lenses
-func (p *pane) tops() int {
-	if p.tree == nil || len(p.tree.Tags) == 0 {
-		return 0
-	}
-	return view.Tops(p.high)
-}
-
-// bar is the pane's top line, its program's lenses as sys/view lays them
-// out, the one its state says lit, and where each chip stands
-func (p *pane) bar() (*strip, []view.Chip) {
-	names := p.tree.Tags
-	runs, at := view.Bar(names, view.Shown(names, p.state), p.cols)
-	return stripOf(runs), at
-}
-
-// barAt is the lens a press at column x of the bar names, "" for none
-func (p *pane) barAt(x int) string {
-	_, at := p.bar()
-	for _, c := range at {
-		if c.From <= x && x < c.To {
-			return c.Lens
-		}
-	}
-	return ""
-}
-
 // -- a text, ed's: its lines after their numbers, and its status
 
 // gutter is ed's: a margin, a line's number in three digits or as many as
 // the last needs, and two blanks (`ed/4-view/01-look/02-gutter.go`)
 func gutter(n int) int { return max(3, len(strconv.Itoa(n))) + 3 }
 
-// source is ed's pane, as ed draws it on the terminal: the bar and its
-// rule on top, then a line a row, and the status at the bottom
+// source is ed's pane, as ed draws it on the terminal: a line a row, and
+// the status at the bottom
 func (p *pane) source() []*strip {
 	if p.tree == nil || len(p.rows) == 0 {
 		return nil
 	}
-	top := p.tops()
-	body := max(1, p.high-1-top)
+	body := max(1, p.high-1)
 	p.first = max(0, min(p.first, p.cur))
 	if p.cur >= p.first+body {
 		p.first = p.cur - body + 1
@@ -150,13 +116,6 @@ func (p *pane) source() []*strip {
 		p.off = col - wide + 1
 	}
 	var lines []*strip
-	if top > 0 {
-		bar, _ := p.bar()
-		lines = append(lines, bar)
-	}
-	if top > 1 {
-		lines = append(lines, stripOf(view.Rule(p.cols)))
-	}
 	for i := p.first; i < p.first+body; i++ {
 		if i < len(p.rows) {
 			lines = append(lines, p.line(i, g))
@@ -252,12 +211,10 @@ func (p *pane) spot(x, y int) (string, int) {
 }
 
 // lineAt is the line, by its index, and the rune a cell of a text shows,
-// as spot says them; -1 off the lines, on the bar or the status line
+// as spot says them; -1 off the lines, on the status line
 func (p *pane) lineAt(x, y int) (int, int) {
-	y -= p.tops()
 	i := p.first + y
-	if p.tree == nil || y < 0 || y >= p.high-1-p.tops() ||
-		i >= len(p.rows) {
+	if p.tree == nil || y < 0 || y >= p.high-1 || i >= len(p.rows) {
 		return -1, 0
 	}
 	col := x - gutter(len(p.rows)) + p.off
@@ -315,55 +272,40 @@ func (p *pane) line(i, g int) *strip {
 	return k.pad(p.cols, "")
 }
 
-// tabBar is a slot of tabs' bar, cols wide, as sys/view lays a bar out
-// (`view/bar.go:/func Bar/`): each tab by its name, the one shown lit; and
-// where each name stands, the tab a press there shows. None for a slot of
-// one tab; the panel's is its own (panelBar)
+// tabBar is a slot of tabs' bar, cols wide, its tab line, as sys/view
+// lays one out (`view/bar.go:/func Bar/`): each tab by its name, the one
+// shown lit; and where each name stands, the word a press there asks
+// (turn). None for a slot of one tab; the panel's names its terminals by
+// their place, and ends in + and, with one to spare, ×, a new one and a
+// close, as tmux's tab line has it (`studio/2-term/12-bar/01-bar.go`)
 func (s *studio) tabBar(name string, cols int) (*strip, []view.Chip) {
 	tabs := s.tabs[name]
 	on := slices.Index(tabs, s.panes[name])
-	switch {
-	case name == s.panel:
-		return panelBar(len(tabs), on, cols)
-	case len(tabs) < 2:
+	if name != s.panel && len(tabs) < 2 {
 		return nil, nil
 	}
 	var names []string
-	for _, p := range tabs {
-		names = append(names, p.tab)
+	for i, p := range tabs {
+		if name == s.panel {
+			names = append(names, strconv.Itoa(i+1))
+		} else {
+			names = append(names, p.tab)
+		}
+	}
+	if name == s.panel {
+		names = append(names, "+")
+		if len(tabs) > 1 {
+			names = append(names, "×")
+		}
 	}
 	runs, chips := view.Bar(names, on, cols)
+	for i, c := range chips {
+		switch c.Name {
+		case "+":
+			chips[i].Name = "new"
+		case "×":
+			chips[i].Name = "close"
+		}
+	}
 	return stripOf(runs), chips
-}
-
-// panelBar is the panel's bar, cols wide, as tmux's tab line has it
-// (`studio/2-term/12-bar/01-bar.go`): its n terminals by their place, the
-// one at on lit, then + and, with one to spare, ×; and where each stands,
-// the word a press there asks (turn). No hint of Tab, as a lens's bar
-// has, for in a terminal Tab is the shell's
-func panelBar(n, on, cols int) (*strip, []view.Chip) {
-	k := (&strip{}).add(" ", "", "", false)
-	var chips []view.Chip
-	put := func(label, word string, lit bool) {
-		c := " " + label + " "
-		w := len([]rune(c))
-		if k.w+w > cols {
-			return
-		}
-		fg, bg := tty.Soft, ""
-		if lit {
-			fg, bg = tty.Fore, tty.Rule
-		}
-		chips = append(chips, view.Chip{From: k.w, To: k.w + w,
-			Lens: word})
-		k.add(c, fg, bg, lit)
-	}
-	for i := range n {
-		put(strconv.Itoa(i+1), strconv.Itoa(i+1), i == on)
-	}
-	put("+", "new", false)
-	if n > 1 {
-		put("×", "close", false)
-	}
-	return k.pad(cols, ""), chips
 }

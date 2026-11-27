@@ -8,10 +8,10 @@ type Cell struct {
 	Fg, Bg Color
 }
 
-// Attr is how a cell is drawn, as SGR sets it, and three marks st keeps:
-// Wrap on a line's last cell when what was written ran on to the next
-// line, Wide on a rune two cells wide, and Wdummy on the cell after it,
-// which the rune covers.
+// Attr is how a cell is drawn, as SGR sets it, and two marks st keeps:
+// Wide on a rune two cells wide, and Wdummy on the cell after it, which
+// the rune covers. st's third, a line that ran on to the next, is for a
+// selection, and a selection is the host's.
 type Attr uint16
 
 const (
@@ -23,7 +23,6 @@ const (
 	Reverse
 	Invisible
 	Struck
-	Wrap
 	Wide
 	Wdummy
 )

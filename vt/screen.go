@@ -54,7 +54,9 @@ func (t *Term) setchar(r rune, attr Cell, x, y int) {
 			line[x+1].Rune = ' '
 			line[x+1].Attr &^= Wdummy
 		}
-	} else if line[x].Attr&Wdummy != 0 {
+	} else if line[x].Attr&Wdummy != 0 && x > 0 {
+		// st writes to x-1 though a DCH slid the covered cell to
+		// column 0, and there is no x-1: C's undefined, a Go panic
 		line[x-1].Rune = ' '
 		line[x-1].Attr &^= Wide
 	}

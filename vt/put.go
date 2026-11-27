@@ -46,6 +46,12 @@ func c1(r rune) bool {
 	return r >= 0x80 && r <= 0x9f
 }
 
+// widths is how many cells a rune takes, as glibc's wcwidth, st's, gives
+// it in any locale: an East Asian rune of ambiguous width one, which
+// runewidth's default, read from the host's locale, makes two in a ja,
+// ko or zh one.
+var widths = &runewidth.Condition{StrictEmojiNeutral: true}
+
 // put takes a rune the program wrote, st's tputc: into a string under
 // way, as a control code's act, as part of a sequence, or on the screen
 // at the cursor, which it moves on.
@@ -53,12 +59,11 @@ func (t *Term) put(r rune) {
 	ctl := control(r)
 	width := 1
 	if r >= 127 && t.mode&modeutf8 != 0 && !ctl {
-		width = runewidth.RuneWidth(r)
+		width = widths.RuneWidth(r)
 	}
 	// a string takes every rune up to its end, which only these make
 	if t.esc&escstr != 0 {
 		if r != '\a' && r != 030 && r != 032 && r != 033 && !c1(r) {
-			t.str.buf = t.appendrune(t.str.buf, r)
 			return
 		}
 		t.esc &^= escstart | escstr
@@ -102,7 +107,6 @@ func (t *Term) put(r rune) {
 	}
 	line := t.lines[t.c.y]
 	if t.mode&modewrap != 0 && t.c.state&cursorwrapnext != 0 {
-		line[t.c.x].Attr |= Wrap
 		t.newline(true)
 		line = t.lines[t.c.y]
 	}
@@ -135,15 +139,6 @@ func (t *Term) put(r rune) {
 	} else {
 		t.c.state |= cursorwrapnext
 	}
-}
-
-// appendrune is b and r as the program wrote it: its UTF-8, or, out of
-// UTF-8's mode, its byte.
-func (t *Term) appendrune(b []byte, r rune) []byte {
-	if t.mode&modeutf8 == 0 {
-		return append(b, byte(r))
-	}
-	return utf8.AppendRune(b, r)
 }
 
 // controlcode does what control code c does, st's tcontrolcode. A string
@@ -190,7 +185,7 @@ func (t *Term) controlcode(c byte) {
 	case 0x9a: // DECID
 		t.send([]byte(vtiden), false)
 	case 0x90, 0x9d, 0x9e, 0x9f: // DCS, OSC, PM, APC
-		t.strsequence(c)
+		t.strsequence()
 		return
 	}
 	t.esc &^= escstrend | escstr
@@ -209,8 +204,8 @@ func (t *Term) eschandle(r rune) bool {
 	case '%':
 		t.esc |= escutf8
 		return false
-	case 'P', '_', '^', ']', 'k': // DCS, APC, PM, OSC, st's old title
-		t.strsequence(byte(r))
+	case 'P', '_', '^', ']', 'k': // DCS, APC, PM, OSC, the old title
+		t.strsequence()
 		return false
 	case 'n', 'o': // LS2, LS3
 		t.charset = 2 + int(r-'n')
@@ -239,7 +234,6 @@ func (t *Term) eschandle(r rune) bool {
 	case 'c': // RIS: st reloads its colours too, and here they are the
 		// host's
 		t.reset()
-		t.title = ""
 		t.mode &^= modehide
 	case '=': // DECPAM
 		t.mode |= modeappkeypad
@@ -255,23 +249,6 @@ func (t *Term) eschandle(r rune) bool {
 		}
 	}
 	return true
-}
-
-// strsequence starts a string, st's tstrsequence: DCS, APC, PM or OSC,
-// by its letter or its C1 code.
-func (t *Term) strsequence(c byte) {
-	switch c {
-	case 0x90:
-		c = 'P'
-	case 0x9f:
-		c = '_'
-	case 0x9e:
-		c = '^'
-	case 0x9d:
-		c = ']'
-	}
-	t.str = str{kind: c}
-	t.esc |= escstr
 }
 
 // defutf8 is ESC % and its letter, st's tdefutf8: G turns UTF-8 on, @

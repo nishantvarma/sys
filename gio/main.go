@@ -42,9 +42,6 @@ import (
 const (
 	cellH = 20 // a terminal's line at 16 pixels
 	size  = 16
-	// the terminal's ground and cursor, alacritty's
-	groundHex = "#121212"
-	caretHex  = "#f8f8f2"
 )
 
 func hex(c string) color.NRGBA {
@@ -58,12 +55,14 @@ func hex(c string) color.NRGBA {
 }
 
 type window struct {
-	s        *studio
-	news     <-chan news // what the next frame takes
-	frame    bool        // the studio's frame, else one pane
-	text     *typeface
-	pictures map[look]paint.ImageOp
-	tag      int // what events are addressed to
+	s     *studio
+	news  <-chan news // what the next frame takes
+	frame bool        // the studio's frame, else one pane
+	text  *typeface
+	// the runs' pictures the last frame drew, and this one's, so that a
+	// frame makes only what is new and keeps two frames' worth
+	pictures, drawn map[look]paint.ImageOp
+	tag             int // what events are addressed to
 
 	focused bool
 	full    bool
@@ -97,7 +96,8 @@ func newWindow(s *studio, frame bool) (*window, error) {
 		return nil, err
 	}
 	return &window{s: s, news: s.events, frame: frame, text: t,
-		pictures: map[look]paint.ImageOp{}}, nil
+		pictures: map[look]paint.ImageOp{},
+		drawn:    map[look]paint.ImageOp{}}, nil
 }
 
 // look is a run's picture, kept so that a frame makes only what is new
@@ -117,14 +117,14 @@ func (v *window) label(
 	bold bool,
 ) {
 	k := look{txt, fg, bg, bold, gtx.Dp(cellH)}
-	pic, ok := v.pictures[k]
+	pic, ok := v.drawn[k]
 	if !ok {
-		if len(v.pictures) > 4000 {
-			clear(v.pictures)
+		if pic, ok = v.pictures[k]; !ok {
+			pic = paint.NewImageOp(v.text.image(txt, fg, bg, bold,
+				k.high))
+			pic.Filter = paint.FilterNearest
 		}
-		pic = paint.NewImageOp(v.text.image(txt, fg, bg, bold, k.high))
-		pic.Filter = paint.FilterNearest
-		v.pictures[k] = pic
+		v.drawn[k] = pic
 	}
 	defer op.Offset(image.Pt(x, y)).Push(gtx.Ops).Pop()
 	defer clip.Rect{Max: pic.Size()}.Push(gtx.Ops).Pop()
@@ -270,28 +270,53 @@ func (v *window) under(at image.Point, cw, h int) (*pane, int, int, bool) {
 	return nil, 0, 0, false
 }
 
+// cellOf is the cell of pane p a point is at, counted from its corner,
+// though it be past p's edge, as a drag that left it is
+func (v *window) cellOf(p *pane, at image.Point, cw, h int) (int, int) {
+	for _, x := range v.hits {
+		if x.p == p {
+			return (at.X - x.area.Min.X) / cw,
+				(at.Y - x.area.Min.Y) / h
+		}
+	}
+	return 0, 0
+}
+
 // pointed is a mouse event, the three buttons as in any pane
 // (`design/mouse`): a left press picks (pressedAt), on a slot's bar the
 // tab named there too, and a move with it held drags a text's selection; a
 // right press looks (look), a middle one hands on (do), and the wheel
 // moves (wheel), each on the pane under it; on a terminal, the mouse is
-// as st has it (mouse)
+// as st has it (mouse), and one pressed keeps it, as st's window does,
+// until its release, though the pointer leave it. In the frame the eye
+// follows the pointer: a pane moved over takes it
 func (v *window) pointed(e pointer.Event, cw, h int) {
 	at := e.Position.Round()
 	was := v.buttons
 	v.buttons = e.Buttons
 	p, x, y, ok := v.under(at, cw, h)
+	if t := v.held; t != nil && t.term != nil &&
+		e.Kind&(pointer.Drag|pointer.Release) != 0 {
+		p, ok = t, true
+		x, y = v.cellOf(t, at, cw, h)
+	}
 	onBar := slices.ContainsFunc(v.bars, func(b barHit) bool {
 		return at.In(b.area)
 	})
 	if e.Kind == pointer.Release {
 		v.held = nil
 	}
+	if ok && v.frame && e.Kind == pointer.Move {
+		v.s.focusOn(p)
+	}
 	switch {
 	case onBar && e.Kind == pointer.Press &&
 		e.Buttons.Contain(pointer.ButtonPrimary):
 		v.pressedAt(at, cw, h) // a slot's bar, above its pane
 	case ok && p.term != nil:
+		if e.Kind == pointer.Press {
+			v.held = p
+		}
 		v.mouse(p, e, was, x, y)
 	case !ok, e.Kind == pointer.Release:
 	case e.Kind == pointer.Press &&
@@ -321,7 +346,7 @@ func (v *window) pressedAt(at image.Point, cw, h int) {
 		x := (at.X - b.area.Min.X) / cw
 		for _, c := range b.chips {
 			if c.From <= x && x < c.To {
-				v.s.turn(b.slot, c.Lens)
+				v.s.turn(b.slot, []string{c.Name})
 			}
 		}
 		return
@@ -330,18 +355,9 @@ func (v *window) pressedAt(at image.Point, cw, h int) {
 		if !at.In(x.area) {
 			continue
 		}
-		for i, p := range v.s.order {
-			if p == x.p {
-				v.s.focus(i)
-			}
-		}
+		v.s.focusOn(x.p)
 		cx, cy := (at.X-x.area.Min.X)/cw, (at.Y-x.area.Min.Y)/h
 		switch {
-		case cy == 0 && x.p.tops() > 0:
-			if name := x.p.barAt(cx); name != "" {
-				lens := object{"name": tty.KLens, "text": name}
-				x.p.send("key", lens)
-			}
 		case x.p.isText() && cy == x.p.high-1:
 			if name := x.p.modeWord(cx); name != "" {
 				x.p.key(name, "")
@@ -412,7 +428,7 @@ func (v *window) input(gtx layout.Context) (toggle bool) {
 				v.s.focus(v.s.eye + 1)
 			case e.Modifiers.Contain(key.ModAlt) &&
 				e.Name == "T" && v.frame:
-				v.s.togglePanel()
+				v.s.hide(!v.s.hidden)
 			case p.term != nil && ctrl && e.Name == "V" &&
 				e.Modifiers.Contain(key.ModShift):
 				gtx.Execute(clipboard.ReadCmd{Tag: &v.tag})
@@ -460,28 +476,19 @@ func paste(p *pane, e transfer.DataEvent) {
 	}
 }
 
-// draw is a frame: the news since the last one, the input, then the picture
+// draw is a frame: the news since the last one, as much as had come when
+// it began, for a shell that writes without end must not starve the
+// frames, and each piece wakes another; then the input, then the picture
 func (v *window) draw(gtx layout.Context) (toggle, done bool) {
-	for more := true; more; {
-		select {
-		case e := <-v.news:
-			copied, over := v.s.handle(e)
-			if copied != "" {
-				gtx.Execute(
-					clipboard.WriteCmd{
-						Type: "application/text",
-						Data: io.NopCloser(
-							strings.NewReader(
-								copied,
-							),
-						),
-					},
-				)
-			}
-			done = done || over
-		default:
-			more = false
+	for range len(v.news) {
+		copied, over := v.s.handle(<-v.news)
+		if copied != "" {
+			gtx.Execute(clipboard.WriteCmd{
+				Type: "application/text",
+				Data: io.NopCloser(strings.NewReader(copied)),
+			})
 		}
+		done = done || over
 	}
 	toggle = v.input(gtx)
 
@@ -501,6 +508,8 @@ func (v *window) draw(gtx layout.Context) (toggle, done bool) {
 		slots = slices.DeleteFunc(slices.Clone(slots), panel)
 	}
 	v.lay(gtx, slots, all, true, cw)
+	v.pictures, v.drawn = v.drawn, v.pictures
+	clear(v.drawn)
 	return
 }
 
@@ -612,7 +621,7 @@ func (v *window) term(gtx layout.Context, p *pane, area image.Rectangle,
 	x, y := p.term.Cursor()
 	at := area.Min.Add(image.Pt(x*cw, y*h))
 	r := image.Rectangle{Min: at, Max: at.Add(image.Pt(cw, h))}
-	ink := hex(code(palette[defaultcs]))
+	ink := hex(caretHex)
 	switch shape := p.term.Shape(); {
 	case v.s.order[v.s.eye] != p:
 		for _, e := range []image.Rectangle{
@@ -692,22 +701,29 @@ func mods(m key.Modifiers) vt.Mod {
 	return out
 }
 
-// mouse is the mouse on a terminal at cell x, y, was the buttons held
-// before: a program that took the mouse has it, but with shift held, as
-// st keeps it then; else a left press gives the eye and says the word
-// there, a right one looks at it and a middle one hands it to the shell,
-// as on any pane (`design/mouse`); and the wheel is st's (vt.Wheel).
+// mouse is the mouse on a terminal at cell x, y, kept on its screen, as
+// st keeps a press on its own, was the buttons held before: a program
+// that took the mouse has it, but with shift held, as st keeps it then
+// (vt.Mousing); else a left press gives the eye and says the word there,
+// a right one looks at it and a middle one hands it to the shell, as on
+// any pane (`design/mouse`), each in the folder that printed it
+// (folder); and the wheel is st's (vt.Wheel).
 func (v *window) mouse(p *pane, e pointer.Event, was pointer.Buttons, x,
 	y int) {
 	t, m := p.term, mods(e.Modifiers)
-	if e.Kind == pointer.Scroll {
+	cols, rows := t.Size()
+	x, y = max(0, min(x, cols-1)), max(0, min(y, rows-1))
+	switch {
+	case e.Kind == pointer.Scroll && e.Scroll.Y != 0:
 		t.Wheel(e.Scroll.Y < 0, x, y, m)
 		return
+	case e.Kind == pointer.Scroll:
+		return
 	}
-	if t.Mousing() && m&vt.Shift == 0 {
+	if t.Mousing(m) {
 		switch e.Kind {
 		case pointer.Press:
-			v.s.focus(slices.Index(v.s.order, p))
+			v.s.focusOn(p)
 			t.Press(button(e.Buttons&^was), x, y, m)
 		case pointer.Release:
 			t.Release(button(was&^e.Buttons), x, y, m)
@@ -719,15 +735,15 @@ func (v *window) mouse(p *pane, e pointer.Event, was pointer.Buttons, x,
 	if e.Kind != pointer.Press {
 		return
 	}
-	word := termword(t.Line(y), x)
+	word, dir := termword(t.Line(y), x), v.s.folder(p)
 	switch button(e.Buttons &^ was) {
 	case 1:
-		v.s.focus(slices.Index(v.s.order, p))
-		v.s.say(word)
+		v.s.focusOn(p)
+		v.s.say(word, dir)
 	case 2:
-		v.s.handon(word)
+		v.s.handon(word, dir)
 	case 3:
-		v.lookat(word)
+		v.lookat(word, dir)
 	}
 }
 

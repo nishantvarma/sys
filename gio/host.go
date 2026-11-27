@@ -1,9 +1,11 @@
 // the host: studio's frame, its slots each a program at the other end of a
-// pipe speaking -s, or one pane at the end of this program's own pipe, as
+// pipe speaking -s, or a shell in a terminal of the window's own
+// (term.go); or one pane, at the end of this program's own pipe, as
 // window is
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"io"
 	"os"
@@ -23,7 +25,8 @@ import (
 // among the slots beside it, what runs there, none for a shell, the slots
 // it splits into, the other way, its tabs, when it has more than one, the
 // first the one it shows, and whether it is the frame's panel, the
-// terminals across its bottom (`design/lens`)
+// terminals across its bottom (`design/lens`), or its face, fm's, whose
+// end ends the frame
 type slot struct {
 	Name   string
 	Weight int
@@ -31,6 +34,7 @@ type slot struct {
 	Kids   []slot
 	Tabs   []slot
 	Panel  bool
+	Face   bool
 }
 
 type pane struct {
@@ -46,12 +50,14 @@ type pane struct {
 }
 
 // news is one thing for the window's thread: a pane's message, what its
-// shell wrote, or its end, or, with no pane, a change to cur
+// shell wrote, or its end; or, with no pane, a change to cur, or what
+// studio asked of the window (asks)
 type news struct {
 	p     *pane
 	m     *in
 	out   []byte
 	ended bool
+	asked bool
 }
 
 type studio struct {
@@ -59,14 +65,15 @@ type studio struct {
 	panes map[string]*pane   // by slot name, the tab each shows
 	tabs  map[string][]*pane // by slot name, its tabs, in their order
 	order []*pane            // the frame's slots, as it reads
-	// the frame's panel, by its slot's name; whether it is hidden; and
-	// the window's files that say so, and what studio tab asks, which
-	// the window follows as it follows cur, and the ask done last
-	panel, panelf string
-	hidden        bool
-	tabf, lastAsk string
-	eye           int   // order's index of the one keys go to
-	face          *pane // fm's, whose end ends the frame
+	// the frame's panel, by its slot's name, and whether it is hidden,
+	// which the window alone keeps; and the window's ask file, what
+	// studio asks of it, and how far into it the window has read
+	panel  string
+	hidden bool
+	askf   string
+	read   int64
+	eye    int   // order's index of the one keys go to
+	face   *pane // fm's, whose end ends the frame
 	// the window's unsaved file, where ed names work it holds unsaved
 	unsaved string
 	events  chan news
@@ -78,8 +85,11 @@ type studio struct {
 
 // start lays studio/frame out on dir: each slot that runs something runs
 // it with -s, its view this window, told its slot ($STUDIO), and a shell
-// slot a shell in a terminal of the window's own (openterm). cur is
-// watched for the programs that follow it
+// slot a shell in a terminal of the window's own (openterm); each is told
+// the frame's window, none, $STUDIO_WINDOW, which is how studio knows a
+// program in the window's frame (`studio/5-verbs/22-ask/02-ask.go`). cur
+// is watched for the programs that follow it, and the ask file apart, for
+// what studio asks
 func start(dir string) (*studio, error) {
 	out, err := exec.Command("studio", "slots").Output()
 	if err != nil {
@@ -90,28 +100,19 @@ func start(dir string) (*studio, error) {
 	if err := json.Unmarshal(out, &s.frame); err != nil {
 		return nil, err
 	}
-	// outside tmux, so that cur is the window none's and no pane's
+	// outside tmux, so that cur is the window none's and no pane's, in
+	// the frame's folder, as $PWD says it
 	env := slices.DeleteFunc(os.Environ(), func(v string) bool {
-		return strings.HasPrefix(v, "TMUX")
+		return strings.HasPrefix(v, "TMUX") ||
+			strings.HasPrefix(v, "STUDIO") ||
+			strings.HasPrefix(v, "PWD=")
 	})
-	s.dir, s.env = dir, env
-	curf := state.Path("cur", "none")
+	s.dir, s.env = dir, append(env, "PWD="+dir, "STUDIO_WINDOW=none")
 	s.unsaved = state.Path("unsaved", "none")
-	s.tabf = state.Path("tab", "none")
-	s.panelf = state.Path("panel", "none")
-	var dirs []string
-	for _, f := range []string{curf, s.tabf, s.panelf} {
-		if err := os.MkdirAll(filepath.Dir(f), 0o755); err != nil {
-			return nil, err
-		}
-		dirs = append(dirs, filepath.Dir(f))
+	s.askf = state.Path("ask", "none")
+	if fi, err := os.Stat(s.askf); err == nil {
+		s.read = fi.Size() // what was asked before is done
 	}
-	wt, err := watch.New(dirs...)
-	if err != nil {
-		return nil, err
-	}
-	s.lastAsk = state.Read(s.tabf) // what was asked before is done
-	s.hidden = state.Read(s.panelf) == "hidden"
 	for _, sl := range leaves(s.frame) {
 		if sl.Panel {
 			s.panel = sl.Name
@@ -128,8 +129,11 @@ func start(dir string) (*studio, error) {
 				s.panes[sl.Name] = p
 				s.order = append(s.order, p)
 			}
+			if i == 0 && sl.Face {
+				s.face = p
+			}
 			if tb.Run == "" {
-				err = s.openterm(p)
+				err = s.openterm(p, nil)
 			} else {
 				err = s.launch(p, tb.Run)
 			}
@@ -138,11 +142,24 @@ func start(dir string) (*studio, error) {
 			}
 		}
 	}
-	go func() {
-		for range wt.On {
-			s.events <- news{}
+	for _, w := range []struct {
+		file  string
+		asked bool
+	}{{state.Path("cur", "none"), false}, {s.askf, true}} {
+		dir := filepath.Dir(w.file)
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			return nil, err
 		}
-	}()
+		wt, err := watch.New(dir)
+		if err != nil {
+			return nil, err
+		}
+		go func(asked bool) {
+			for range wt.On {
+				s.events <- news{asked: asked}
+			}
+		}(w.asked)
+	}
 	s.focus(0) // a program starts without the eye, saying no cur
 	return s, nil
 }
@@ -159,12 +176,12 @@ func leaves(slots []slot) []slot {
 	return out
 }
 
-// focus gives the eye to the first pane from i on with a program, and
-// tells each program whether it has it (eye). A lone pane is its
-// program's own, eye and all
+// focus gives the eye to the first pane from i on that can take it, one
+// with a program, in sight, and tells each program whether it has it
+// (eye). A lone pane is its program's own, eye and all
 func (s *studio) focus(i int) {
 	for range s.order {
-		if !s.order[i%len(s.order)].gone {
+		if p := s.order[i%len(s.order)]; !p.gone && !s.away(p) {
 			break
 		}
 		i++
@@ -176,6 +193,19 @@ func (s *studio) focus(i int) {
 	for j, p := range s.order {
 		p.eye(j == s.eye)
 	}
+}
+
+// focusOn gives the eye to pane p, when the frame shows it and it has it
+// not already
+func (s *studio) focusOn(p *pane) {
+	if i := slices.Index(s.order, p); i >= 0 && i != s.eye {
+		s.focus(i)
+	}
+}
+
+// away is whether pane p is out of sight, the panel's, hidden
+func (s *studio) away(p *pane) bool {
+	return s.hidden && p.name == s.panel
 }
 
 // eye tells what runs in a pane whether it has the eye: fm says its row
@@ -198,18 +228,17 @@ func (p *pane) eye(has bool) {
 // clipboard, if anything, and whether the window is done
 func (s *studio) handle(e news) (copied string, done bool) {
 	switch {
+	case e.asked:
+		s.asks()
 	case e.p == nil:
-		// a window's file changed: a size wakes a program to chase
-		// cur, a terminal's shell none; a tab asked shows; the panel
-		// hides or shows
+		// cur changed: a size wakes a program to chase it, a
+		// terminal's shell none
 		for _, p := range s.order {
 			if !p.gone && p.out != nil && p.cols > 0 {
 				size := object{"w": p.cols, "h": p.high}
 				p.send("size", size)
 			}
 		}
-		s.asked()
-		s.hidden = state.Read(s.panelf) == "hidden"
 	case e.out != nil:
 		e.p.term.Write(e.out)
 	case e.ended:
@@ -258,13 +287,9 @@ func piped(r io.Reader, w io.Writer) *studio {
 }
 
 // launch starts what runs in a pane, run, at the other end of a pipe
-// speaking -s, its view this window, told its slot ($STUDIO); fm's pane is
-// the frame's face
+// speaking -s, its view this window, told its slot ($STUDIO)
 func (s *studio) launch(p *pane, run string) error {
 	args := append(strings.Fields(run), "-s")
-	if args[0] == "fm" {
-		s.face = p
-	}
 	c := exec.Command(args[0], args[1:]...)
 	c.Env = append(slices.Clip(s.env), "STUDIO="+p.name)
 	c.Dir, c.Stderr = s.dir, os.Stderr
@@ -288,43 +313,61 @@ func (s *studio) launch(p *pane, run string) error {
 	return nil
 }
 
-// turn does to a slot's tabs what studio tab asks
-// (`studio/5-verbs/22-ask.go`), or a press on the slot's bar names: shows
-// the next or the one before, round, one by its place from 1, or one by
-// its name; opens a terminal in the panel, new; or ends the tab shown,
-// close
-func (s *studio) turn(slot, word string) {
-	switch word {
-	case "new":
-		s.newterm()
+// turn does to the frame's tabs what studio tab asks of a slot's, or a
+// press on a tab line's button names, the words as studio takes them in
+// tmux (`studio/5-verbs/21-turn.go:/func turn/`): next and prev, round; a
+// number, a place from 1; a name, the tab by that name in any slot;
+// close, the tab shown, but never a slot's last; and new, a terminal
+// running the words after it. The eye goes to the tab shown (show)
+func (s *studio) turn(slot string, words []string) {
+	if len(words) == 0 {
 		return
+	}
+	switch word := words[0]; word {
+	case "new":
+		s.newterm(words[1:])
 	case "close":
 		s.closetab(slot)
-		return
-	}
-	tabs := s.tabs[slot]
-	if len(tabs) < 2 {
-		return
-	}
-	i, j := slices.Index(tabs, s.panes[slot]), -1
-	switch word {
-	case "next":
-		j = (i + 1) % len(tabs)
-	case "prev":
-		j = (i + len(tabs) - 1) % len(tabs)
+	case "next", "prev":
+		p, tabs := s.panes[slot], s.tabs[slot]
+		switch {
+		case p == nil:
+		case s.away(p): // the panel, hidden, shows the tab it hid
+			s.show(slot, p)
+		case len(tabs) > 1:
+			d := 1
+			if word == "prev" {
+				d = len(tabs) - 1
+			}
+			i := slices.Index(tabs, p)
+			s.show(slot, tabs[(i+d)%len(tabs)])
+		}
 	default:
 		if n, err := strconv.Atoi(word); err == nil {
-			j = n - 1
+			if tabs := s.tabs[slot]; n >= 1 && n <= len(tabs) {
+				s.show(slot, tabs[n-1])
+			}
+			return
 		}
-		for k, p := range tabs {
-			if p.tab == word {
-				j = k
+		for name, tabs := range s.tabs {
+			for _, p := range tabs {
+				if p.tab == word {
+					s.show(name, p)
+					return
+				}
 			}
 		}
 	}
-	if j >= 0 && j < len(tabs) {
-		s.showTab(slot, tabs[j])
+}
+
+// show puts a slot's tab p in its place with the eye on it, as studio
+// shows one in tmux, the panel with it when it was hidden
+func (s *studio) show(slot string, p *pane) {
+	if slot == s.panel {
+		s.hidden = false
 	}
+	s.showTab(slot, p)
+	s.focusOn(p)
 }
 
 // showTab puts a slot's tab p in its place: the order holds it where the
@@ -350,7 +393,7 @@ func (s *studio) showTab(slot string, p *pane) {
 
 // drop takes a tab that ended out of its slot's tabs, the next taking its
 // place when it was the one shown, as a tab in tmux gives its place
-// (`studio/2-term/21-died.go`); false for a slot's last, which stays,
+// (`studio/2-term/22-died.go`); false for a slot's last, which stays,
 // ended
 func (s *studio) drop(p *pane) bool {
 	tabs := s.tabs[p.name]
@@ -366,35 +409,67 @@ func (s *studio) drop(p *pane) bool {
 	return true
 }
 
-// asked does what studio tab asked last, once: the window's tab file says
-// the slot, the ask and when, so that one asked twice is done twice
-func (s *studio) asked() {
-	line := state.Read(s.tabf)
-	if line == "" || line == s.lastAsk {
+// asked is a line of the window's ask file, as studio adds it
+// (`studio/5-verbs/22-ask/01-asked.go`): the verb, tab or panel, the slot
+// asked of, "." for the one with the eye, and the verb's words
+type asked struct {
+	Verb  string
+	Slot  string
+	Words []string
+}
+
+// asks does what studio asked of the window since it last read the ask
+// file, a line an ask, in order (asked): a slot's tabs turned (turn), the
+// panel hidden, shown, or, with no word, turned (hide). A line not yet
+// whole waits for the rest
+func (s *studio) asks() {
+	b, err := os.ReadFile(s.askf)
+	if err != nil {
 		return
 	}
-	s.lastAsk = line
-	if f := strings.Fields(line); len(f) >= 2 {
-		slot := f[0]
-		if slot == "." { // the slot typed in, the eye's
-			slot = s.order[s.eye].name
+	if int64(len(b)) < s.read {
+		s.read = 0 // the file was made again
+	}
+	for b = b[s.read:]; ; {
+		i := bytes.IndexByte(b, '\n')
+		if i < 0 {
+			return
 		}
-		s.turn(slot, f[1])
+		var a asked
+		err := json.Unmarshal(b[:i], &a)
+		b, s.read = b[i+1:], s.read+int64(i+1)
+		if err != nil {
+			continue
+		}
+		if a.Slot == "." {
+			a.Slot = s.order[s.eye].name
+		}
+		switch a.Verb {
+		case "tab":
+			s.turn(a.Slot, a.Words)
+		case "panel":
+			hidden := !s.hidden
+			if len(a.Words) == 1 {
+				hidden = a.Words[0] == "hide"
+			}
+			s.hide(hidden)
+		}
 	}
 }
 
-// togglePanel hides the frame's panel, its room going to the slots above,
-// or shows it again, alt-t's; the window's panel file keeps which, for it
-// is the window's state, and studio panel says it there too
-// (`studio/5-verbs/24-askpanel.go`)
-func (s *studio) togglePanel() {
-	if s.panel == "" {
+// hide hides the frame's panel, its room going to the slots above, or
+// shows it again, as alt-t and studio panel ask: the eye leaves it as it
+// hides, and comes to it as it shows, as in tmux
+func (s *studio) hide(hidden bool) {
+	if s.panel == "" || s.hidden == hidden {
 		return
 	}
-	s.hidden = !s.hidden
-	said := ""
-	if s.hidden {
-		said = "hidden"
+	s.hidden = hidden
+	p := s.panes[s.panel]
+	switch {
+	case !hidden:
+		s.focusOn(p)
+	case s.order[s.eye] == p:
+		s.focus(s.eye + 1)
 	}
-	state.Write(s.panelf, said)
 }

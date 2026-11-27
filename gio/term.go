@@ -7,8 +7,11 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"slices"
 	"strconv"
+	"strings"
+	"sync"
 	"syscall"
 
 	"sys/outline"
@@ -29,25 +32,40 @@ var palette = [16][3]uint8{
 
 const defaultfg, defaultbg, defaultcs = 15, 0, 15
 
+// groundHex and caretHex are the window's ground and its text's cursor,
+// the terminal's own two, so that a terminal sits in the window seamless
+var groundHex, caretHex = code(palette[defaultbg]), code(palette[defaultcs])
+
 // openterm starts a shell in pane p on a pty, as st starts one: in the
-// frame's folder, in the world its programs have, TERM st's (vt.Start).
-// What the shell writes comes to the window's thread as news, which puts
-// it on p's screen (handle); what p's terminal sends the shell goes by a
+// frame's folder, in the world its programs have, TERM st's (vt.Start);
+// or what run says, one word as a shell reads it, more as a command and
+// its arguments, as tmux's new-window runs them
+// (`studio/2-term/20-newtab.go`). What it writes comes to the window's
+// thread as news, which puts it on p's screen (handle), until the shell
+// ends, which ends the terminal, as st ends with its shell, though a job
+// it left holds the pty; what p's terminal sends the shell goes by a
 // typist, for the window never waits on a shell slow to read.
-func (s *studio) openterm(p *pane) error {
-	sh := os.Getenv("SHELL")
-	if sh == "" {
-		sh = "/bin/sh"
-	}
+func (s *studio) openterm(p *pane, run []string) error {
+	sh := shell()
 	c := exec.Command(sh)
+	switch {
+	case len(run) == 1:
+		c = exec.Command(sh, "-c", run[0])
+	case len(run) > 1:
+		c = exec.Command(run[0], run[1:]...)
+	}
 	c.Dir, c.Env = s.dir, s.env
 	f, err := vt.Start(c, 80, 24)
 	if err != nil {
 		return err
 	}
-	ty := &typist{keys: make(chan []byte, 64), gone: make(chan struct{})}
+	ty := &typist{wake: make(chan struct{}, 1), gone: make(chan struct{})}
 	p.cmd, p.pty, p.term = c, f, vt.New(80, 24, ty)
 	go ty.run(f)
+	go func() {
+		c.Wait()
+		f.Close() // which ends the Read under way
+	}()
 	go func() {
 		for b := make([]byte, 32<<10); ; {
 			n, err := f.Read(b)
@@ -59,25 +77,30 @@ func (s *studio) openterm(p *pane) error {
 				break
 			}
 		}
-		c.Wait()
 		close(ty.gone)
-		f.Close()
 		s.events <- news{p: p, ended: true}
 	}()
 	return nil
 }
 
-// typist is what a terminal sends its shell, written to the pty by a
-// goroutine of its own, until the shell is gone
+// typist is what a terminal sends its shell, queued without a bound and
+// written to the pty by a goroutine of its own until the shell is gone,
+// so that a key, a paste or an answer vt makes never waits on a shell
+// slow to read, nor the window with it (vt.New)
 type typist struct {
-	keys chan []byte
+	mu   sync.Mutex
+	q    [][]byte
+	wake chan struct{} // holds one: something is queued
 	gone chan struct{}
 }
 
 func (t *typist) Write(b []byte) (int, error) {
+	t.mu.Lock()
+	t.q = append(t.q, slices.Clone(b))
+	t.mu.Unlock()
 	select {
-	case t.keys <- slices.Clone(b):
-	case <-t.gone:
+	case t.wake <- struct{}{}:
+	default:
 	}
 	return len(b), nil
 }
@@ -85,40 +108,78 @@ func (t *typist) Write(b []byte) (int, error) {
 func (t *typist) run(f *os.File) {
 	for {
 		select {
-		case b := <-t.keys:
-			f.Write(b)
+		case <-t.wake:
 		case <-t.gone:
 			return
+		}
+		t.mu.Lock()
+		q := t.q
+		t.q = nil
+		t.mu.Unlock()
+		for _, b := range q {
+			f.Write(b)
 		}
 	}
 }
 
-// newterm opens a terminal as a tab of the panel, named by the next
-// number free among its tabs, and shows it with the eye on it, the panel
-// too when it was hidden, as l new does in tmux
-// (`studio/2-term/20-newtab.go`); a last tab that ended goes for it
-func (s *studio) newterm() {
+// newterm opens a terminal as a tab of the panel, running run, a shell
+// for none (openterm), named by the next number free among the panel's
+// tabs, as l new does in tmux (`studio/2-term/20-newtab.go`), and shows
+// it with the eye on it, the panel with it when it was hidden (show); a
+// last tab that ended goes for it
+func (s *studio) newterm(run []string) {
 	if s.panel == "" {
 		return
 	}
-	n := 2
-	for slices.ContainsFunc(s.tabs[s.panel], func(p *pane) bool {
+	tabs := s.tabs[s.panel]
+	n := len(tabs) + 1
+	for slices.ContainsFunc(tabs, func(p *pane) bool {
 		return p.tab == strconv.Itoa(n)
 	}) {
 		n++
 	}
 	p := &pane{app: newApp(nil), name: s.panel, tab: strconv.Itoa(n)}
-	if s.openterm(p) != nil {
+	if err := s.openterm(p, run); err != nil {
+		fmt.Fprintln(os.Stderr, "window: a terminal:", err)
 		return
 	}
-	s.tabs[s.panel] = append(s.tabs[s.panel], p)
-	s.showTab(s.panel, p)
+	s.tabs[s.panel] = append(tabs, p)
+	s.show(s.panel, p)
 	s.tabs[s.panel] = slices.DeleteFunc(s.tabs[s.panel],
 		func(p *pane) bool { return p.gone })
-	if s.hidden {
-		s.togglePanel()
+}
+
+// folder is where a terminal's program runs, the one in the foreground of
+// its pty, as tmux finds a pane's (pane_current_path): the folder that
+// printed its words; the frame's when it cannot say
+func (s *studio) folder(p *pane) string {
+	if g, err := vt.Foreground(p.pty); err == nil {
+		at, err := os.Readlink(fmt.Sprintf("/proc/%d/cwd", g))
+		if err == nil {
+			return at
+		}
 	}
-	s.focus(slices.Index(s.order, p))
+	return s.dir
+}
+
+// prompting is whether a terminal's shell waits at its prompt, as p -a
+// asks tmux: the program in the foreground of its pty is the shell
+func (s *studio) prompting(p *pane) bool {
+	g, err := vt.Foreground(p.pty)
+	if err != nil {
+		return false
+	}
+	name, err := os.ReadFile(fmt.Sprintf("/proc/%d/comm", g))
+	return err == nil &&
+		strings.TrimSpace(string(name)) == filepath.Base(shell())
+}
+
+// shell is the shell a terminal runs, the person's, st's way
+func shell() string {
+	if sh := os.Getenv("SHELL"); sh != "" {
+		return sh
+	}
+	return "/bin/sh"
 }
 
 // closetab ends the tab a slot shows, as l close asks: its program hung
@@ -210,13 +271,17 @@ func rgb(c vt.Color) [3]uint8 {
 	return [3]uint8{r, g, b}
 }
 
-// codes are the colours code named, kept, for a screen shows few
+// codes are the colours code named, kept, for a screen shows few; a
+// program that paints in many fills it, and it starts again
 var codes = map[[3]uint8]string{}
 
 // code is a colour as a strip names it, #rrggbb
 func code(c [3]uint8) string {
 	s, ok := codes[c]
 	if !ok {
+		if len(codes) > 4096 {
+			clear(codes)
+		}
 		s = fmt.Sprintf("#%02x%02x%02x", c[0], c[1], c[2])
 		codes[c] = s
 	}

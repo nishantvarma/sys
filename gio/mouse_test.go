@@ -79,8 +79,8 @@ func TestMouse(t *testing.T) {
 	v, router, settle := alone(t, env, bin+"/ed", "-s", note)
 	settle()
 	p, cw := v.s.order[0], v.text.cell
-	// ed's text starts under the bar and its rule, after its gutter
-	g, top := gutter(len(p.rows)), p.tops()
+	// ed's text starts on the pane's first line, after its gutter
+	g, top := gutter(len(p.rows)), 0
 	word := func(r int) f32.Point {
 		return at(image.Point{}, cw, g+r-1, top)
 	}
@@ -203,7 +203,7 @@ func TestLook(t *testing.T) {
 			t.Fatalf("ed never showed a.txt: %q", head(&ed.app))
 		}
 	}
-	g, top := gutter(len(ed.rows)), ed.tops()
+	g, top := gutter(len(ed.rows)), 0
 	pos := at(corner, v.text.cell, g+5, top) // b.txt, from its rune 6
 	router.Queue(pointer.Event{Kind: pointer.Press, Source: pointer.Mouse,
 		Buttons: pointer.ButtonSecondary, Position: pos})

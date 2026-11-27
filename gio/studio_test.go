@@ -203,9 +203,10 @@ func TestStudio(t *testing.T) {
 	has("and goes back in", ed.state[0] == "insert")
 	down(key.NameEscape, 0)
 	// the lens view's tabs: its bar names them; ed's Tab runs l, which
-	// asks the window by its tab file, and the outline shows; a press
-	// on a name on the bar shows that one; alt-t hides the panel, and so
-	// does studio panel, run with no tmux, by the window's panel file
+	// asks the window by its ask file, and the outline shows; a press
+	// on a name on the bar shows that one; alt-t hides the panel and
+	// shows it again, the eye with it, and so does studio panel, run
+	// with no tmux, asking the window; and the eye follows the pointer
 	bar, _ := s.tabBar("view", 80)
 	has("the lens view's bar names its tabs", bar != nil &&
 		strings.Contains(stripText(bar),
@@ -234,7 +235,7 @@ func TestStudio(t *testing.T) {
 	for _, b := range v.bars {
 		for _, c := range b.chips {
 			first := on == (image.Point{})
-			if b.slot == "view" && c.Lens == "render" && first {
+			if b.slot == "view" && c.Name == "render" && first {
 				x := b.area.Min.X + c.From*v.text.cell
 				on = image.Pt(x+1, b.area.Min.Y+5)
 			}
@@ -242,10 +243,12 @@ func TestStudio(t *testing.T) {
 	}
 	press(f32.Pt(float32(on.X), float32(on.Y)))
 	has("a press on render, on the bar, shows it", shows("render"))
+	eye := func() *pane { return s.order[s.eye] }
 	down("T", key.ModAlt)
 	has("alt-t hides the panel", s.hidden)
 	down("T", key.ModAlt)
-	has("and shows it again", !s.hidden)
+	has("and shows it again, the eye on its terminal", !s.hidden &&
+		eye().name == s.panel && eye().term != nil)
 	panel := func(args ...string) {
 		c := exec.Command("studio", append([]string{"panel"},
 			args...)...)
@@ -255,16 +258,24 @@ func TestStudio(t *testing.T) {
 		}
 	}
 	panel("hide")
-	has("studio panel hide hides it",
-		until(func() bool { return s.hidden }))
+	has("studio panel hide hides it, the eye moving off it",
+		until(func() bool { return s.hidden }) &&
+			eye().name != s.panel)
 	panel()
-	has("and bare, shows it again",
-		until(func() bool { return !s.hidden }))
+	has("and bare, shows it again, the eye on it",
+		until(func() bool { return !s.hidden }) &&
+			eye().name == s.panel)
 	down("W", key.ModCtrl)
-	has("ctrl-w goes on to the panel's terminal",
-		s.order[s.eye].name == s.panel && s.order[s.eye].term != nil)
-	down("W", key.ModCtrl)
-	has("and back round to fm", s.order[s.eye].name == "fm")
+	has("ctrl-w goes on, round to fm", eye().name == "fm")
+	move := func(at f32.Point) {
+		router.Queue(pointer.Event{Kind: pointer.Move,
+			Source: pointer.Mouse, Position: at})
+		settle()
+	}
+	move(word)
+	has("the pointer on ed gives it the eye", eye().name == "view")
+	move(at)
+	has("and on fm, fm", eye().name == "fm")
 	char('j')
 	has(
 		"unsaved ed holds as cur moves",
