@@ -108,11 +108,13 @@ for f in $html; do
 done
 # a package's tests are its own check. go speaks on stderr, so stdout
 # stays violations alone. a folder with a go.mod of its own is another module,
-# which go cannot test from here, so its tests are its own to run
+# which go cannot test from here, so its tests are its own to run. each runs
+# afresh: a program's tests tangle it in a child, whose reads of the chunks
+# go's cache never sees, so a pass it kept would outlive a chunk's change
 pkgs=$(echo "$files" | grep '_test\.go$' | sed 's|/[^/]*$||' | sort -u |
 	while read -r d
 	do
 		[ "$d" != . ] && [ -f "$d/go.mod" ] || echo "$d"
 	done)
-[ -z "$pkgs" ] || go test $(printf './%s ' $pkgs) >&2 || rc=1
+[ -z "$pkgs" ] || go test -count=1 $(printf './%s ' $pkgs) >&2 || rc=1
 exit $rc
