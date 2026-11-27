@@ -115,8 +115,9 @@ bind-key -T copy-mode-vi MouseDown2Pane if-shell -F "#{selection_present}" {
 # a frame's tab line, the border over a slot of tabs, names them, each name
 # a button, a control range by its place (studio/2-term/12-bar.go): a
 # press sends studio tab what l would, the tab at that place, and the
-# panel's + and × a new terminal and a close. the pane is the one whose
-# border it is; a press on the border off a button is tmux's own, a resize.
+# panel's + and × a new terminal and a close, its error, if any, said on
+# tmux's message line. the pane is the one whose border it is; a press on
+# the border off a button is tmux's own, a resize.
 # control ranges are tmux's from 2026; an older one calls these unknown.
 bind-key -n MouseDown1Control0 run-shell -b "studio tab -t #{pane_id} 1"
 bind-key -n MouseDown1Control1 run-shell -b "studio tab -t #{pane_id} 2"

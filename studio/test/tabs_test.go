@@ -24,11 +24,12 @@ shell
 // names them; next shows the second there, parking the first; new opens
 // a terminal as a tab of the panel, the frame's shell, told no slot, its
 // bar numbering the terminals, and a number shows the terminal at that
-// place; the panel
-// hides, its room going to the slots above, and shows again across the
-// bottom, as a new terminal shows it too; the terminal's exit shows the
-// shell again; close ends the tab shown, the next taking its place; and
-// the face's end ends the parked tabs with the frame.
+// place; the panel hides, its room going to the slots above, and shows
+// again across the bottom, as a new terminal shows it too; the terminal's
+// exit shows the shell again, and so does its close from its own shell,
+// the tab line naming it no more; a press's error is answered, not
+// failed; close ends the tab shown, the next taking its place; and the
+// face's end ends the parked tabs with the frame.
 func TestTabs(t *testing.T) {
 	if _, err := exec.LookPath("tmux"); err != nil {
 		t.Skip("no tmux")
@@ -164,6 +165,20 @@ func TestTabs(t *testing.T) {
 		t.Errorf("the terminal exited, and the shell slot shows %q,"+
 			" its tabs %q", tab, tabs("shell"))
 	}
+	run(shell, "tab", "new")
+	term, _ = in("shell")
+	tm("send-keys", "-t", term, studio+" tab close", "Enter")
+	bar = ""
+	if !settle(func() bool {
+		p, tab := in("shell")
+		bar = tm("show", "-pqv", "-t", p, "@bar")
+		return tab == "shell" && tabs("shell") == "shell" &&
+			!strings.Contains(bar, " 2 ")
+	}) {
+		t.Errorf("a terminal closed from its own shell, and the tab"+
+			" line says %q", bar)
+	}
+	run("", "tab", "-t", shell, "9") // a press: answered, not failed
 
 	run(second, "tab", "close")
 	if _, tab := in("view"); tab != "first" || tabs("view") != "first" {
