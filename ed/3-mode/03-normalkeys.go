@@ -11,8 +11,8 @@
 // only that repeat spelled out: 3w is w w w, dispatch replaying the
 // key, so nothing here needs to know a count exists. . replays a whole
 // change the same way, its keys typed again, so no verb knows of it either.
-// Tab turns the lens ed shows (`design/lens`), which every view of it
-// draws; in insert it types a tab.
+// Tab, in a frame, runs l, which turns the frame's tabs; in insert it types
+// a tab.
 func normalKeys() []binding {
 	return append([]binding{
 		{"h", "left", (*editor).left},
@@ -72,8 +72,7 @@ func normalKeys() []binding {
 		{"s", "save", (*editor).doSave},
 		{"R", "reload", (*editor).reload},
 		{"q", "quit (2× discard)", (*editor).quit},
-		{tty.KTab, "next lens: source, outline, render",
-			(*editor).turnLens},
+		{tty.KTab, "next tab, in a frame (l)", (*editor).tab},
 		{"?", "help", (*editor).help},
 	}, chordKeys()...)
 }

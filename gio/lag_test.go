@@ -80,7 +80,7 @@ func TestLag(t *testing.T) {
 	frame(false)
 	take(500*time.Millisecond, func(news) {})
 	frame(false)
-	fm, ed := s.panes["fm"], s.panes["ed"]
+	fm, ed := s.panes["fm"], s.panes["view"]
 	var fmT, edT []time.Duration
 	for i := 0; fm.tree != nil && i < len(fm.tree.Kids)-1; i++ {
 		was := head(&ed.app)

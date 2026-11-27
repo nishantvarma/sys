@@ -72,15 +72,12 @@ func home(p string) string {
 
 // list is the pane as sys/view lays it out, in the region the pane is,
 // as on the terminal: the head, the layouts, the rows or the cards, the
-// bottom line; a program with lenses has its bar in place of the head,
-// as ed's terminal view puts it (`ed/4-view/34-lensed.go`)
+// bottom line; a program with lenses, the lens, has its bar in place of
+// the head, as sys/view draws it there (`view/screen.go:/func barred/`)
 func (p *pane) list() []*strip {
 	var lines []*strip
 	for _, rs := range p.v.Lines() {
 		lines = append(lines, stripOf(rs))
-	}
-	if p.tops() > 0 && len(lines) > 0 {
-		lines[0], _ = p.bar()
 	}
 	return lines
 }
@@ -95,7 +92,7 @@ func stripOf(rs []view.Run) *strip {
 }
 
 // -- the lenses, a program's ways to see its thing, which it names on its
-// tree's tags, ed's (`design/lens`)
+// tree's tags, the lens's (`design/lens`)
 
 // tops is the lines a pane keeps over a text for its program's lenses:
 // the bar and its rule, as sys/view gives them (view.Tops); none for a
@@ -315,4 +312,29 @@ func (p *pane) line(i, g int) *strip {
 		}
 	}
 	return k.pad(p.cols, "")
+}
+
+// tabBar is a slot of tabs' bar, cols wide, as sys/view lays a bar out
+// (`view/bar.go:/func Bar/`): each tab by its name, a terminal of the
+// panel by its place, the one shown lit; and where each name stands, the
+// tab a press there shows. None for a slot of one tab
+func (s *studio) tabBar(name string, cols int) (*strip, []view.Chip) {
+	tabs := s.tabs[name]
+	if len(tabs) < 2 {
+		return nil, nil
+	}
+	var names []string
+	on := 0
+	for i, p := range tabs {
+		n := p.tab
+		if name == s.panel {
+			n = strconv.Itoa(i + 1)
+		}
+		names = append(names, n)
+		if p == s.panes[name] {
+			on = i
+		}
+	}
+	runs, chips := view.Bar(names, on, cols)
+	return stripOf(runs), chips
 }

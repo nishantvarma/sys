@@ -6,8 +6,9 @@ import "sys/tty"
 // (`design/lens`), w wide: each lens named in a chip, the one shown lit,
 // and at the right tab, the key that turns to the next; and where each
 // chip stands, the lens a press there names, tab's the next. A chip that
-// does not fit is left off. ed's terminal view and gio's window draw it
-// alike, from the names a program puts on its tree's tags.
+// does not fit is left off. The view draws it in place of its head, and
+// gio's window over a text too, from the names a program puts on its
+// tree's tags.
 func Bar(names []string, on, w int) ([]Run, []Chip) {
 	k := (&ink{}).add(" ", "", "", false)
 	var at []Chip

@@ -1,38 +1,33 @@
-// slotOf is the slot an item says, and the slots under it: a name, then
-// a share such as 40%, then what runs there. A name is one word (word),
-// and none of the names studio keeps its own by beside the slots', frame,
-// face and here (open); no two slots share one, for a name is how a
-// program finds a slot. A slot split into others runs nothing
-// itself.
+// slotOf is the slot an item says: a name, then what runs there; or, with
+// lines under it, its tabs, which take turns in it (tabOf). The room a
+// slot takes is its place in the order (layout), so a share such as 40%
+// is no part of its line.
 func slotOf(n *outline.Node, named map[string]bool) (*slot, error) {
-	name, rest := split(n.Text)
-	pct, cmd, ok := share(rest)
-	why := ""
-	switch {
-	case !word(name):
-		why = "a slot's name is one word: letters, digits, - and _"
-	case name == "frame" || name == "face" || name == "here":
-		why = "studio keeps its own by that name"
-	case named[name]:
-		why = "a second slot by that name"
-	case !ok:
-		why = "a share is a whole percent, from 1% to 100%"
+	name, cmd := split(n.Text)
+	if err := fresh(n.ID, name, named); err != nil {
+		return nil, err
 	}
-	if why != "" {
-		return nil, fmt.Errorf("%s: %s: %s", n.ID, name, why)
+	if lead, _, _ := strings.Cut(cmd, " "); strings.HasSuffix(lead, "%") {
+		return nil, fmt.Errorf("%s: %s: a slot takes its room by its"+
+			" place in the order, not by a share", n.ID, name)
 	}
-	named[name] = true
-	s := &slot{name: name, share: pct, cmd: cmd, at: n.ID}
+	s := &slot{name: name, at: n.ID}
+	if len(n.Kids) == 0 {
+		s.cmd = cmd
+		s.tabs = []*tab{{name: name, cmd: cmd, at: n.ID}}
+		return s, nil
+	}
+	if cmd != "" {
+		return nil, fmt.Errorf("%s: %s: runs nothing itself, for its"+
+			" tabs do", n.ID, name)
+	}
 	for _, k := range n.Kids {
-		ks, err := slotOf(k, named)
+		tb, err := tabOf(k, named)
 		if err != nil {
 			return nil, err
 		}
-		s.kids = append(s.kids, ks)
+		s.tabs = append(s.tabs, tb)
 	}
-	if len(s.kids) > 0 && s.cmd != "" {
-		return nil, fmt.Errorf("%s: %s: runs nothing, for it is split",
-			n.ID, name)
-	}
-	return s, room(s.kids, n.ID)
+	s.cmd = s.tabs[0].cmd
+	return s, nil
 }

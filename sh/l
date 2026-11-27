@@ -1,0 +1,10 @@
+#!/usr/bin/env -S 9 rc
+
+# l [next | prev | number | name | close | new [command...]]: a frame's
+# tabs (studio/cheatsheet). bare, the next tab of the slot this pane is in, as
+# Tab is in ed and in the lens; prev the one before; a number the tab at
+# that place, from 1, as the panel's bar numbers its terminals; a name
+# that tab, wherever it waits; close ends the one shown, the next taking
+# its place; new opens a terminal in the panel, a shell or command.
+if (~ $#* 0) exec studio tab next
+exec studio tab $*

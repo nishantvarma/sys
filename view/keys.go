@@ -126,12 +126,13 @@ var vi = map[string]string{"h": tty.KLeft, "j": tty.KDown, "k": tty.KUp,
 // the mouse (tty.Mouse), the three buttons as in any pane
 // (`design/mouse`): a left press names what it falls on (At), a row, a
 // card or a part of the head's path, or presses the key a chip or the
-// other layout's name shows (keyAt); a right press, or a second left one
-// soon after on the same cell, the touchpad's right click, is enter on
-// it, the program's own open, but on the head, whose parts are places,
-// it goes there as a left press does; a middle press hands it to the
-// shell (send); and the wheel moves, as down and up do. A report comes at
-// a cell counted from 1, of the whole terminal.
+// other layout's name shows (keyAt); on the bar it is KLens, the lens the
+// name there names, for the program to turn to; a right press, or a
+// second left one soon after on the same cell, the touchpad's right
+// click, is enter on it, the program's own open, but on the head, whose
+// parts are places, it goes there as a left press does; a middle press
+// hands it to the shell (send); and the wheel moves, as down and up do.
+// A report comes at a cell counted from 1, of the whole terminal.
 func (v *Term) mouse(k tty.Key) (outline.Key, bool) {
 	switch {
 	case k.Name == tty.KMouseUp:
@@ -144,6 +145,12 @@ func (v *Term) mouse(k tty.Key) (outline.Key, bool) {
 	x, y := k.X-1, k.Y-1
 	if v.region {
 		x, y = x-v.x, y-v.y
+	}
+	if lens := v.spotAt(x, y).lens; lens != "" {
+		if k.Button != tty.MLeft {
+			return outline.Key{}, false
+		}
+		return outline.Key{Name: tty.KLens, Text: lens}, true
 	}
 	if key := v.keyAt(x, y); key != "" && k.Button == tty.MLeft {
 		return v.Handle(tty.Key{Name: key})

@@ -16,11 +16,14 @@ n=`{c -v e $*}
 if (~ $#n 0) exit
 a=`{m 0}
 
-# in a frame the pane named ed, @slot, edits cur, for it runs ed -f:
-# while cur is this file, the eye goes there and nothing opens beside. a
-# plain window names no pane, and ed opens below (design/mouse).
-if (~ $"a $"n $"n^:*) {
-	ed=`{tmux list-panes -t $TMUX_PANE -f '#{==:#{@slot},ed}' \
+# in a frame the lens view's source tab, @tab, edits cur, for it runs
+# ed -f: while cur is this file, the tab is shown, the eye goes there, and
+# nothing opens beside. a plain window names no tab, and ed opens below
+# (design/mouse).
+frame=`{tmux show -wqv -t $TMUX_PANE @studio-frame >[2]/dev/null}
+if (~ $"a $"n $"n^:* && ! ~ $#frame 0) {
+	studio tab source >[2]/dev/null
+	ed=`{tmux list-panes -t $TMUX_PANE -f '#{==:#{@tab},source}' \
 		-F '#{pane_id}' >[2]/dev/null}
 	if (! ~ $#ed 0) if (tmux select-pane -t $ed >[2]/dev/null) exit
 }

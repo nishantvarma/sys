@@ -112,6 +112,34 @@ bind-key -T copy-mode-vi MouseDown2Pane if-shell -F "#{selection_present}" {
 	run-shell -b "p #{pane_id} -a"
 }
 
+# a frame's bar, the border over a slot of tabs, is a button, the same
+# three as in a pane (studio/cheatsheet): left opens tmux's own menu of the
+# slot's tabs at its left, where a tab is picked by a click or its
+# number, and the panel's has a new terminal, a close and a hide; right
+# the next tab; middle a new terminal, as l new opens one. tmux says no
+# column for a press on a border, so a tab's name is no button of its own
+# there, and the menu is; a press on any other border is tmux's own.
+bind-key -n MouseDown1Border if-shell -F "#{@bar}" {
+	run-shell -b "studio tab -t #{pane_id} menu #{client_name}"
+} {
+	select-pane -M
+}
+bind-key -n MouseDown3Border if-shell -F "#{@bar}" {
+	run-shell -b "studio tab -t #{pane_id} next"
+}
+bind-key -n MouseDown2Border if-shell -F "#{@frame}" {
+	run-shell -b -c "#{pane_current_path}" "studio tab -t #{pane_id} new"
+}
+
+# alt-t hides a frame's panel, its terminals, and shows it again: t, the
+# terminals. a run-shell job has no pane of its own, so the binding names
+# the one pressed in
+bind-key -n M-t if-shell -F "#{@studio-frame}" {
+	run-shell -b "studio panel -t #{pane_id}"
+} {
+	send-keys M-t
+}
+
 # the layout, main-vertical: the shell master, the rest stacked beside
 # it. a window is laid out again when its panes change in number, a split,
 # a kill or an exit, and no other window is: a hand resize keeps, for it

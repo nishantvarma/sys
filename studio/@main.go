@@ -1,11 +1,11 @@
-// studio is sys's frame: fm, the thing at fm's cursor in ed, and a
-// shell, side by side, each running as it is, ed's lenses showing the
-// thing the ways ed sees it (`design/lens`). The frame is a note, read
-// by its indent (outline.Text): its lines stack down, the lines under one
-// go across, and so on, turn about. The same note lays out as tmux panes
-// in the terminal and as panes on a page. cur, which fm writes as its
-// cursor moves, is all the panes share, and a slot's name is how a
-// program reaches it.
+// studio is sys's frame: the lens view, the thing at fm's cursor seen its
+// ways, its source in ed and the rest by the lens (`design/lens`); fm;
+// and the terminals, each running as it is. The frame is a note, read by
+// its indent (outline.Text): its slots in the order they take room, laid
+// out as a golden spiral (layout), and under a slot its tabs, which take
+// turns in it. The same note lays out as tmux panes in the terminal and
+// as panes on a page. cur, which fm writes as its cursor moves, is all the
+// panes share, and a slot's or a tab's name is how a program reaches it.
 //
 //	studio [-n] [frame]              the frame in a tmux window: this
 //	                                 one, around the shell alone in it,
@@ -14,8 +14,20 @@
 //	studio page [frame]              the frame as a page, on stdout
 //	studio picture note [page.html]  a note's picture as a page, on the
 //	                                 skeleton given, or sys's own
+//	studio tab [next | prev | number | name | close | menu]
+//	                                 turn the tabs of the slot it runs
+//	                                 in, show one, end one, or pick from
+//	                                 tmux's menu of them; bare, say them
+//	studio tab new [command...]      a terminal, a tab of the panel: a
+//	                                 shell, or command
+//	studio panel [hide | show]       hide the panel, the terminals, or
+//	                                 show it again; bare, turn it
 //	studio send slot text...         paste text into a slot, then enter
 //	studio read slot                 a slot's screen, as text
+//	studio show [lens] [-w | -s]     the lens: cur seen one way, the
+//	                                 lens named, as nodes a view draws,
+//	                                 a tab of the lens view; with none,
+//	                                 every way, Tab turning them
 //	studio close window pane         a pane of the frame ended: its hook
 //	                                 runs it, and when the pane was the
 //	                                 face, fm, the frame ends with it
@@ -36,12 +48,15 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 	"unicode"
 
 	"sys/outline"
 	"sys/picture"
 	"sys/state"
 	"sys/tty"
+	"sys/view"
+	"sys/watch"
 )
 
 func main() {

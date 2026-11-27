@@ -1,6 +1,6 @@
 // picturePage is the skeleton with a note's picture in it: its title, its
 // lead, the picture, and the note it was drawn from, folded under it: what
-// ed's render lens shows (`design/lens`), on a page. Its look is the
+// the lens's render shows (`design/lens`), on a page. Its look is the
 // picture's own (picture.Style), under local (fill).
 func picturePage(f *picture.Picture, skel, note, src string) string {
 	var m strings.Builder

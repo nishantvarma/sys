@@ -12,7 +12,7 @@ func (e *editor) chase() {
 		return
 	}
 	e.chased = at
-	path, line, ok := edits(at)
+	path, line, ok := outline.Note(at)
 	if !ok {
 		return
 	}

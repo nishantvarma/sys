@@ -17,7 +17,6 @@ type editor struct {
 	// the insert under way is no change . can type again: the mouse
 	// dragged in it, or an undo or a redo was done in it
 	unkept bool
-	lens   int // the lens shown, of lenses (`design/lens`)
 	// the insert under way owes a snapshot, which its first edit takes
 	// (pay)
 	owed bool
@@ -32,7 +31,11 @@ type editor struct {
 	held   bool   // cur names another file, and an unsaved buffer waits
 
 	// in a frame's slot, the window's unsaved file, which names ed's
-	// file while it is unsaved (mark); empty outside a frame
+	// file while it is unsaved (mark), and its text file, which holds
+	// the text then, for the lens (share); empty outside a frame
 	unsaved string
 	marked  bool // the unsaved file names ed's
+	text    string
+	shared  [32]byte // the sum of what the text file holds
+	slot    string   // the frame's slot ed runs in, which l is told
 }

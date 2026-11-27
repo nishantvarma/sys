@@ -95,18 +95,10 @@ Insert is a plain editor, with these and the mouse: a person on the
 mouse need not leave it. ctrl-c copies, and q quits, but in a frame q is
 fm's. . types no insert a drag was part of, nor one that undid.
 
-lenses — the bar at the top names them, the one shown lit (design/lens)
-  tab          next lens: source, outline, render, source again; in
-               insert a tab, as before
-  press        a name on the bar turns to it, tab there to the next
-In outline and render nothing is typed:
-  j k g G      move among the items; t rows or thumbs
-  click        an item puts the cursor on its line; a right click or a
-               double tap goes to source there
-  enter esc    source, on the line of the item lit
-  ctrl-s       save, as in any mode
-The outline is of the text as it is, unsaved lines too. gio's window
-shows the lenses as the terminal does, for ed draws them.
+ed shows the text as written, and only that. In a frame it is the source
+tab of the lens view, and Tab runs l, which shows the next in its place:
+the outline, the render, the diff, of the text as ed holds it, unsaved
+lines too (studio/cheatsheet).
 
 find
   /            literal search

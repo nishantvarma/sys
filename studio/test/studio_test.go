@@ -35,14 +35,12 @@ func built(t *testing.T) string {
 	return filepath.Join(dir, "studio")
 }
 
-// frame is fm, the face, and another program over two shells.
-const frame = `a frame: two programs over two shells
-top  70%
-  a  50%  fm
-  b       sh -c 'echo in $STUDIO; exec cat'
-bottom
-  one
-  two
+// frame is fm, the face, another program, and two shells.
+const frame = `a frame: two programs and two shells
+a    fm
+b    sh -c 'echo in $STUDIO; exec cat'
+one
+two
 `
 
 // settle waits until ok holds, up to five seconds, for check runs every
@@ -182,21 +180,22 @@ func TestEnd(t *testing.T) {
 	}
 }
 
-// mouse is a frame whose slots are named as the verbs reach them, ed, fm
-// and shell, with stand-ins for fm and ed.
-const mouse = `a frame of stand-ins, its slots named as the verbs reach them
-top  70%
-  fm  50%  fm
-  ed       ed
+// mouse is a frame whose slots and tabs are named as the verbs reach
+// them, the lens view's source tab, fm and shell, with stand-ins for fm
+// and ed.
+const mouse = `a frame of stand-ins, named as the verbs reach them
+view
+  source  ed
+fm        fm
 shell
 `
 
-// TestMouse: in a frame a right click on a text gives ed's slot the eye,
-// one on a folder fm's, and one on a script opens it there and runs
-// nothing, each with no pane opened beside; a middle click pastes the
-// word, whole, at the shell's prompt and gives the shell the eye, but
-// not while the shell runs a program; outside a frame a right click on
-// a text opens ed beside. sys's own p, c, o, e and m, which a click
+// TestMouse: in a frame a right click on a text gives ed, the source tab,
+// the eye, one on a folder fm's, and one on a script opens it there and
+// runs nothing, each with no pane opened beside; a middle click pastes
+// the word, whole, at the shell's prompt and gives the shell the eye, but
+// not while the shell runs a program; outside a frame a right click on a
+// text opens ed beside. sys's own p, c, o, e and m, which a click
 // runs, are rc, and the test skips without it.
 func TestMouse(t *testing.T) {
 	for _, b := range []string{"tmux", "9"} {
@@ -252,9 +251,13 @@ func TestMouse(t *testing.T) {
 	}
 	w := tm("show", "-gv", "@studio")
 	slot := map[string]string{}
-	for _, n := range []string{"fm", "ed", "shell"} {
-		slot[n] = tm("list-panes", "-t", w, "-f",
-			"#{==:#{@slot},"+n+"}", "-F", "#{pane_id}")
+	for n, find := range map[string]string{
+		"fm":    "#{==:#{@slot},fm}",
+		"ed":    "#{==:#{@tab},source}",
+		"shell": "#{==:#{@slot},shell}",
+	} {
+		slot[n] = tm("list-panes", "-t", w, "-f", find, "-F",
+			"#{pane_id}")
 	}
 	shows := func(p, s string) bool {
 		return strings.Contains(tm("capture-pane", "-pJ", "-t", p), s)

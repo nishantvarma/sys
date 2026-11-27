@@ -9,15 +9,7 @@ func (b *buffer) save() error {
 		return errors.New("changed on disk — " +
 			"R reads it, u brings yours back")
 	}
-	var sb strings.Builder
-	for i, ln := range b.lines {
-		if i > 0 {
-			sb.WriteByte('\n')
-		}
-		sb.WriteString(string(ln))
-	}
-	sb.WriteByte('\n')
-	data := []byte(sb.String())
+	data := b.bytes()
 	if err := put(b.path, data); err != nil {
 		return err
 	}

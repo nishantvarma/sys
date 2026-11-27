@@ -187,7 +187,7 @@ func TestLook(t *testing.T) {
 			time.Sleep(20 * time.Millisecond)
 		}
 	}
-	ed := s.panes["ed"]
+	ed := s.panes["view"]
 	var corner image.Point
 	for end := time.Now().Add(5 * time.Second); ; {
 		settle()

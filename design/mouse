@@ -11,8 +11,8 @@ Each is a verb sys has already.
 The case, carried through: the shell in a frame prints sh/o:24, as
 grep -n prints a hit.
 
-	left     cur is sh/o at line 24: ed -f shows the line, in the lens
-	         it shows, and fm -f stands in sh on o
+	left     cur is sh/o at line 24: ed -f shows the line, the lens the
+	         item it is in, and fm -f stands in sh on o
 	right    the same, and the eye goes to ed, on line 24
 	middle   the path, whole, lands at the shell's prompt after what is
 	         typed there, git log -p; Return runs it
@@ -58,10 +58,10 @@ What is where
   Nothing new runs: no plumber, no socket, no table but o's
   (`design/plumbing`). A view hands its clicks on as ideas: fm hears a
   right click as enter, its own open, which goes into a folder and opens
-  a file, and ed's outline hears it as source on the item's line. A key
-  the screen shows is a button: a left click on fm's chip, t layout,
-  presses t, one on the layout not in use turns to it, and one on a lens
-  named on ed's bar turns to that lens (`design/lens`).
+  a file, and the lens hears it as enter, which opens the item's line in
+  ed. A key the screen shows is a button: a left click on fm's chip, t
+  layout, presses t, and one on the layout not in use turns to it; and
+  the bar over a frame's slot of tabs is a button (`studio/cheatsheet`).
 
 Given up
   ed's middle click no longer pastes X's selection: shift and a middle

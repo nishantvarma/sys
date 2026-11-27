@@ -1,0 +1,49 @@
+studio — cheatsheet
+
+The frame is the lens view, fm and the terminals, laid out from the note
+studio/frame (design/lens). A slot of tabs shows one at a time, its bar
+over it naming them, and the terminals are a panel across the bottom.
+These are the frame's keys, in tmux and in gio's window alike, but for
+the bar; ed's and fm's own are in their cheatsheets.
+
+the keys
+  Tab        in ed or a lens: the lens view's next tab, source, outline,
+             render, diff, then the source again
+  alt-t      t, the terminals: hide the panel, or show it again
+
+the bar — the line over a slot of tabs, a button
+  left       in tmux, a menu of the tabs at the slot's left: 1 to 9 a
+             tab, and in the panel's n a new terminal, x close, h hide;
+             in gio's window, the tab whose name it is on
+  right      the next tab, in tmux
+  middle     a new terminal, in tmux
+
+tmux says no column for a press on a border, so there a tab's name is no
+button of its own, and the menu is.
+
+l — the frame's verb, as vi's l steps right: the next tab (sh/l)
+  l              the next tab of the slot it runs in
+  l prev         the one before
+  l 2            the tab at that place, from 1, as the bar numbers it
+  l outline      a tab by its name, from any pane of the frame
+  l close        end the tab shown; the next takes its place
+  l new [cmd]    a terminal in the panel: a shell, or cmd
+  studio tab     say the slot's tabs, * on the one shown
+  studio panel   alt-t's verb: hide, show, or bare, turn
+
+a lens — the outline, the render, the diff (studio show)
+  h j k l      move, arrows too; the row moved to is said to cur, and
+               ed's cursor goes to its line
+  enter        open what the row names; a right click does the same
+  t            the outline's rows, or its thumbs
+  g G          the render's top and bottom, j k scrolling it
+  q            outside a frame, quit; in one, q is fm's
+
+No key types in a lens, so none changes the text out of sight.
+
+what comes to the frame
+  e file       said to cur, and the source tab shows, the eye on it
+  spawn        a terminal in the panel, not a split; fm's a and ; too
+  p -a         the word at the shell's prompt, as a middle click hands
+               it, the panel shown first when hidden
+  an exit      a terminal's: the next takes its place

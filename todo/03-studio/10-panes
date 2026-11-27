@@ -1,0 +1,7 @@
+a tab of splits
+
+A terminal tab split in two, side by side. in tmux a tab is one pane,
+parked in a window of its own when out of sight
+(`studio/2-term/09-park.go`), and in gio's window one program: a tab of
+splits would park a window's panes together and swap them as one, and
+the window would lay a tab out as it lays the frame out.

@@ -6,6 +6,7 @@ import (
 	"image"
 	"image/png"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -98,7 +99,7 @@ func TestStudio(t *testing.T) {
 		png.Encode(f, img)
 	}
 	settle()
-	fm, ed := &s.panes["fm"].app, &s.panes["ed"].app
+	fm, ed := &s.panes["fm"].app, &s.panes["view"].app
 	char := func(r rune) {
 		router.Queue(key.EditEvent{Text: string(r)})
 		settle()
@@ -170,7 +171,7 @@ func TestStudio(t *testing.T) {
 		cur() == "a.txt" && strings.HasSuffix(head(ed), "/a.txt"),
 	)
 	down("W", key.ModCtrl)
-	has("ctrl-w moves the eye", s.order[s.eye].name == "ed")
+	has("ctrl-w moves the eye", s.order[s.eye].name == "view")
 	char('i')
 	char('Z')
 	has(
@@ -187,13 +188,80 @@ func TestStudio(t *testing.T) {
 			Source: pointer.Mouse, Position: at})
 		settle()
 	}
-	word := f32.Pt(612, float32((s.panes["ed"].high-1)*cellH+5))
+	// ed's corner, as the window drew it: under the lens view's bar
+	var corner image.Point
+	for _, h := range v.hits {
+		if h.p == s.panes["view"] {
+			corner = h.area.Min
+		}
+	}
+	word := f32.Pt(float32(corner.X+12),
+		float32(corner.Y+(s.panes["view"].high-1)*cellH+5))
 	press(word)
 	has("a click on the mode leaves insert", ed.state[0] == "normal")
 	press(word)
 	has("and goes back in", ed.state[0] == "insert")
 	down(key.NameEscape, 0)
+	// the lens view's tabs: its bar names them; ed's Tab runs l, which
+	// asks the window by its tab file, and the outline shows; a press
+	// on a name on the bar shows that one; alt-t hides the panel, and so
+	// does studio panel, run with no tmux, by the window's panel file
+	bar, _ := s.tabBar("view", 80)
+	has("the lens view's bar names its tabs", bar != nil &&
+		strings.Contains(stripText(bar),
+			"source  outline  render  diff"))
+	// until settles the window until ok holds, or five seconds pass
+	until := func(ok func() bool) bool {
+		for end := time.Now().Add(5 * time.Second); ; {
+			settle()
+			if ok() {
+				return true
+			}
+			if time.Now().After(end) {
+				return false
+			}
+		}
+	}
+	shows := func(tab string) bool {
+		return until(func() bool { return s.panes["view"].tab == tab })
+	}
+	down(key.NameTab, 0)
+	has("Tab in ed shows the outline, the lens view's next tab",
+		shows("outline"))
+	// the first chip naming render is its name; the last, tab, names
+	// the next, which render is now too
+	var on image.Point
+	for _, b := range v.bars {
+		for _, c := range b.chips {
+			first := on == (image.Point{})
+			if b.slot == "view" && c.Lens == "render" && first {
+				x := b.area.Min.X + c.From*v.text.cell
+				on = image.Pt(x+1, b.area.Min.Y+5)
+			}
+		}
+	}
+	press(f32.Pt(float32(on.X), float32(on.Y)))
+	has("a press on render, on the bar, shows it", shows("render"))
+	down("T", key.ModAlt)
+	has("alt-t hides the panel", s.hidden)
+	down("T", key.ModAlt)
+	has("and shows it again", !s.hidden)
+	panel := func(args ...string) {
+		c := exec.Command("studio", append([]string{"panel"},
+			args...)...)
+		c.Env = s.env
+		if out, err := c.CombinedOutput(); err != nil {
+			t.Fatalf("studio panel: %v: %s", err, out)
+		}
+	}
+	panel("hide")
+	has("studio panel hide hides it",
+		until(func() bool { return s.hidden }))
+	panel()
+	has("and bare, shows it again",
+		until(func() bool { return !s.hidden }))
 	down("W", key.ModCtrl)
+	has("ctrl-w goes back to fm", s.order[s.eye].name == "fm")
 	char('j')
 	has(
 		"unsaved ed holds as cur moves",
@@ -203,7 +271,7 @@ func TestStudio(t *testing.T) {
 	char('q')
 	has(
 		"q in fm, ed unsaved, ends nothing and says so",
-		!s.panes["fm"].gone && !s.panes["ed"].gone && !done &&
+		!s.panes["fm"].gone && !s.panes["view"].gone && !done &&
 			strings.HasPrefix(s.panes["fm"].status,
 				"unsaved in ed: a.txt"),
 	)

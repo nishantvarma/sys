@@ -20,7 +20,6 @@ import (
 	"sys/outline"
 	"sys/state"
 	"sys/tty"
-	"sys/view"
 	"sys/watch"
 )
 
@@ -52,9 +51,10 @@ func main() {
 			"       ed [-s] -f [+line] [file]")
 		os.Exit(1)
 	}
-	// in a frame's slot ed keeps the window's unsaved file (mark)
+	// in a frame's slot ed keeps the window's unsaved file (mark) and its
+	// text file (share)
 	slot := state.Slot()
-	path, curf, at, unsaved := "", "", "", ""
+	path, curf, at, unsaved, text := "", "", "", "", ""
 	if chasing || slot != "" {
 		win, _ := state.Pane()
 		if chasing {
@@ -63,11 +63,12 @@ func main() {
 		}
 		if slot != "" {
 			unsaved = state.Path("unsaved", win)
+			text = state.Path("text", win)
 		}
 	}
 	if len(args) > 0 {
 		path = args[0]
-	} else if p, l, ok := edits(at); ok {
+	} else if p, l, ok := outline.Note(at); ok {
 		path = p
 		if line == 0 {
 			line = l
@@ -76,9 +77,12 @@ func main() {
 	b, err := load(path)
 	if err == nil {
 		e := newEditor(b)
-		e.curf, e.chased, e.unsaved = curf, at, unsaved
+		e.curf, e.chased, e.unsaved, e.text = curf, at, unsaved, text
+		e.slot = slot
 		if unsaved != "" {
-			os.Remove(unsaved) // an ed's that was killed unsaved
+			// an ed's that was killed unsaved
+			os.Remove(unsaved)
+			os.Remove(text)
 		}
 		if chasing && path == "" {
 			e.msg = "cur names nothing ed edits"

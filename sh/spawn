@@ -29,6 +29,11 @@ term=()
 if (~ $1 -t) {
 	shift
 	if (! ~ $#TMUX 0) {
+		# in a frame a terminal's program opens as a tab of its
+		# terminals, where the frame keeps them (design/lens)
+		frame=`{tmux show -wqv -t $TMUX_PANE @studio-frame \
+			>[2]/dev/null}
+		if (! ~ $#frame 0) if (studio tab new $*) exit
 		dir=`{pwd}
 		tmux split-window -c $"dir $*
 		exit

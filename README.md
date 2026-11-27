@@ -10,22 +10,25 @@ rebuild away.
 
     ed        modal editor, kakoune-flavoured: select first,
               then act on the selection; `ed -f` edits whatever cur
-              names, and follows it while nothing is unsaved; Tab turns
-              its lens, the text as written, its outline or its render
-              (`design/lens`)
+              names, and follows it while nothing is unsaved; in a frame
+              it is the lens view's source tab, and Tab runs `l`
     fm        single-pane file manager: vim keys, a remembered cursor per
               directory, and it shells out to your own tools instead of
               reimplementing them; `fm -f` goes where cur is said
-    gio       sys's views in a window, drawn by gio: studio's frame, fm
-              and ed in it as they are; its own module, built apart
-              (`gio/README`)
-    studio    the frame: fm, ed on the thing at fm's cursor, and a shell,
-              as tmux panes or as a page; `studio/frame` is the layout, a
-              note, and a program reaches each pane by its name, as the
-              mouse's three buttons do (`design/mouse`); run from a
-              shell alone in its window it lays the frame out there, the
-              shell its shell; q in fm ends the frame, asking first while
-              ed holds work unsaved, and a shell that exits ends alone
+    gio       sys's views in a window, drawn by gio: studio's frame, fm,
+              ed and the lens in it as they are; its own module, built
+              apart (`gio/README`)
+    studio    the frame: the lens view, the thing at fm's cursor seen
+              its ways, its source in ed and its outline, render and
+              diff by `studio show`; fm; and the terminals, a panel
+              across the bottom; as tmux panes or as a page;
+              `studio/frame` is a note: its slots in the order they
+              take room, a golden spiral, and under a slot its tabs,
+              which take turns in it (`design/lens`); a program reaches
+              each pane by its name, as the mouse's three buttons do
+              (`design/mouse`); run from a shell alone in its window it
+              lays the frame out there, the shell its shell; q in fm
+              ends the frame, asking first while ed holds work unsaved
     tangle    literate tangler: weaves a tree of code chunks into one main.go
 
 and the packages they share:
@@ -36,12 +39,14 @@ and the packages they share:
     tty       the shared terminal layer: raw mode, escape codes,
               key and click decoding, line input
     view      the outline drawn on a terminal: fm's layouts, rows and
-              thumbs, on the whole screen or in a region a host gives,
+              thumbs, and a program's lenses on a bar in place of its
+              head, on the whole screen or in a region a host gives,
               or as runs of text for a host that is no terminal, gio
     watch     says when files change in a folder: how a program follows
               cur
-    state     a tmux window's own files, cur and what ed holds unsaved:
-              where each is kept, read, and written whole
+    state     a tmux window's own files, cur and what ed holds unsaved,
+              its name and its text: where each is kept, read, and
+              written whole
     picture   a note as its parts and the messages between them, laid
               out in cells: SVG on a page, runes on a terminal;
               `design/arch` is sys drawn that way, and `./build` makes
@@ -52,9 +57,9 @@ they're built on, and tangle is how. Nothing here is a fixed scope — a window
 manager, or whatever else earns its keep, can join the same way: small,
 and hardcoded like the rest.
 
-ed, fm and tmux each have a cheatsheet beside them — `ed/cheatsheet`,
-`fm/cheatsheet`, `tmux/cheatsheet` — carrying the model, which is the half
-no key table generates.
+ed, fm, studio and tmux each have a cheatsheet beside them —
+`ed/cheatsheet`, `fm/cheatsheet`, `studio/cheatsheet`, `tmux/cheatsheet` —
+carrying the model, which is the half no key table generates.
 
 ## the source is the interface
 
@@ -119,11 +124,13 @@ The outline does not stop at a file. A note is an outline too, by its
 indent, so one tree runs from the root, the topmost thing, down through
 folders and files to a single item in a note. Two panes work it: fm walks
 the folders, a level at a time, and ed beside it edits the file at fm's
-cursor, whose items are its indent. ed shows the file three ways, its
-lenses: as written, as its outline and as its render, and only the
-first is typed in (`design/lens`). outline.Text reads a note into that
-tree by its indent, as Python is read, for what draws a note another
-way: studio's frame, and ed's outline and render.
+cursor, whose items are its indent. ed stays an editor: what more is
+known of a file's structure is for something beside it to say, the lens,
+whose ways to see the file take turns with ed as the tabs of one slot,
+the file as written, its outline, its render and its diff
+(`design/lens`). outline.Text reads a note into that tree by its indent,
+as Python is read, for what draws a note another way: studio's frame,
+and the lens's outline and render.
 
 ## everything talks in messages
 
@@ -200,7 +207,7 @@ in POSIX and fm won't notice; it only ever execs these by name.
     zathura, mpv, mocp, foliate, xchm, microsoft-edge
                   o's openers, by extension, and edge p's for a url
 
-`sh/` is the scripts these bindings actually run — c, m, p, e, o, v,
+`sh/` is the scripts these bindings actually run — c, m, p, e, o, v, l,
 spawn, warp, todo, lint, check, the finders f and s, and v's small prompt
 helpers. `./build` copies them into bin/ next to the compiled programs;
 edit or replace them like anything else here.

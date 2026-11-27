@@ -54,6 +54,10 @@ if (~ $mode -a) {
 	eye=()
 	dst='{marked}'
 	if (~ `{tmux display -p '#{pane_marked_set}'} 0) {
+		# a frame's panel, hidden, shows again to take it
+		frame=`{tmux show -wqv -t $TMUX_PANE @studio-frame \
+			>[2]/dev/null}
+		if (! ~ $#frame 0) studio panel show >[2]/dev/null
 		dst=`{tmux list-panes -t $TMUX_PANE -f '#{==:#{@slot},shell}' \
 			-F '#{pane_id}' >[2]/dev/null}
 		if (~ $#dst 0) dst='{last}'

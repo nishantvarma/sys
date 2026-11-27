@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 )
@@ -62,6 +63,30 @@ func File(p string) ([]byte, error) {
 		return nil, fmt.Errorf("%s: binary, a zero byte in it", p)
 	}
 	return b, nil
+}
+
+// Note is the note an address names, as ed -f edits it and the lens
+// reads it: a file, from its line; a folder's README, the folder's own
+// note, from its top. Nothing for the rest: a folder with no README, a
+// file gone, or one that is no note a person types (File).
+func Note(at string) (string, int, bool) {
+	path, line := Address(at)
+	fi, err := os.Stat(path)
+	if err != nil {
+		return "", 0, false
+	}
+	if fi.IsDir() {
+		notes := []string{"README.md", "README", "readme.md"}
+		for _, r := range notes {
+			p := filepath.Join(path, r)
+			if _, err := File(p); err == nil {
+				return p, 0, true
+			}
+		}
+		return "", 0, false
+	}
+	_, err = File(path)
+	return path, line, err == nil
 }
 
 // Head is a note's head: its first item's text, the title, and the items

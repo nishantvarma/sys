@@ -36,9 +36,9 @@ func (p *pane) clicked(x, y int) string {
 // enter, the program's own open, and on the head's path a step there;
 // on a text its word, or the selection, opens, as p opens it. In the
 // frame, whose ed and fm follow cur, saying a file is opening it: c says
-// it, as the frame's programs hear it, and the eye goes to ed for a file
-// and to fm for a folder, as a frame's slot takes it in tmux; what is no
-// file p opens beside, as anywhere.
+// it, as the frame's programs hear it, and the eye goes to ed, the lens
+// view's source tab, for a file and to fm for a folder, as e and o take
+// them in tmux; what is no file p opens beside, as anywhere.
 func (v *window) look(p *pane, x, y int) {
 	if !p.isText() {
 		id := p.v.At(x, y)
@@ -67,7 +67,7 @@ func (v *window) look(p *pane, x, y int) {
 	case err == nil && fi.IsDir():
 		v.s.named("fm")
 	case err == nil:
-		v.s.named("ed")
+		v.s.named("source")
 	default:
 		plumb(text)
 	}
@@ -118,10 +118,11 @@ func plumb(text string, mode ...string) {
 	}
 }
 
-// named gives the eye to the pane of the slot named, when there is one
+// named gives the eye to the pane of the slot or the tab named, when there
+// is one
 func (s *studio) named(name string) {
 	for i, p := range s.order {
-		if p.name == name && !p.gone {
+		if (p.name == name || p.tab == name) && !p.gone {
 			s.focus(i)
 		}
 	}

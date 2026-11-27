@@ -174,8 +174,12 @@ func (v *Term) where() *outline.Node {
 }
 
 // head is the top line: where the cursor is (where), with its keys at
-// the right (headed).
+// the right (headed); for a program that names its lenses on its tree's
+// tags, the bar in its place, naming them (barred).
 func (v *Term) head(w int) line {
+	if names := v.last.Tags; len(names) > 0 {
+		return barred(names, v.state, w)
+	}
 	n := v.where()
 	path, at := outline.Address(n.ID)
 	label := ""
@@ -219,6 +223,19 @@ func (v *Term) headed(path, id, label string, w int) line {
 		k.runs, k.w = append(k.runs, keys.runs...), k.w+keys.w
 	}
 	return line{k.clip(w).pad(w, ""), spots}
+}
+
+// barred is the bar as a line of the screen, w wide (Bar), the lens the
+// state says lit: each chip a spot naming its lens, which a press turns
+// to (mouse), and the gaps between them no spot's.
+func barred(names, state []string, w int) line {
+	runs, at := Bar(names, Shown(names, state), w)
+	spots := []spot{{x: 0}}
+	for _, c := range at {
+		spots = append(spots, spot{x: c.From, lens: c.Lens},
+			spot{x: c.To})
+	}
+	return line{&ink{runs: runs, w: w}, spots}
 }
 
 // crumb is the head's path: a margin, each part soft with a quiet / after

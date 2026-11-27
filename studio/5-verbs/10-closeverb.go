@@ -7,13 +7,19 @@
 // second q takes away as it lets the work go (`fm/4-main/40-quit.go`),
 // the face ended some other way, as a crash ends it, and the frame stays
 // for ed to save, saying so. Any other pane's end is its own: a shell
-// that exits ends alone.
+// that exits ends alone, and a tab's, which stays dead, gives its place to
+// the next tab of its slot (died). The frame's end ends the tabs waiting
+// out of sight too, its back session (back).
 func closeVerb(args []string) error {
 	if len(args) != 2 {
 		return errors.New("usage: studio close window pane")
 	}
 	win, ended := args[0], args[1]
 	t := &tmux{}
+	if dead, _ := t.run("display", "-p", "-t", ended,
+		"#{pane_dead}"); dead == "1" {
+		return t.died(win, ended)
+	}
 	face, err := t.run("show", "-wqv", "-t", win, "@studio-face")
 	if err != nil || face != ended {
 		return nil // the window is gone, or the pane was not its face
@@ -43,6 +49,7 @@ func closeVerb(args []string) error {
 			stays = true
 		}
 	}
+	t.run("kill-session", "-t", "="+back(win))
 	if stays {
 		plain(t, win)
 	}

@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"sys/outline"
 )
@@ -34,14 +35,12 @@ func built(t *testing.T) string {
 	return filepath.Join(dir, "ed")
 }
 
-// shown is what ed drew last: its lines, its mode, and its word; the
-// kind of tree it drew, and its state and tags, for the lens.
+// shown is what ed drew last: its lines, its mode, and its word; and the
+// kind of tree it drew, a text or its keys.
 type shown struct {
 	lines      []string
 	mode, said string
 	kind       string
-	state      []string
-	tags       []string
 }
 
 // ed is ed -s on a file holding text, env the last of its environment,
@@ -83,8 +82,7 @@ func on(t *testing.T, file string, env ...string) func(outline.Key) shown {
 			s.lines = append(s.lines, k.Text)
 		}
 		s.mode, s.said = m.Draw.State[0], m.Draw.Status
-		s.kind, s.state = m.Draw.Tree.Kind, m.Draw.State
-		s.tags = m.Draw.Tree.Tags
+		s.kind = m.Draw.Tree.Kind
 		return s
 	}
 	next()
@@ -185,38 +183,53 @@ func TestPasteWhereItFalls(t *testing.T) {
 
 // In a frame's slot q ends nothing, for it is fm's; and ed names its file
 // in the window's unsaved file while it holds it unsaved, for fm's q to
-// ask about: from an edit until a save, and until ed ends as its view
-// goes. One that an ed killed unsaved left goes as ed starts.
+// ask about, and puts the text it holds in the window's text file, for
+// the lens to read: from an edit until a save, and until ed ends as its
+// view goes. What an ed killed unsaved left goes as ed starts.
 func TestFrame(t *testing.T) {
 	home := t.TempDir()
 	mark := filepath.Join(home, ".config", "sys", "unsaved", "none")
-	os.MkdirAll(filepath.Dir(mark), 0o755)
-	os.WriteFile(mark, []byte("/left/by/a/killed/ed\n"), 0o644)
+	text := filepath.Join(home, ".config", "sys", "text", "none")
+	for _, p := range []string{mark, text} {
+		os.MkdirAll(filepath.Dir(p), 0o755)
+		os.WriteFile(p, []byte("/left/by/a/killed/ed\n"), 0o644)
+	}
 	named := func() string {
 		b, _ := os.ReadFile(mark)
 		return strings.TrimSpace(string(b))
+	}
+	held := func() string {
+		b, _ := os.ReadFile(text)
+		return string(b)
 	}
 	t.Run("slot", func(t *testing.T) {
 		file, press := ed(t, "abc\n", "HOME="+home, "STUDIO=ed")
 		if s := keys(press, "q"); s.said != "q in fm ends the frame" {
 			t.Errorf("q in a slot says %q", s.said)
 		}
-		if got := named(); got != "" {
-			t.Errorf("ed started, and the file names %q", got)
+		if got := named() + held(); got != "" {
+			t.Errorf("ed started, and the files hold %q", got)
 		}
 		keys(press, "i", "x", "ESC")
 		if got := named(); got != file {
 			t.Errorf("an edit: the file names %q, not %s",
 				got, file)
 		}
+		if got := held(); got != "xabc\n" {
+			t.Errorf("an edit: the text file holds %q", got)
+		}
+		keys(press, "i", "y", "ESC")
+		if got := held(); got != "yxabc\n" {
+			t.Errorf("another: the text file holds %q", got)
+		}
 		keys(press, "s")
-		if got := named(); got != "" {
-			t.Errorf("saved, and the file names %q", got)
+		if got := named() + held(); got != "" {
+			t.Errorf("saved, and the files hold %q", got)
 		}
 		keys(press, "i", "y", "ESC") // left unsaved as the view goes
 	})
-	if got := named(); got != "" {
-		t.Errorf("ed ended, and the file names %q", got)
+	if got := named() + held(); got != "" {
+		t.Errorf("ed ended, and the files hold %q", got)
 	}
 }
 
@@ -260,4 +273,36 @@ func TestSave(t *testing.T) {
 		0 {
 		t.Errorf("a save left %v beside the file", hidden)
 	}
+}
+
+// In a frame Tab runs l, which turns the frame's tabs, and types nothing;
+// ed knows no tabs itself. Outside a frame there are none, and ed says so.
+func TestTab(t *testing.T) {
+	bin, ran := t.TempDir(), filepath.Join(t.TempDir(), "ran")
+	os.WriteFile(filepath.Join(bin, "l"),
+		[]byte("#!/bin/sh\ntouch "+ran+"\n"), 0o755)
+	path := "PATH=" + bin + ":" + os.Getenv("PATH")
+	_, press := ed(t, "abc\n", path, "STUDIO=view")
+	if s := keys(press, "TAB"); s.lines[0] != "abc" {
+		t.Errorf("Tab typed: %q", s.lines[0])
+	}
+	ranL := func() bool { _, err := os.Stat(ran); return err == nil }
+	if !settled(ranL) {
+		t.Error("Tab in a frame ran no l")
+	}
+	_, press = ed(t, "abc\n", path)
+	if s := keys(press, "TAB"); s.said != "no tabs outside a frame" {
+		t.Errorf("Tab outside a frame says %q", s.said)
+	}
+}
+
+// settled is whether ok comes to hold within a few seconds.
+func settled(ok func() bool) bool {
+	for end := time.Now().Add(5 * time.Second); time.Now().Before(end); {
+		if ok() {
+			return true
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	return ok()
 }

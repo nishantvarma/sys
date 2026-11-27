@@ -144,6 +144,44 @@ func TestBar(t *testing.T) {
 	}
 }
 
+// A tree that names its lenses on its tags has the bar in place of the
+// head, over the view's rule; a left press on a name there is that lens,
+// KLens, for the program to turn to, and any other press there is
+// nothing.
+func TestLensBar(t *testing.T) {
+	n := tree()
+	n.Tags = []string{"outline", "render", "diff"}
+	v := New(nil, "", looks)
+	v.In(0, 0, 60, 12)
+	v.last, v.state = n, []string{"render"}
+	var rows []string
+	for _, l := range placed.Split(v.drawn(""), -1)[1:] {
+		rows = append(rows, plain(l))
+	}
+	if !strings.HasPrefix(rows[0], "  outline  render  diff") ||
+		strings.Trim(strings.TrimSpace(rows[1]), "─") != "" {
+		t.Fatalf("no bar over the rule:\n%s", strings.Join(rows, "\n"))
+	}
+	press := func(b int, word string) (outline.Key, bool) {
+		x := strings.Index(rows[0], word) + 1 // its column, from 1
+		return v.Handle(tty.Key{Name: tty.KMouse, Button: b, X: x,
+			Y: 1})
+	}
+	if ev, said := press(tty.MLeft, "diff"); !said ||
+		ev.Name != tty.KLens || ev.Text != "diff" {
+		t.Errorf("a press on diff: %v %+v", said, ev)
+	}
+	if ev, said := press(tty.MLeft, "tab"); !said || ev.Text != "diff" {
+		t.Errorf("a press on tab is not the next lens: %+v", ev)
+	}
+	if _, said := press(tty.MRight, "diff"); said {
+		t.Error("a right press on a lens's name said something")
+	}
+	if _, said := press(tty.MLeft, "  outline"); said {
+		t.Error("a press in the bar's margin said something")
+	}
+}
+
 // A move moves the view's own cursor too, so that a burst of keys, which
 // a program draws only after the last, goes on from the move before: j j
 // is two rows down, not one twice.

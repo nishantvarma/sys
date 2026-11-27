@@ -129,9 +129,10 @@ tools — every one a script in sh/, replaceable
   V      gitk
   a      a claude session here (a)
 
-a, o and ; open a pane and fm keeps running; b runs and only flashes.
-The rest borrow the screen until they exit; F and w hold it after, so
-what they printed survives the redraw.
+a, o and ; open a pane and fm keeps running; in a frame, a and ; open
+a terminal in its panel (studio/cheatsheet). b runs and only flashes. The
+rest borrow the screen until they exit; F and w hold it after, so what
+they printed survives the redraw.
 
 file
   q    quit; in a frame, the frame, asking first while ed holds work

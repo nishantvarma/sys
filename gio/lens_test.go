@@ -1,5 +1,5 @@
-// ed's lenses in the window: a real ed -s at the other end of the pipe,
-// keys and presses through gio's own router, as on the terminal
+// the lens in the window: a real studio show -s at the other end of the
+// pipe, keys and presses through gio's own router, as on the terminal
 package main
 
 import (
@@ -27,17 +27,21 @@ func stripText(k *strip) string {
 	return b.String()
 }
 
-// TestLens: ed in the window shows its lenses as the terminal does: the
-// bar and its rule over the text; Tab turns to the outline, sys/view's
-// rows under the same bar; a press on a lens's name on the bar shows that
-// lens, and esc is source again.
+// TestLens: the lens in the window shows as on the terminal: its bar over
+// sys/view's rule, and under it the note cur names, as its outline's rows;
+// Tab turns to the render, the note's picture, and a press on a lens's
+// name on the bar shows that lens.
 func TestLens(t *testing.T) {
 	note := filepath.Join(t.TempDir(), "note")
 	os.WriteFile(note, []byte("t\nup\n  a\n    → b  go\nlow\n  b\n"),
 		0o644)
+	home := t.TempDir()
+	cur := filepath.Join(home, ".config", "sys", "cur", "none")
+	os.MkdirAll(filepath.Dir(cur), 0o755)
+	os.WriteFile(cur, []byte(note+":1\n"), 0o644)
 	bin := programs(t)
-	c := exec.Command(bin+"/ed", "-s", note)
-	c.Env = []string{"HOME=" + t.TempDir(),
+	c := exec.Command(bin+"/studio", "show", "-s")
+	c.Env = []string{"HOME=" + home,
 		"PATH=" + bin + ":" + os.Getenv("PATH")}
 	to, _ := c.StdinPipe()
 	from, _ := c.StdoutPipe()
@@ -68,52 +72,38 @@ func TestLens(t *testing.T) {
 		}
 	}
 	p := s.order[0]
-	lines := func() []string {
-		ls := p.list()
-		if p.isText() {
-			ls = p.source()
-		}
-		var out []string
-		for _, l := range ls {
-			out = append(out, stripText(l))
-		}
-		return out
-	}
 	barred := func(what string) []string {
 		t.Helper()
-		ls := lines()
+		var ls []string
+		for _, l := range p.list() {
+			ls = append(ls, stripText(l))
+		}
 		if len(ls) < 2 || !strings.HasPrefix(ls[0],
-			"  source  outline  render") ||
-			strings.Trim(ls[1], "─") != "" {
+			"  outline  render  diff") ||
+			strings.Trim(strings.TrimSpace(ls[1]), "─") != "" {
 			t.Fatalf("%s: no bar over a rule:\n%s", what,
 				strings.Join(ls, "\n"))
 		}
 		return ls
 	}
 	settle()
-	if ls := barred("source"); !p.isText() ||
-		strings.TrimRight(ls[2], " ") != "   1  t" {
-		t.Fatalf("source is not ed's text under the bar:\n%s",
+	ls := barred("outline")
+	if p.tree.Kind != "outline" ||
+		!strings.Contains(strings.Join(ls, "\n"), "    → b  go") {
+		t.Fatalf("the outline drew %q:\n%s", p.tree.Kind,
 			strings.Join(ls, "\n"))
 	}
 	router.Queue(key.Event{Name: key.NameTab, State: key.Press})
 	settle()
-	ls := barred("outline")
-	if p.tree.Kind != "outline" ||
-		!strings.Contains(strings.Join(ls, "\n"), "    → b  go") {
-		t.Fatalf("Tab drew %q:\n%s", p.tree.Kind,
-			strings.Join(ls, "\n"))
-	}
-	x := strings.Index(ls[0], "render") * v.text.cell
-	v.pressedAt(image.Pt(x+1, 1), v.text.cell, cellH)
-	settle()
 	if p.tree.Kind != "picture" {
-		t.Fatalf("a press on render drew %q", p.tree.Kind)
+		t.Fatalf("Tab drew %q, not the render", p.tree.Kind)
 	}
 	barred("render")
-	router.Queue(key.Event{Name: key.NameEscape, State: key.Press})
+	x := strings.Index(ls[0], "diff") * v.text.cell
+	v.pressedAt(image.Pt(x+1, 1), v.text.cell, cellH)
 	settle()
-	if !p.isText() {
-		t.Fatalf("esc in the render drew %q, not source", p.tree.Kind)
+	if len(p.state) == 0 || p.state[0] != "diff" {
+		t.Fatalf("a press on diff left the lens %v", p.state)
 	}
+	barred("diff")
 }

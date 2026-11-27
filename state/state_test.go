@@ -31,6 +31,14 @@ func TestState(t *testing.T) {
 	if b, _ := os.ReadFile(p); string(b) != "/a/b:12\n" {
 		t.Errorf("file: %q", b)
 	}
+	// ed's text is put whole, every line of it
+	text := Path("text", "@3")
+	if err := Put(text, []byte("a\n  b\n")); err != nil {
+		t.Fatal(err)
+	}
+	if b, _ := os.ReadFile(text); string(b) != "a\n  b\n" {
+		t.Errorf("text: %q", b)
+	}
 }
 
 // A slot's program reads its slot once, and what it starts reads none.

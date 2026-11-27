@@ -2,6 +2,6 @@ studio's socket: its words are tmux's, for slots
 
 studio listens on a socket: list, the slots and what runs in each; send,
 keys or text into one; read, its nodes, not a scrape of its screen;
-focus; and watch, a line for each thing that happens, a draw, the eye
-moving, cur, as tmux -C streams its notifications. until it is there,
-send and read are studio's verbs, which tmux carries out.
+focus; tab; and watch, a line for each thing that happens, a draw, the
+eye moving, cur, as tmux -C streams its notifications. until it is
+there, send, read and tab are studio's verbs.

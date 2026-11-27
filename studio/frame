@@ -1,17 +1,23 @@
-studio: fm, the thing at its cursor in ed, and a shell
-  Lines stack down, the lines under one go across, and the lines under
-  those down again. Each line is a slot, and a share such as 70% is its
-  part of its parent; the rest of the line is what runs in it, and a
-  slot that names nothing keeps a shell. fm -f and ed -f follow cur, so
-  ed edits whatever fm's cursor is on, and both go where a click
-  anywhere says. ed's lenses, source, outline and render, turn with Tab
-  (design/lens). A slot's name is how a program reaches it: studio send
-  shell make pastes make into the shell, and studio read shell reads it;
-  e opens a text in ed, o a folder in fm, and a middle click hands a word
-  to shell (design/mouse). fm's slot is the frame's face: its q ends the
-  frame, asking first while ed holds work unsaved; q in ed or a lens
-  ends nothing, and a shell that exits ends alone.
-top     70%
-  fm    40%  fm -f
-  ed         ed -f
+studio: the lens view, fm, and the terminals
+  Each line is a slot, the rest of the line what runs in it, and the
+  lines under a slot its tabs, which take turns in it, the first shown.
+  The first slot that names nothing keeps a shell, the terminals, and is
+  the panel, across the frame's bottom, 38% of it high; the rest take
+  the room above it in the order they come, a golden spiral: the first
+  62% of it, at the right, and each after it 62% of what is left, down
+  and across in turn, the last what remains (design/lens). The lens view
+  shows the thing at fm's cursor: its source in ed -f, where it is typed,
+  and its outline, its render and its diff, each the lens's, from the
+  text as ed holds it. fm -f and ed -f follow cur, so ed edits whatever
+  fm's cursor is on, and both go where a click anywhere says. A slot's
+  or a tab's name is how a program reaches it: studio send shell make
+  pastes make into the shell, and studio read shell reads it. fm's slot
+  is the frame's face: its q ends the frame, asking first while ed holds
+  work unsaved. The keys are in studio/cheatsheet.
+view
+  source    ed -f
+  outline   studio show outline
+  render    studio show render
+  diff      studio show diff
+fm          fm -f
 shell

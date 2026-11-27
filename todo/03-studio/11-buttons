@@ -1,0 +1,15 @@
+the tab line's names, buttons
+
+A press on a tab line lands on tmux's border, and tmux says which pane but
+not where on the line, so no name is a button there: a left click opens a
+menu of the tabs instead (`studio/5-verbs/23-menu.go`). This tmux marks
+ranges on a pane's border line too, range=control|N for N 0 to 9, each
+with a mouse key of its own, MouseDown1ControlN, the pane its target
+(tmux(1), range=control). Each name on the tab line a range by its place,
+and a + and a × two more: a press on a name runs studio tab N, one on +
+l new, one on × close, and the menu goes. gio's names are buttons already
+(`gio/look.go:/func (s *studio) tabBar/`).
+
+A pane of its own for the tab line, a program drawing the names, works in
+any tmux, at two rows a slot, and a pane, a program and a file to keep in
+step with the tabs.

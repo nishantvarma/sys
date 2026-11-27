@@ -1,10 +1,11 @@
 sys: its parts, and the messages between them
-  studio lays the pieces out from a note, studio/frame: fm, ed on what
-  fm's cursor is on, and a shell. fm says its row to cur, and fm -f and
-  ed -f follow it, ed through its lenses. Each piece
-  draws through outline, whose views are the terminal, gio's window,
-  and the page next. A right-click is the word: tmux hands it to p, p
-  asks c what it names, and o opens it.
+  studio lays the pieces out from a note, studio/frame: the lens view,
+  what fm's cursor is on seen its ways, its source in ed; fm; and the
+  terminals. fm says its row to cur, and fm -f, ed -f and the lens follow
+  it. Each piece draws through
+  outline, whose views are the terminal, gio's window, and the page next.
+  A right-click is the word: tmux hands it to p, p asks c what it names,
+  and o opens it.
 tmux            the bus: your keys, the word under a click, the shell
   → p           the word
 sh              the verbs: a script each, run by name
@@ -18,21 +19,30 @@ sh              the verbs: a script each, run by name
   e             ed in a pane, at the line
     → ed        +line file
 pieces          studio, and what it lays out from a note, a slot each
-  studio        the frame: its slots, each reached by name
+  studio        the frame: slots by the golden spiral, a slot's tabs
+                taking turns in it, each reached by name
   fm            moves between things; its row is cur
     → outline   draw
-  ed            edits a thing, seen as source, outline or render; a
-                save says c, -f follows cur instead
+  ed            the lens view's source tab: edits a thing, as written;
+                a save says c, -f follows cur instead, and in a frame it
+                says what it holds unsaved
     → outline   draw
     → p         a right click's word
+    → studio    Tab, by l: the next tab
+  lens          the lens view's other tabs: the thing at cur as its
+                outline, its render and its diff; studio show
+    → outline   draw
+    → p         enter's address
 outline         the tree a view draws, in messages
   → fm          key
   → ed          key
-  view          the terminal: fm's layouts, and ed's lenses
+  → lens        key
+  view          the terminal: fm's layouts, and the lens's
   window        gio, at the end of a pipe, a JSON line each way
   page          the browser; next
 libraries       what the pieces share, beside outline
-  state         a window's cur and unsaved: where, read, written whole
+  state         a window's cur and unsaved, and ed's text: where, read,
+                written whole
   tty           raw mode, keys and clicks, escapes, and a wake
   watch         when a file changes: how cur is followed
   picture       a note as parts and messages: this one

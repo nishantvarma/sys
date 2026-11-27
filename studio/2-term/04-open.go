@@ -10,7 +10,11 @@
 // Its borders are drawn in the rule's colour, the palette's, as the
 // samples drew the frame. Each slot's pane carries the slot's name,
 // @slot, which is how e, o and p -a find it, asking tmux and not studio
-// (`design/mouse`). The window keeps the frame it was laid out from,
+// (`design/mouse`), the name of the tab shown in it, @tab, and its
+// frame's window, @frame. A slot of tabs shows its first, and the rest
+// wait out of sight (park), the slot's bar naming them (bars); a tab of
+// one stays, dead, as what runs in it ends, for the next to take its
+// place (closeVerb). The window keeps the frame it was laid out from,
 // @studio-frame, its face, @studio-face, and the shell it was laid out
 // around, @studio-here; and it becomes the studio a program in another
 // window reaches, @studio.
@@ -57,18 +61,31 @@ func (f *frame) open(dir, here string, dry bool) error {
 		cmds = append(cmds, []string{"set", "-w", "-t", win,
 			"@studio-here", here})
 	}
+	var tabbed []*slot
 	for _, s := range leaves(f.slots) {
 		if s.cmd != "" {
 			run := []string{"respawn-pane", "-k", "-t", panes[s],
 				"-e", "STUDIO=" + s.name, "-c", dir, s.cmd}
 			cmds = append(cmds, run)
 		}
-		cmds = append(cmds, []string{"set", "-p", "-t", panes[s],
-			"@slot", s.name})
+		for _, o := range [][2]string{{"@slot", s.name},
+			{"@tab", s.tabs[0].name}, {"@frame", win}} {
+			cmds = append(cmds, []string{"set", "-p", "-t",
+				panes[s], o[0], o[1]})
+		}
+		if len(s.tabs) > 1 {
+			tabbed = append(tabbed, s)
+			cmds = append(cmds, []string{"set", "-p", "-t",
+				panes[s], "remain-on-exit", "on"})
+		}
 	}
 	for _, o := range borders {
 		cmds = append(cmds, []string{"set", "-w", "-t", win, o,
 			"fg=" + tty.Rule})
+	}
+	if sh := f.shell(); sh != nil {
+		cmds = append(cmds, []string{"set", "-w", "-t", win,
+			"@studio-panel", sh.name})
 	}
 	cmds = append(cmds,
 		[]string{"set", "-w", "-t", win, "@studio-frame", f.note},
@@ -80,6 +97,17 @@ func (f *frame) open(dir, here string, dry bool) error {
 	}
 	for _, c := range cmds {
 		if _, err := t.run(c...); err != nil {
+			return err
+		}
+	}
+	for _, s := range tabbed {
+		for _, tb := range s.tabs[1:] {
+			if _, err := t.park(win, dir, s.name, tb.name, tb.cmd,
+				told(s.name, win, tb.cmd)); err != nil {
+				return err
+			}
+		}
+		if err := t.bars(win, s.name); err != nil {
 			return err
 		}
 	}

@@ -74,3 +74,32 @@ func TestHead(t *testing.T) {
 		t.Errorf("head: %q %q, want t, one two", title, lead)
 	}
 }
+
+// An address names a note: a file from its line, a folder its README from
+// the top, and nothing for a folder with none, a file gone or a binary.
+func TestNote(t *testing.T) {
+	d := t.TempDir()
+	note, bin := filepath.Join(d, "note"), filepath.Join(d, "bin")
+	os.WriteFile(note, []byte("a\n"), 0o644)
+	os.WriteFile(bin, []byte("a\x00b"), 0o644)
+	os.Mkdir(filepath.Join(d, "bare"), 0o755)
+	readme := filepath.Join(d, "README")
+	os.WriteFile(readme, []byte("d\n"), 0o644)
+	for _, c := range []struct {
+		at, path string
+		line     int
+		ok       bool
+	}{
+		{At(note, 3), note, 3, true},
+		{d, readme, 0, true},
+		{filepath.Join(d, "bare"), "", 0, false},
+		{filepath.Join(d, "gone"), "", 0, false},
+		{bin, bin, 0, false},
+	} {
+		path, line, ok := Note(c.at)
+		if ok != c.ok || ok && (path != c.path || line != c.line) {
+			t.Errorf("%s: %q %d %v, want %q %d %v", c.at, path,
+				line, ok, c.path, c.line, c.ok)
+		}
+	}
+}

@@ -1,6 +1,4 @@
-// Size is how much of the text the view shows at once: the terminal, but
-// the bar's line (tops), so that a page is what a screen holds.
+// Size is how much of the text the view shows at once: the terminal.
 func (v *term) Size() (int, int) {
-	w, h := v.t.Size()
-	return w, h - tops(h)
+	return v.t.Size()
 }

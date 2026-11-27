@@ -71,7 +71,7 @@ func TestWake(t *testing.T) {
 	frame()
 	frame()
 	idle()
-	fm, ed := &s.panes["fm"].app, &s.panes["ed"].app
+	fm, ed := &s.panes["fm"].app, &s.panes["view"].app
 	for _, want := range []string{"b.txt", "c.txt", "d.txt"} {
 		before := wakes.Load()
 		router.Queue(key.EditEvent{Text: "j"})

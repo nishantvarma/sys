@@ -1,7 +1,7 @@
 the pane beside fm, by what fm is on
 
 a text is ed's; a folder shows its README in ed, as now
-(`ed/5-editor/17-edits.go`), and nothing when it has none. a listing in
+(`outline/note.go:/func Note/`), and nothing when it has none. a listing in
 ed would be ed showing what no one typed: derived, so a lens's
 (`design/todo:/typed at rest/`). worth having later: a folder edited as
 text, a line a row and a save its renames, as vidir and dired do, where

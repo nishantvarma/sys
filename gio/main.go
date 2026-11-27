@@ -1,5 +1,5 @@
 // sys's windows in gio: an extension beside the terminal, and the proof
-// that sys's programs need none: fm and ed run here as they are.
+// that sys's programs need none: fm, ed and the lens run here as they are.
 // With no argument it is `window`, the view at the other end of a
 // program's pipe, as fm -w starts it. -studio dir lays studio/frame out, as
 // `studio slots` says it, each slot's program at the end of a pipe. Only
@@ -15,6 +15,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"unicode"
@@ -33,6 +34,7 @@ import (
 	"gioui.org/unit"
 
 	"sys/tty"
+	"sys/view"
 )
 
 const (
@@ -63,13 +65,22 @@ type window struct {
 
 	focused bool
 	full    bool
-	hits    []hit // where each pane was drawn last, for a click
-	held    *pane // where the left button went down, for a drag
+	hits    []hit    // where each pane was drawn last, for a click
+	bars    []barHit // where each slot's bar was, for a click
+	held    *pane    // where the left button went down, for a drag
 }
 
 type hit struct {
 	area image.Rectangle
 	p    *pane
+}
+
+// barHit is a slot's bar as it was drawn last: its line, the slot, and
+// where each tab's name stands on it, the tab a press there shows
+type barHit struct {
+	area  image.Rectangle
+	slot  string
+	chips []view.Chip
 }
 
 func newWindow(s *studio, frame bool) (*window, error) {
@@ -145,11 +156,20 @@ func (v *window) line(gtx layout.Context, k *strip, at image.Point, cw int) {
 }
 
 // slot draws the pane of the slot named in area, telling its program the
-// size when that changes; a shell, which needs a terminal, says so
+// size when that changes; a shell, which needs a terminal, says so. A slot
+// of tabs has its bar over the tab it shows, each tab's name a button
+// (tabBar)
 func (v *window) slot(gtx layout.Context, name string, area image.Rectangle,
 	cw int) {
 	p, h := v.s.panes[name], gtx.Dp(cellH)
 	defer clip.Rect(area).Push(gtx.Ops).Pop()
+	if k, chips := v.s.tabBar(name, area.Dx()/cw); k != nil {
+		row := image.Rect(area.Min.X, area.Min.Y, area.Max.X,
+			area.Min.Y+h)
+		v.line(gtx, k, area.Min, cw)
+		v.bars = append(v.bars, barHit{row, name, chips})
+		area.Min.Y += h
+	}
 	if p.out == nil {
 		for y, said := range []string{
 			" " + name + ": a shell needs a terminal; studio in" +
@@ -244,15 +264,22 @@ func (v *window) under(at image.Point, cw, h int) (*pane, int, int, bool) {
 }
 
 // pointed is a mouse event, the three buttons as in any pane
-// (`design/mouse`): a left press picks (pressedAt), and a move with it
-// held drags a text's selection; a right press looks (look), a middle one
-// hands on (do), and the wheel moves (wheel), each on the pane under it
+// (`design/mouse`): a left press picks (pressedAt), on a slot's bar the
+// tab named there too, and a move with it held drags a text's selection; a
+// right press looks (look), a middle one hands on (do), and the wheel
+// moves (wheel), each on the pane under it
 func (v *window) pointed(e pointer.Event, cw, h int) {
 	at := e.Position.Round()
 	p, x, y, ok := v.under(at, cw, h)
+	onBar := slices.ContainsFunc(v.bars, func(b barHit) bool {
+		return at.In(b.area)
+	})
 	switch {
 	case e.Kind == pointer.Release:
 		v.held = nil
+	case onBar && e.Kind == pointer.Press &&
+		e.Buttons.Contain(pointer.ButtonPrimary):
+		v.pressedAt(at, cw, h) // a slot's bar, above its pane
 	case !ok:
 	case e.Kind == pointer.Press &&
 		e.Buttons.Contain(pointer.ButtonPrimary):
@@ -274,6 +301,18 @@ func (v *window) pointed(e pointer.Event, cw, h int) {
 // pressedAt is a press at a point: the eye goes to the pane there, and
 // the press to its row, or to its text's line and rune
 func (v *window) pressedAt(at image.Point, cw, h int) {
+	for _, b := range v.bars {
+		if !at.In(b.area) {
+			continue
+		}
+		x := (at.X - b.area.Min.X) / cw
+		for _, c := range b.chips {
+			if c.From <= x && x < c.To {
+				v.s.turn(b.slot, c.Lens)
+			}
+		}
+		return
+	}
 	for _, x := range v.hits {
 		if !at.In(x.area) {
 			continue
@@ -353,6 +392,9 @@ func (v *window) input(gtx layout.Context) (toggle bool) {
 				toggle = true
 			case ctrl && e.Name == "W" && v.frame:
 				v.s.focus(v.s.eye + 1)
+			case e.Modifiers.Contain(key.ModAlt) &&
+				e.Name == "T" && v.frame:
+				v.s.togglePanel()
 			case ctrl && e.Name == "C":
 				p.pressed(tty.KInt)
 			case ctrl && e.Name == "V":
@@ -423,8 +465,13 @@ func (v *window) draw(gtx layout.Context) (toggle, done bool) {
 	}
 	cw := v.text.cell
 
-	v.hits = v.hits[:0]
-	v.lay(gtx, v.s.frame, all, true, cw)
+	v.hits, v.bars = v.hits[:0], v.bars[:0]
+	slots := v.s.frame
+	if v.s.hidden {
+		panel := func(s slot) bool { return s.Name == v.s.panel }
+		slots = slices.DeleteFunc(slices.Clone(slots), panel)
+	}
+	v.lay(gtx, slots, all, true, cw)
 	return
 }
 

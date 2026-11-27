@@ -61,11 +61,13 @@ func (l line) text() string { return l.ink.String() }
 // spot is where a node starts on a line: it is drawn from column x up to
 // the next spot, or to the line's end. A spot that shows a key in place
 // of a node, a chip, or a layout to turn to, holds the key a click on it
-// presses (keyAt).
+// presses (keyAt); one that shows a lens's name on the bar, the lens a
+// press there turns to.
 type spot struct {
-	x   int
-	id  string
-	key string
+	x    int
+	id   string
+	key  string
+	lens string
 }
 
 // New is the view on the whole of t, as fm draws itself: home is the
