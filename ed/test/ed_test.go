@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 
@@ -275,24 +276,69 @@ func TestSave(t *testing.T) {
 	}
 }
 
-// In a frame Tab runs l, which turns the frame's tabs, and types nothing;
-// ed knows no tabs itself. Outside a frame there are none, and ed says so.
+// In a frame Tab runs l, told the slot ed runs in, which turns the
+// frame's tabs, and types nothing; ed knows no tabs itself. Outside a
+// frame there are none, and ed says so.
 func TestTab(t *testing.T) {
 	bin, ran := t.TempDir(), filepath.Join(t.TempDir(), "ran")
 	os.WriteFile(filepath.Join(bin, "l"),
-		[]byte("#!/bin/sh\ntouch "+ran+"\n"), 0o755)
+		[]byte("#!/bin/sh\necho \"$STUDIO\" >"+ran+"\n"), 0o755)
 	path := "PATH=" + bin + ":" + os.Getenv("PATH")
 	_, press := ed(t, "abc\n", path, "STUDIO=view")
 	if s := keys(press, "TAB"); s.lines[0] != "abc" {
 		t.Errorf("Tab typed: %q", s.lines[0])
 	}
-	ranL := func() bool { _, err := os.Stat(ran); return err == nil }
-	if !settled(ranL) {
-		t.Error("Tab in a frame ran no l")
+	told := func() bool {
+		b, _ := os.ReadFile(ran)
+		return string(b) == "view\n"
+	}
+	if !settled(told) {
+		b, _ := os.ReadFile(ran)
+		t.Errorf("Tab in a frame ran l told %q, not its slot", b)
 	}
 	_, press = ed(t, "abc\n", path)
 	if s := keys(press, "TAB"); s.said != "no tabs outside a frame" {
 		t.Errorf("Tab outside a frame says %q", s.said)
+	}
+}
+
+// A hang-up, as the frame's end gives ed's pane, takes ed's marks of work
+// unsaved with it, the window's unsaved file and its text.
+func TestHangup(t *testing.T) {
+	home := t.TempDir()
+	file := filepath.Join(t.TempDir(), "note")
+	os.WriteFile(file, []byte("abc\n"), 0o644)
+	c := exec.Command(built(t), "-s", file)
+	c.Env = append(os.Environ(), "HOME="+home, "TMUX_PANE=",
+		"STUDIO=view")
+	in, _ := c.StdinPipe()
+	out, _ := c.StdoutPipe()
+	if err := c.Start(); err != nil {
+		t.Fatal(err)
+	}
+	go func() {
+		for b := make([]byte, 4096); ; {
+			if _, err := out.Read(b); err != nil {
+				return
+			}
+		}
+	}()
+	enc := json.NewEncoder(in)
+	for _, k := range []string{"i", "x", "ESC"} {
+		enc.Encode(map[string]outline.Key{"key": {Name: k}})
+	}
+	unsaved := filepath.Join(home, ".config", "sys", "unsaved", "none")
+	text := filepath.Join(home, ".config", "sys", "text", "none")
+	there := func(f string) func() bool {
+		return func() bool { _, err := os.Stat(f); return err == nil }
+	}
+	if !settled(there(unsaved)) || !settled(there(text)) {
+		t.Fatal("ed holds work unsaved, and marks none of it")
+	}
+	c.Process.Signal(syscall.SIGHUP)
+	c.Wait()
+	if there(unsaved)() || there(text)() {
+		t.Error("ed hung up, and its marks of work unsaved stay")
 	}
 }
 

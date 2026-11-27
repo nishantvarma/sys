@@ -94,3 +94,19 @@ func TestNamed(t *testing.T) {
 		t.Errorf("error: %v, want one naming %s", err, gone)
 	}
 }
+
+// TestWake: a folder not there yet is made, and a file written in it
+// wakes the program.
+func TestWake(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "cur")
+	woke := make(chan bool, 1)
+	if err := Wake(dir, func() { woke <- true }); err != nil {
+		t.Fatal(err)
+	}
+	os.WriteFile(filepath.Join(dir, "none"), []byte("a\n"), 0o644)
+	select {
+	case <-woke:
+	case <-time.After(2 * time.Second):
+		t.Error("a write in the folder woke nothing")
+	}
+}

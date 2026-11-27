@@ -1,12 +1,11 @@
 // pick runs a finder and lets fzy choose one of its lines. The list is read
 // whole: piped, a finder outrunning a dead fzy blocks on the end we hold.
-// Off the terminal, in a window, fzy runs beside it (beside).
+// Off the terminal, in a window, fzy has none to run on, and the pick says
+// so, as what else needs the terminal does (spawn).
 func (m *fm) pick(args ...string) string {
 	if m.t == nil {
-		find := exec.Command(args[0], args[1:]...)
-		find.Dir = m.cwd
-		list, _ := find.Output()
-		return m.beside(list)
+		m.flash("pick: needs the terminal")
+		return ""
 	}
 	m.t.Suspend()
 	defer m.t.Resume()

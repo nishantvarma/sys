@@ -77,3 +77,24 @@ func (w *Watcher) Follow(dir string) {
 		w.wd = wd
 	}
 }
+
+// Wake calls wake as a file in dir changes, for as long as the program
+// lives, dir made when it is not there yet: how a program that follows a
+// state file, cur, hears it change while it waits on a key, its
+// terminal's read woken (tty's Wake). A folder it cannot watch is an
+// error, and the program follows only as keys come.
+func Wake(dir string, wake func()) error {
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return err
+	}
+	w, err := New(dir)
+	if err != nil {
+		return err
+	}
+	go func() {
+		for range w.On {
+			wake()
+		}
+	}()
+	return nil
+}

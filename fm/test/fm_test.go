@@ -397,9 +397,9 @@ func TestPromptResize(t *testing.T) {
 }
 
 // TestWindowed: off the terminal, in a window, ? shows fm's keys as rows,
-// each a key and what it does, which esc closes; and a finder's pick runs
-// beside the window, in st, where fzy chooses, and fm goes to the file
-// chosen. Stand-ins play the finder, st, fzy and zoxide.
+// each a key and what it does, which esc closes; and a finder's pick,
+// whose fzy needs a terminal, says so and moves nothing. Stand-ins play
+// the finder and zoxide.
 func TestWindowed(t *testing.T) {
 	dir := t.TempDir()
 	for _, f := range []string{"alpha", "beta"} {
@@ -407,9 +407,7 @@ func TestWindowed(t *testing.T) {
 	}
 	stand := t.TempDir()
 	for name, body := range map[string]string{
-		"f":      "echo beta",          // the finder: one hit
-		"st":     "shift; exec \"$@\"", // st -e cmd: the cmd
-		"fzy":    "head -n 1",          // the first line, chosen
+		"f":      "echo beta", // the finder: one hit
 		"zoxide": "",
 	} {
 		os.WriteFile(filepath.Join(stand, name),
@@ -423,7 +421,8 @@ func TestWindowed(t *testing.T) {
 	if got, _ := press("ESC", ""); got != ">alpha beta" {
 		t.Errorf("esc left %q, not fm's rows", got)
 	}
-	if got, said := press("f", ""); got != "alpha >beta" {
+	if got, said := press("f", ""); got != ">alpha beta" ||
+		said != "pick: needs the terminal" {
 		t.Errorf("a pick off the terminal: %q %q", got, said)
 	}
 }

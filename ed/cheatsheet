@@ -66,7 +66,7 @@ insert
   esc          leave
 Tab, enter, backspace, arrows work.
 
-mouse and X — the buttons as in any pane (design/mouse), in either mode
+mouse and X — the buttons as in any pane (`design/mouse`), in either mode
   click        the cursor there
   drag         select, as a motion does, in the mode ed is in: in
                normal the verbs take it, c to type over it; insert is
@@ -98,7 +98,7 @@ fm's. . types no insert a drag was part of, nor one that undid.
 ed shows the text as written, and only that. In a frame it is the source
 tab of the lens view, and Tab runs l, which shows the next in its place:
 the outline, the render, the diff, of the text as ed holds it, unsaved
-lines too (studio/cheatsheet).
+lines too (`studio/cheatsheet`).
 
 find
   /            literal search

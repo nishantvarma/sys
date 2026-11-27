@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"slices"
 	"strconv"
@@ -80,9 +81,10 @@ func main() {
 		e.curf, e.chased, e.unsaved, e.text = curf, at, unsaved, text
 		e.slot = slot
 		if unsaved != "" {
-			// an ed's that was killed unsaved
+			// an ed's killed unsaved, and this one's as it ends
 			os.Remove(unsaved)
 			os.Remove(text)
+			hangup(unsaved, text)
 		}
 		if chasing && path == "" {
 			e.msg = "cur names nothing ed edits"

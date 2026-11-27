@@ -122,15 +122,15 @@ tools — every one a script in sh/, replaceable
   o      open the row beside you, or in the frame's ed (o)
   w      wipe, at home (w)
   F      format (lint -f)
-  f s m  the finders (f, s, m — each piped through fzy; in a
-         window fzy runs beside it, in st)
+  f s m  the finders (f, s, m — each piped through fzy, which needs
+         the terminal: in a window they say so)
   b      say the row out loud (c)
   v      version control (v)
   V      gitk
-  a      a claude session here (a)
+  a      a copilot session here (a)
 
 a, o and ; open a pane and fm keeps running; in a frame, a and ; open
-a terminal in its panel (studio/cheatsheet). b runs and only flashes. The
+a terminal in its panel (`studio/cheatsheet`). b runs and only flashes. The
 rest borrow the screen until they exit; F and w hold it after, so what
 they printed survives the redraw.
 

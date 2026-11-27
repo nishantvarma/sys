@@ -5,7 +5,7 @@ func (m *fm) bind() {
 		m.keys[key] = bd
 		m.order = append(m.order, bd)
 	}
-	b("a", "claude session", func() { m.detach(cmdAI) })
+	b("a", "copilot session", func() { m.detach(cmdAI) })
 	b("b", "bookmark", m.bookmark)
 	b("c", "copy", m.copy)
 	b("d", "delete", m.rm)
