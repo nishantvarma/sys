@@ -68,12 +68,11 @@ func (v *Term) Handle(k tty.Key) (outline.Key, bool) {
 		return outline.Key{}, false
 	}
 	if to, moved := v.move(name); moved {
-		// the cursor goes with the key, for a program that draws only
-		// after a burst of keys, ed among them, hears the next move
-		// from here and not from where it drew last
-		for _, r := range v.rows() {
-			r.Cur = r.ID == to
-		}
+		// the cursor goes with the key, kept here till the program
+		// draws again, for one that draws only after a burst of keys,
+		// or down a pipe after the next, hears the next move from here
+		// and not from where it drew last; what it sent stays its own
+		v.cur = to
 		return outline.Key{Node: to}, true
 	}
 	return theirs, true
@@ -126,12 +125,11 @@ var vi = map[string]string{"h": tty.KLeft, "j": tty.KDown, "k": tty.KUp,
 // the mouse (tty.Mouse), the three buttons as in any pane
 // (`design/mouse`): a left press names what it falls on (At), a row, a
 // card or a part of the head's path, or presses the key a chip or the
-// other layout's name shows (keyAt); on the bar it is KLens, the lens the
-// name there names, for the program to turn to; a right press, or a
-// second left one soon after on the same cell, the touchpad's right
-// click, is enter on it, the program's own open, but on the head, whose
-// parts are places, it goes there as a left press does; a middle press
-// hands it to the shell (send); and the wheel moves, as down and up do.
+// other layout's name shows (keyAt); a right press, or a second left one
+// soon after on the same cell, the touchpad's right click, is enter on
+// it, the program's own open, but on the head, whose parts are places, it
+// goes there as a left press does; a middle press hands it to the shell
+// (send); and the wheel moves, as down and up do.
 // A report comes at a cell counted from 1, of the whole terminal.
 func (v *Term) mouse(k tty.Key) (outline.Key, bool) {
 	switch {
@@ -145,12 +143,6 @@ func (v *Term) mouse(k tty.Key) (outline.Key, bool) {
 	x, y := k.X-1, k.Y-1
 	if v.region {
 		x, y = x-v.x, y-v.y
-	}
-	if lens := v.spotAt(x, y).lens; lens != "" {
-		if k.Button != tty.MLeft {
-			return outline.Key{}, false
-		}
-		return outline.Key{Name: tty.KLens, Text: lens}, true
 	}
 	if key := v.keyAt(x, y); key != "" && k.Button == tty.MLeft {
 		return v.Handle(tty.Key{Name: key})
@@ -240,7 +232,7 @@ func (v *Term) move(name string) (to string, moved bool) {
 	if len(rows) == 0 {
 		return "", true
 	}
-	return rows[max(0, min(curRow(rows)+d, len(rows)-1))].ID, true
+	return rows[max(0, min(v.curRow(rows)+d, len(rows)-1))].ID, true
 }
 
 // jump reads a row's number, the digits so far shown as the status. It

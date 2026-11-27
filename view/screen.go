@@ -88,17 +88,11 @@ func (k *ink) clip(n int) *ink {
 	return k
 }
 
-// String is the line in the terminal's words (Paint).
-func (k *ink) String() string {
-	return Paint(k.runs)
-}
-
-// Paint is a line's runs in the terminal's words, as a host that frames
-// the terminal itself takes Lines, ed among them: each run painted, the
+// String is the line in the terminal's words: each run painted, the
 // view's own colour the palette's foreground on its ground.
-func Paint(runs []Run) string {
+func (k *ink) String() string {
 	var b strings.Builder
-	for _, r := range runs {
+	for _, r := range k.runs {
 		fg, bg := r.Color, r.Ground
 		if fg == "" {
 			fg = tty.Fore
@@ -170,16 +164,12 @@ func (v *Term) where() *outline.Node {
 	if v.isPicture() || len(rows) == 0 || v.layout() == "thumbs" {
 		return v.last
 	}
-	return rows[curRow(rows)]
+	return rows[v.curRow(rows)]
 }
 
 // head is the top line: where the cursor is (where), with its keys at
-// the right (headed); for a program that names its lenses on its tree's
-// tags, the bar in its place, naming them (barred).
+// the right (headed).
 func (v *Term) head(w int) line {
-	if names := v.last.Tags; len(names) > 0 {
-		return barred(names, v.state, w)
-	}
 	n := v.where()
 	path, at := outline.Address(n.ID)
 	label := ""
@@ -223,19 +213,6 @@ func (v *Term) headed(path, id, label string, w int) line {
 		k.runs, k.w = append(k.runs, keys.runs...), k.w+keys.w
 	}
 	return line{k.clip(w).pad(w, ""), spots}
-}
-
-// barred is the bar as a line of the screen, w wide (Bar), the lens the
-// state says lit: each chip a spot naming its lens, which a press turns
-// to (mouse), and the gaps between them no spot's.
-func barred(names, state []string, w int) line {
-	runs, at := Bar(names, Shown(names, state), w)
-	spots := []spot{{x: 0}}
-	for _, c := range at {
-		spots = append(spots, spot{x: c.From, lens: c.Lens},
-			spot{x: c.To})
-	}
-	return line{&ink{runs: runs, w: w}, spots}
 }
 
 // crumb is the head's path: a margin, each part soft with a quiet / after
@@ -329,7 +306,7 @@ func (v *Term) listed(w, room int) []line {
 		n--
 	}
 	n = max(0, n)
-	off := max(0, min(curRow(rows)-n/2, len(rows)-n))
+	off := max(0, min(v.curRow(rows)-n/2, len(rows)-n))
 	vis := rows[off:min(off+n, len(rows))]
 	at := v.factsAt(rows, w)
 	var lines []line
@@ -372,7 +349,7 @@ func (v *Term) factsAt(rows []*outline.Node, w int) int {
 // row is lit across, its name bold; numbers are quiet and marks faint,
 // so that names are the loudest thing.
 func (v *Term) paint(i int, n *outline.Node, w, at int) *ink {
-	on := n.Cur
+	on := v.isCur(n)
 	bg, edge, num := "", " ", tty.Quiet
 	switch {
 	case on:
@@ -407,7 +384,7 @@ func (v *Term) cards(w, room int) []line {
 		n = room / 3
 	}
 	n = max(0, n)
-	off := max(0, min(curRow(rows)/per-n/2, total-n))
+	off := max(0, min(v.curRow(rows)/per-n/2, total-n))
 	var lines []line
 	for s := off; s < min(off+n, total); s++ {
 		a, b, spots := v.card(rows, s*per, per, w)
@@ -438,7 +415,7 @@ func (v *Term) card(rows []*outline.Node, start, per, w int) (*ink, *ink,
 		n := rows[i]
 		bg, edge := tty.Panel, " "
 		switch {
-		case n.Cur:
+		case v.isCur(n):
 			bg, edge = tty.Bar, "▌"
 		case n.Sel:
 			bg = tty.Rule
@@ -617,5 +594,5 @@ func (v *Term) pos() string {
 	if v.isPicture() || len(rows) == 0 {
 		return ""
 	}
-	return fmt.Sprintf("%d/%d", curRow(rows)+1, len(rows))
+	return fmt.Sprintf("%d/%d", v.curRow(rows)+1, len(rows))
 }

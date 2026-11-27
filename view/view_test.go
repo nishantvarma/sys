@@ -116,75 +116,33 @@ func TestPrintable(t *testing.T) {
 	}
 }
 
-// The bar names each lens, the one shown lit, and a press on a name, or
-// on tab, the next lens, names that lens; the state says which shows.
+// The bar names each tab, the one shown lit, and a press on a name names
+// that tab.
 func TestBar(t *testing.T) {
 	names := []string{"source", "outline", "render"}
-	on := Shown(names, []string{"normal", "+", "outline"})
-	runs, at := Bar(names, on, 60)
+	runs, at := Bar(names, 1, 60)
 	text := ""
 	for _, r := range runs {
 		text += r.Text
 	}
-	if on != 1 || len([]rune(text)) != 60 ||
-		!strings.HasPrefix(text, "  source  outline  render") {
-		t.Errorf("bar %d: %q", on, text)
+	if len([]rune(text)) != 60 ||
+		!strings.HasPrefix(text, "  source  outline  render ") {
+		t.Errorf("bar: %q", text)
 	}
 	for _, r := range runs {
 		if r.Text == " outline " && (r.Ground != tty.Rule || !r.Bold) {
-			t.Errorf("the lens shown is not lit: %+v", r)
+			t.Errorf("the tab shown is not lit: %+v", r)
 		}
 	}
-	if len(at) != 4 || at[2].Lens != "render" || at[3].Lens != "render" ||
-		at[2].From != 18 {
+	if len(at) != 3 || at[2].Name != "render" || at[2].From != 18 {
 		t.Errorf("chips: %+v", at)
-	}
-	if Shown(names, []string{"normal"}) != 0 {
-		t.Error("with no lens said, the first is not the one shown")
-	}
-}
-
-// A tree that names its lenses on its tags has the bar in place of the
-// head, over the view's rule; a left press on a name there is that lens,
-// KLens, for the program to turn to, and any other press there is
-// nothing.
-func TestLensBar(t *testing.T) {
-	n := tree()
-	n.Tags = []string{"outline", "render", "diff"}
-	v := New(nil, "", looks)
-	v.In(0, 0, 60, 12)
-	v.last, v.state = n, []string{"render"}
-	var rows []string
-	for _, l := range placed.Split(v.drawn(""), -1)[1:] {
-		rows = append(rows, plain(l))
-	}
-	if !strings.HasPrefix(rows[0], "  outline  render  diff") ||
-		strings.Trim(strings.TrimSpace(rows[1]), "─") != "" {
-		t.Fatalf("no bar over the rule:\n%s", strings.Join(rows, "\n"))
-	}
-	press := func(b int, word string) (outline.Key, bool) {
-		x := strings.Index(rows[0], word) + 1 // its column, from 1
-		return v.Handle(tty.Key{Name: tty.KMouse, Button: b, X: x,
-			Y: 1})
-	}
-	if ev, said := press(tty.MLeft, "diff"); !said ||
-		ev.Name != tty.KLens || ev.Text != "diff" {
-		t.Errorf("a press on diff: %v %+v", said, ev)
-	}
-	if ev, said := press(tty.MLeft, "tab"); !said || ev.Text != "diff" {
-		t.Errorf("a press on tab is not the next lens: %+v", ev)
-	}
-	if _, said := press(tty.MRight, "diff"); said {
-		t.Error("a right press on a lens's name said something")
-	}
-	if _, said := press(tty.MLeft, "  outline"); said {
-		t.Error("a press in the bar's margin said something")
 	}
 }
 
 // A move moves the view's own cursor too, so that a burst of keys, which
 // a program draws only after the last, goes on from the move before: j j
-// is two rows down, not one twice.
+// is two rows down, not one twice. The tree the program sent stays as it
+// sent it, a message the view reads and never writes.
 func TestBurst(t *testing.T) {
 	n := &outline.Node{ID: "/a", Kids: []*outline.Node{
 		{ID: "/a/b", Text: "b", Cur: true}, {ID: "/a/c", Text: "c"},
@@ -193,6 +151,9 @@ func TestBurst(t *testing.T) {
 	v.Handle(tty.Key{Rune: 'j'})
 	if ev, _ := v.Handle(tty.Key{Rune: 'j'}); ev.Node != "/a/d" {
 		t.Errorf("j j landed on %q, not /a/d", ev.Node)
+	}
+	if !n.Kids[0].Cur || n.Kids[2].Cur {
+		t.Error("a move wrote the cursor into the program's tree")
 	}
 }
 

@@ -11,12 +11,22 @@ func (v *Term) rows() []*outline.Node {
 	return v.last.Kids
 }
 
-// curRow is the cursor's row, else the first.
-func curRow(rows []*outline.Node) int {
+// curRow is the index of the cursor's row among rows: the one a move
+// went to, else the one the program drew it on, else the first.
+func (v *Term) curRow(rows []*outline.Node) int {
 	for i, r := range rows {
-		if r.Cur {
+		if v.isCur(r) {
 			return i
 		}
 	}
 	return 0
+}
+
+// isCur is whether the cursor is on row n: the one a move went to, till
+// the program draws again, else the one it drew it on.
+func (v *Term) isCur(n *outline.Node) bool {
+	if v.cur != "" {
+		return n.ID == v.cur
+	}
+	return n.Cur
 }

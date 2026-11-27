@@ -35,6 +35,7 @@ type Term struct {
 	home   string          // the folder the top line says as ~
 	looks  map[string]Look // how the program's kinds are drawn
 	last   *outline.Node   // the tree drawn last
+	cur    string          // the row a move went to, till the next Draw
 	status string
 	state  []string // the program's state, drawn last
 	lay    int      // the layout in use, of layouts
@@ -64,10 +65,9 @@ func (l line) text() string { return l.ink.String() }
 // presses (keyAt); one that shows a lens's name on the bar, the lens a
 // press there turns to.
 type spot struct {
-	x    int
-	id   string
-	key  string
-	lens string
+	x   int
+	id  string
+	key string
 }
 
 // New is the view on the whole of t, as fm draws itself: home is the
@@ -88,7 +88,7 @@ func (v *Term) Draw(n *outline.Node, status string, state []string) {
 	if v.last == nil || n.ID != v.last.ID {
 		v.top = 0
 	}
-	v.last, v.status, v.state = n, status, state
+	v.last, v.status, v.state, v.cur = n, status, state, ""
 	v.show(status)
 }
 
@@ -172,11 +172,10 @@ func (v *Term) page(word string) []line {
 	return append(out, bottom)
 }
 
-// Lines is the screen as Draw left it, for a host that draws it itself:
-// one that is no terminal, as gio is, or one that frames the terminal
-// with lines of its own, as ed does (Paint). A line a row, h of them for
-// the region it is in (In), the bottom line last, each the runs it is
-// drawn in. Where a click falls is At's, as on the terminal.
+// Lines is the screen as Draw left it, for a host that draws it itself,
+// one that is no terminal, as gio is. A line a row, h of them for the
+// region it is in (In), the bottom line last, each the runs it is drawn
+// in. Where a click falls is At's, as on the terminal.
 func (v *Term) Lines() [][]Run {
 	var out [][]Run
 	for _, l := range v.page(v.status) {
