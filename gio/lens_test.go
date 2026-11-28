@@ -28,9 +28,9 @@ func stripText(k *strip) string {
 }
 
 // TestLens: the lens in the window shows as on the terminal: the note cur
-// names, as its outline, its parts at the top, folded, the lens shown said
-// in its state; Tab turns to the render, the note's picture, and again to
-// the diff.
+// names, as its outline, its parts unfolded down to the leaves, the lens
+// shown said in its state; Tab turns to the render, the note's picture,
+// and again to the diff.
 func TestLens(t *testing.T) {
 	note := filepath.Join(t.TempDir(), "note")
 	os.WriteFile(note, []byte("t\nup\n  a\n    → b  go\nlow\n  b\n"),
@@ -86,7 +86,8 @@ func TestLens(t *testing.T) {
 	}
 	settle()
 	if drew := shows("outline"); p.tree.Kind != "outline" ||
-		!strings.Contains(drew, "▸ a") {
+		!strings.Contains(drew, "▾ a") ||
+		!strings.Contains(drew, "→ b") {
 		t.Fatalf("the outline drew %q:\n%s", p.tree.Kind, drew)
 	}
 	router.Queue(key.Event{Name: key.NameTab, State: key.Press})

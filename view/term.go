@@ -68,13 +68,13 @@ type Term struct {
 	w, h   int
 	top    int    // a picture's or a doc's first line shown
 	drew   []line // the lines drawn last, all but the bottom one
-	// an outline's rows unfolded, by id; each part's, the part it is
+	// an outline's parts folded, by id; each part's, the part it is
 	// under; the part a doc's cursor was on when it was drawn last; and
 	// the doc as it was typeset last
-	unfolded map[string]bool
-	up       map[*outline.Node]*outline.Node
-	seen     string
-	typed    typed
+	folded map[string]bool
+	up     map[*outline.Node]*outline.Node
+	seen   string
+	typed  typed
 	// the last left press, for a second soon after on its cell (mouse)
 	press  time.Time
 	px, py int
@@ -115,12 +115,13 @@ func (v *Term) In(x, y, w, h int) {
 
 // Draw shows the tree, the program's word and its state. When the tree is
 // another, a picture or a doc scrolled down starts at its top again, and
-// an outline's rows fold; an outline unfolds the way to the part the
-// program draws the cursor on. A draw behind the view's own moves keeps
-// the cursor where they went (behind).
+// an outline's parts all unfold, down to its leaves; an outline unfolds
+// the way to the part the program draws the cursor on, should a fold hide
+// it. A draw behind the view's own moves keeps the cursor where they went
+// (behind).
 func (v *Term) Draw(n *outline.Node, status string, state []string) {
 	if v.last == nil || n.ID != v.last.ID {
-		v.top, v.unfolded, v.seen, v.moved = 0, map[string]bool{}, "",
+		v.top, v.folded, v.seen, v.moved = 0, map[string]bool{}, "",
 			nil
 	}
 	v.last, v.status, v.state, v.up = n, status, state, nil

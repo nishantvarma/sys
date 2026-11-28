@@ -55,15 +55,16 @@ func shown(v *Term) []string {
 	return out
 }
 
-// TestOutline: an outline is rows that fold. The way to the cursor is
-// unfolded, the rest folded, each part saying how many rows it holds, and
-// the cursor's the first of what it says too; a guide stands under a
-// part's caret beside the rows it holds; a row's name stands in a column
-// with its fellows'; and a blank line stands between parts of two kinds,
-// and around a part that holds rows.
-// → unfolds a folded part and, on an unfolded one, steps in, which the
-// program hears; ← on a part holding none goes to the part it is under
-// and folds it; and as thumbs → goes a card on, as it does in a folder.
+// TestOutline: an outline is rows that fold. Every part is unfolded at
+// first, so the rows run down to the leaves, each part saying how many
+// rows it holds, and the cursor's the first of what it says too; a guide
+// stands under a part's caret beside the rows it holds; a row's name
+// stands in a column with its fellows'; and a blank line stands between
+// parts of two kinds, and around a part that holds rows.
+// ← folds an unfolded part and → unfolds it again, both the view's; →
+// on an unfolded one steps in, which the program hears; ← on a part
+// holding none goes to the part it is under and folds it; and as thumbs
+// → goes a card on, as it does in a folder.
 func TestOutline(t *testing.T) {
 	v := New(nil, "")
 	v.In(0, 0, 60, 18)
@@ -74,12 +75,12 @@ func TestOutline(t *testing.T) {
 		"",
 		"  2    A program says what to show, as view/term.go does.",
 		"",
-		"  3  ▸ Messages                                      1 row",
+		"  3  ▾ Messages                                      1 row",
+		"  4  │   to the view  draw, ask",
 		"",
-		"  4  ▾ Who holds what                                2 rows",
-		"  5  │   program  the data and the cursor",
-		"▌ 6  │   between  ideas, by name",
-		"",
+		"  5  ▾ Who holds what                                2 rows",
+		"  6  │   program  the data and the cursor",
+		"▌ 7  │   between  ideas, by name",
 	}, "\n")
 	if got != want {
 		t.Errorf("the outline:\n%s\nwant:\n%s", got, want)
@@ -95,11 +96,18 @@ func TestOutline(t *testing.T) {
 	if !strings.Contains(shown(v)[0], ": between") {
 		t.Errorf("the head names no cursor's row: %q", shown(v)[0])
 	}
-	v.Handle(tty.Key{Name: tty.KUp})
-	v.Handle(tty.Key{Name: tty.KUp})
-	v.Handle(tty.Key{Name: tty.KUp})
+	for range 4 {
+		v.Handle(tty.Key{Name: tty.KUp})
+	}
 	if l := row("Messages"); !strings.Contains(l, "plain data, a line") {
 		t.Errorf("the cursor's row says no lead: %q", l)
+	}
+	if ev, theirs := v.Handle(tty.Key{Name: tty.KLeft}); theirs {
+		t.Errorf("← on an unfolded part is the view's, not %v", ev)
+	}
+	if !strings.Contains(row("Messages"), "▸") ||
+		row("to the view") != "" {
+		t.Errorf("← folded nothing:\n%s", strings.Join(shown(v), "\n"))
 	}
 	if ev, theirs := v.Handle(tty.Key{Name: tty.KRight}); theirs {
 		t.Errorf("→ on a folded part is the view's, not %v", ev)

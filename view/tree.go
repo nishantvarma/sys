@@ -11,10 +11,12 @@ import (
 
 // An outline is a tree the view lays out as rows that fold, as the page
 // folds its nodes: a part's rows are the parts under it, but its lead,
-// which says what it is, beside it on the cursor's row. The view unfolds
-// the way to the program's cursor (reveal), and → and ← unfold and fold
-// the rest (fold). Each part is drawn by its kind (part), and a kind the
-// view does not know as its text (`design/view:/Kinds, never looks/`).
+// which says what it is, beside it on the cursor's row. Every part starts
+// unfolded, so the rows run down to the leaves; ← and → fold and unfold
+// one (fold), and the view unfolds the way to the program's cursor should
+// a fold hide it (reveal). Each part is drawn by its kind (part), and a
+// kind the view does not know as its text
+// (`design/view:/Kinds, never looks/`).
 
 // isOutline is whether the tree drawn last is an outline.
 func (v *Term) isOutline() bool {
@@ -123,7 +125,7 @@ func (v *Term) rowOf(n *outline.Node) *outline.Node {
 // reveal unfolds the way to part n, each part it is under.
 func (v *Term) reveal(n *outline.Node) {
 	for p := v.up[v.rowOf(n)]; p != nil && p != v.last; p = v.up[p] {
-		v.unfolded[p.ID] = true
+		delete(v.folded, p.ID)
 	}
 }
 
@@ -165,17 +167,17 @@ func (v *Term) fold(name string) (to string, moved bool) {
 	}
 	i := v.curRow(rows)
 	n, in := rows[i], held(rows[i])
-	unfolded := v.unfolded[n.ID] && len(in) > 0
+	unfolded := !v.folded[n.ID] && len(in) > 0
 	switch {
 	case name == tty.KRight && len(in) == 0:
 	case name == tty.KRight && !unfolded:
-		v.unfolded[n.ID] = true
+		delete(v.folded, n.ID)
 	case name == tty.KRight:
 		return in[0].ID, true
 	case unfolded:
-		delete(v.unfolded, n.ID)
+		v.folded[n.ID] = true
 	case v.up[n] != v.last:
-		delete(v.unfolded, v.up[n].ID)
+		v.folded[v.up[n].ID] = true
 		return v.up[n].ID, true
 	case i > 0:
 		return rows[i-1].ID, true
@@ -192,9 +194,9 @@ func (v *Term) fold(name string) (to string, moved bool) {
 func (v *Term) branch(k *ink, n *outline.Node, bg string, on bool, end int) {
 	caret := "  "
 	if len(held(n)) > 0 {
-		caret = "▸ "
-		if v.unfolded[n.ID] {
-			caret = "▾ "
+		caret = "▾ "
+		if v.folded[n.ID] {
+			caret = "▸ "
 		}
 	}
 	k.add(strings.Repeat("│ ", v.depth(n)), tty.Quiet, bg, false)

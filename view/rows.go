@@ -3,8 +3,8 @@ package view
 import "sys/outline"
 
 // rows are what the view lays out: the kids of the tree drawn last, a row
-// or a card each, and of an outline the rows each part unfolded holds,
-// under it, in turn; none before the first draw.
+// or a card each, and of an outline the rows each part holds, under it,
+// in turn, but a folded part's; none before the first draw.
 func (v *Term) rows() []*outline.Node {
 	if v.last == nil {
 		return nil
@@ -17,7 +17,7 @@ func (v *Term) rows() []*outline.Node {
 	walk = func(ns []*outline.Node) {
 		for _, n := range ns {
 			out = append(out, n)
-			if v.unfolded[n.ID] {
+			if !v.folded[n.ID] {
 				walk(held(n))
 			}
 		}

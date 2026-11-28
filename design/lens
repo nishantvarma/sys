@@ -23,8 +23,9 @@ The reader, by kind
 	Python     its classes and defs, by page/py -t, a program, as pic
 	           is troff's
 	the rest   its lines, by their indent, the floor (outline.Text)
-  The outline draws the tree's parts as rows that fold, the way to the
-  cursor unfolded, and the render sets all of it as nroff sets a page.
+  The outline draws the tree's parts as rows that fold, each unfolded
+  down to the leaves till h folds it, and the render sets all of it as
+  nroff sets a page.
   The lens says what each part is, and how is the view's
   (`design/view:/Kinds, never looks/`). A reader joins as a line, and a
   way to see a thing joins the lenses as one
