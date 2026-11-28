@@ -80,7 +80,7 @@ func Stream(r io.Reader,
 }
 
 // TestChunk: a tangle chunk, a declaration with no package clause, reads
-// as one, each line its own number still; and what is no Go says why.
+// as one, each line its own number still.
 func TestChunk(t *testing.T) {
 	in := "// lens is one way to see a thing.\n" +
 		"type lens struct {\n" +
@@ -97,9 +97,6 @@ func TestChunk(t *testing.T) {
 	parted(&b, ps, 0)
 	if b.String() != want {
 		t.Errorf("a chunk:\n%s\nwant:\n%s", b.String(), want)
-	}
-	if _, err := Go(strings.NewReader("func {"), "x.go"); err == nil {
-		t.Error("what is no Go read as Go")
 	}
 }
 

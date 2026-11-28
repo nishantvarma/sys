@@ -133,7 +133,7 @@ var vi = map[string]string{"h": tty.KLeft, "j": tty.KDown, "k": tty.KUp,
 // card or a part of the head's path, or presses the key a chip or the
 // other layout's name shows (keyAt); a right press, or a second left one
 // soon after on the same cell, the touchpad's right click, is enter on
-// it, the program's own open, with the word it fell on in a doc (Word),
+// it, the program's own open, with the word it fell on in a doc (word),
 // but on the head, whose parts are places, it goes there as a left press
 // does; a middle press hands it to the shell (send); and the wheel moves,
 // as down and up do.
@@ -158,7 +158,7 @@ func (v *Term) mouse(k tty.Key) (outline.Key, bool) {
 	if id == "" {
 		return outline.Key{}, false
 	}
-	open := outline.Key{Name: tty.KEnter, Node: id, Text: v.Word(x, y)}
+	open := outline.Key{Name: tty.KEnter, Node: id, Text: v.word(x, y)}
 	if y == 0 {
 		open.Name = ""
 	}

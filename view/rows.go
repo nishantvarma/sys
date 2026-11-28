@@ -37,16 +37,3 @@ func (v *Term) curRow(rows []*outline.Node) int {
 	}
 	return 0
 }
-
-// isCur is whether the cursor is on row n: the one a move went to, till
-// the program draws again, else the one it drew it on; in an outline, the
-// row of the part it drew it on (cursor).
-func (v *Term) isCur(n *outline.Node) bool {
-	switch {
-	case v.isOutline():
-		return n == v.cursor()
-	case v.cur != "":
-		return n.ID == v.cur
-	}
-	return n.Cur
-}

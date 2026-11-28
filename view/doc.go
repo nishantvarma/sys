@@ -8,7 +8,7 @@ import (
 )
 
 // A doc is a tree the view sets for the eye, as nroff sets a page: each
-// part by its kind, prose filled to the view's width, the names of rows
+// part by its kind, prose filled to a measure, the names of rows
 // side by side in a column, code on the panel, an address in the link's
 // colour. It scrolls as a picture does; the part the program drew the
 // cursor on is marked, and brought into sight when it moves. A kind it
@@ -23,15 +23,6 @@ func (v *Term) isDoc() bool {
 // picture or a doc, rather than rows a cursor moves among.
 func (v *Term) scrolls() bool {
 	return v.isPicture() || v.isDoc()
-}
-
-// here is the id of the part the program drew the cursor on, the one a
-// doc marks: the row it stands on (rowOf); "" for none.
-func (v *Term) here() string {
-	if c := v.marked(); c != nil {
-		return v.rowOf(c).ID
-	}
-	return ""
 }
 
 // typeset is the doc as its lines, w wide, each line's spot the part it
@@ -60,7 +51,10 @@ type typed struct {
 // cursor brought into sight first when it is another than when it was
 // drawn last, and its lines lit (lit).
 func (v *Term) docked(w, room int) []line {
-	ls, here := v.typeset(w), v.here()
+	ls, here := v.typeset(w), ""
+	if c := v.cursor(); c != nil {
+		here = c.ID
+	}
 	if here != v.seen {
 		for i, l := range ls {
 			if len(l.spots) > 0 && l.spots[0].id == here {
@@ -136,7 +130,8 @@ type piece struct {
 	bold, under bool
 }
 
-// set sets parts, their text from column in, and is whether it set any:
+// set sets parts, a declaration's when declared, their text from column
+// in, and is whether it set any:
 // a title bold; a paragraph filled; a code as written, on the panel; a
 // row's name, bold, then its lead filled beside it, from a column past its
 // fellows' names; an item's or a step's sign before its text; and any
@@ -148,7 +143,7 @@ type piece struct {
 // its doc is prose, hung four columns under it, as a man page hangs a
 // tag's, its first paragraph, the summary, bright, and its later ones
 // soft, for the eye to skim.
-func (t *setter) set(ns []*outline.Node, in int, doc bool) bool {
+func (t *setter) set(ns []*outline.Node, in int, declared bool) bool {
 	col := column(ns) + 2 // where a row's text starts
 	any, first := false, true
 	for _, n := range ns {
@@ -167,7 +162,7 @@ func (t *setter) set(ns []*outline.Node, in int, doc bool) bool {
 			t.rule(n, in)
 		case "para":
 			fg := tty.Fore
-			if doc && !first {
+			if declared && !first {
 				fg = tty.Soft
 			}
 			first = false
@@ -331,10 +326,8 @@ func words(n *outline.Node, fg string, bold bool) [][]piece {
 	if len(runs) == 0 {
 		runs = []*outline.Node{{Text: n.Text}}
 	}
-	for _, r := range runs {
-		if r.Kind == "name" {
-			bold = false
-		}
+	if declares(n) {
+		bold = false
 	}
 	var out [][]piece
 	var cur []piece
@@ -362,11 +355,11 @@ func words(n *outline.Node, fg string, bold bool) [][]piece {
 	return out
 }
 
-// Word is the word a cell of a doc's part shows, from column x and row y
+// word is the word a cell of a doc's part shows, from column x and row y
 // counted from 0, as it was drawn last, for a click to say what it names:
 // "" off a part's line, on the head, whose words are places, and off a
 // doc, whose rows a click names whole (At).
-func (v *Term) Word(x, y int) string {
+func (v *Term) word(x, y int) string {
 	if !v.isDoc() || y < 1 || y >= len(v.drew) ||
 		len(v.drew[y].spots) == 0 {
 		return ""

@@ -32,20 +32,16 @@ func (p *pane) clicked(x, y int) string {
 	return outline.Clicked(p.tree, i, at)
 }
 
-// look is a right press at cell x, y of p. On a row of the view it is
-// enter, the program's own open, with the word it fell on in a doc (as
-// sys/view's Word says it), and on the head's path a step there; on a
-// text its word, or the selection, opens, as p opens it (lookat).
+// look is a right press at cell x, y of p. On the view it is the view's
+// own, as a terminal's press is (sys/view's mouse): enter on a row, the
+// program's own open, and on the head's path a step there; on a text its
+// word, or the selection, opens, as p opens it (lookat).
 func (v *window) look(p *pane, x, y int) {
 	if !p.isText() {
-		id := p.v.At(x, y)
-		switch {
-		case id == "":
-		case y == 0:
-			p.key("", id)
-		default:
-			p.send("key", outline.Key{Name: tty.KEnter, Node: id,
-				Text: p.v.Word(x, y)})
+		press := tty.Key{Name: tty.KMouse, Button: tty.MRight,
+			X: x + 1, Y: y + 1}
+		if ev, theirs := p.v.Handle(press); theirs {
+			p.send("key", ev)
 		}
 		return
 	}

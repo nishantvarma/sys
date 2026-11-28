@@ -182,8 +182,8 @@ func (v *Term) isPicture() bool {
 // as thumbs, the folder its cards are; a picture's, the note; a doc's,
 // the part at its cursor, else the note.
 func (v *Term) where() *outline.Node {
-	if c := v.marked(); v.isDoc() && c != nil {
-		return v.rowOf(c)
+	if c := v.cursor(); v.isDoc() && c != nil {
+		return c
 	}
 	rows := v.rows()
 	if v.scrolls() || len(rows) == 0 || v.layout() == "thumbs" {
@@ -331,7 +331,7 @@ func (v *Term) listed(w, room int) []line {
 	var items []int // a row's index, or -1 for a blank line between parts
 	last := map[*outline.Node]*outline.Node{}
 	for i, r := range rows {
-		if prev := last[v.up[r]]; parts && prev != nil && apart(prev, r) {
+		if p := last[v.up[r]]; parts && p != nil && apart(p, r) {
 			items = append(items, -1)
 		}
 		last[v.up[r]] = r
@@ -392,15 +392,13 @@ func (v *Term) factsAt(rows []*outline.Node, w int) int {
 }
 
 // paint is row n as line i, w wide: the cursor's edge, the row's number,
-// then its name in its kind's look and its facts from column at, the name
-// cut short before them when it is longer; no facts at 0. The cursor's
-// row is lit across, its name bold; numbers are quiet and marks faint,
-// so that names are the loudest thing. An outline's row is a branch.
+// then its name in its kind's look, or an outline's part as it branches
+// (branch), and its facts from column at, the name cut short before them
+// when it is longer; no facts at 0. The cursor's row is lit across, its
+// name bold; numbers are quiet and marks faint, so that names are the
+// loudest thing.
 func (v *Term) paint(i int, n *outline.Node, w, at int) *ink {
-	if v.isOutline() {
-		return v.branch(i, n, w, at)
-	}
-	on := v.isCur(n)
+	on := n == v.cursor()
 	bg, edge, num := "", " ", tty.Quiet
 	switch {
 	case on:
@@ -408,14 +406,20 @@ func (v *Term) paint(i int, n *outline.Node, w, at int) *ink {
 	case n.Sel:
 		bg = tty.Rule
 	}
-	l := look(n.Kind)
-	k := &ink{}
-	k.add(edge, tty.Accent, bg, false)
+	l, f, end := look(n.Kind), v.facts(n), w-1
+	if f != "" && at > 0 {
+		end = at - 2
+	}
+	k := (&ink{}).add(edge, tty.Accent, bg, false)
 	k.add(fmt.Sprintf("%2d  ", i+1), num, bg, false)
-	k.add(printable(n.Text), l.Color, bg, on)
-	k.add(l.Mark, tty.Faint, bg, false)
-	if f := v.facts(n); f != "" && at > 0 {
-		k.clip(at-2).pad(at, bg).add(f, l.Said, bg, false)
+	if v.isOutline() {
+		v.branch(k, n, bg, on, end)
+	} else {
+		k.add(printable(n.Text), l.Color, bg, on)
+		k.add(l.Mark, tty.Faint, bg, false)
+	}
+	if f != "" && at > 0 {
+		k.clip(end).pad(at, bg).add(f, l.Said, bg, false)
 	}
 	return k.clip(w-1).pad(w, bg)
 }
@@ -475,7 +479,7 @@ func (v *Term) card(rows []*outline.Node, start, per, w int) (*ink, *ink,
 		n := rows[i]
 		bg, edge := tty.Panel, " "
 		switch {
-		case v.isCur(n):
+		case n == v.cursor():
 			bg, edge = tty.Bar, "▌"
 		case n.Sel:
 			bg = tty.Rule

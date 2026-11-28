@@ -149,12 +149,12 @@ func TestDoc(t *testing.T) {
 	for y, l := range lines {
 		if x := strings.Index(l, "view/term.go"); x >= 0 {
 			at := len([]rune(l[:x])) + 2
-			if w := v.Word(at, y); w != "view/term.go" {
+			if w := v.word(at, y); w != "view/term.go" {
 				t.Errorf("a click on the address says %q", w)
 			}
 		}
 	}
-	if got := v.Word(3, 0); got != "" {
+	if got := v.word(3, 0); got != "" {
 		t.Errorf("a click on the head says %q, not its place", got)
 	}
 	looks := map[string]Run{}

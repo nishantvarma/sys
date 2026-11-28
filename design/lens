@@ -23,12 +23,11 @@ The reader, by kind
 	Python     its classes and defs, by page/py -t, a program, as pic
 	           is troff's
 	the rest   its lines, by their indent, the floor (outline.Text)
-  The outline draws the tree's parts, a row each, and folds them, the way
-  to the cursor unfolded; the render draws all of it set as nroff sets a
-  page, prose filled to a measure, a table's names in a column, a name
-  bold, an address underlined. The lens says what each part is, and how
-  is the view's (`design/view:/Kinds, never looks/`). A reader joins as a
-  line, and a way to see a thing joins the lenses as one
+  The outline draws the tree's parts as rows that fold, the way to the
+  cursor unfolded, and the render sets all of it as nroff sets a page.
+  The lens says what each part is, and how is the view's
+  (`design/view:/Kinds, never looks/`). A reader joins as a line, and a
+  way to see a thing joins the lenses as one
   (`studio/4-lens/02-lenses.go:/var lenses/`) and the lens view as a tab.
 
 The idea: a frame is slots, and a slot is tabs
@@ -142,8 +141,7 @@ What is where
 	sys/vt                a terminal, st's: the window's panel's
 	                      terminals
 	outline.Note          the note an address names, for ed and the lens
-	the readers           a note's parts, Go's declarations, Python's
-	                      by page/py, the rest by its indent
+	the readers           a thing's tree, by its kind
 	                      (`studio/4-lens/26-readers.go`)
 	sys/picture           a note's picture, its render when it is
 	                      written as parts and messages
@@ -151,10 +149,8 @@ What is where
 What it costs
   - a program a lens, each following cur, and a file between them and ed:
     what ed holds unsaved, put whole at each pause in typing
-  - a reader's run each time the text changes, and only then: a move
-    marks the cursor on the tree the lens made and draws once, and the
-    view sets a render once for a tree and a width; Python's reader is a
-    program, a third of a second for a file of a thousand lines
+  - a reader's run each time the text changes, and only then; Python's
+    is a program, a third of a second for a file of a thousand lines
   - a line over the frame for the tab lines, once a slot has one
   - outside a frame ed keeps no text file, and has no tabs: Tab there says
     so

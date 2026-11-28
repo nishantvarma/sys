@@ -11,10 +11,10 @@ import (
 
 // An outline is a tree the view lays out as rows that fold, as the page
 // folds its nodes: a part's rows are the parts under it, but its lead,
-// which says what it is and stands beside it. The view unfolds the way to
-// the program's cursor (reveal), and → and ← unfold and fold the rest
-// (fold). Each part is drawn by its kind (part), and a kind the view does
-// not know as its text (`design/view:/Kinds, never looks/`).
+// which says what it is, beside it on the cursor's row. The view unfolds
+// the way to the program's cursor (reveal), and → and ← unfold and fold
+// the rest (fold). Each part is drawn by its kind (part), and a kind the
+// view does not know as its text (`design/view:/Kinds, never looks/`).
 
 // isOutline is whether the tree drawn last is an outline.
 func (v *Term) isOutline() bool {
@@ -198,18 +198,13 @@ func (v *Term) fold(name string) (to string, moved bool) {
 	return "", false
 }
 
-// branch is row i of an outline, part n, w wide, as paint draws a row:
-// the cursor's edge, its number, a guide for each part it is under, a
-// quiet │ beneath that part's caret, then its own caret when it holds
-// rows, ▸ folded and ▾ unfolded, the part as its kind draws (part), and
-// its tally from column at; on the cursor's row, its lead too, soft,
-// where it fits, so the rows read as names and say more where you are.
-func (v *Term) branch(i int, n *outline.Node, w, at int) *ink {
-	on := v.isCur(n)
-	bg, edge, num := "", " ", tty.Quiet
-	if on {
-		bg, edge, num = tty.Bar, "▌", tty.Soft
-	}
+// branch draws an outline's part n on its row k, on ground bg, after the
+// row's number: a guide for each part it is under, a quiet │ beneath that
+// part's caret, then its own caret when it holds rows, ▸ folded and ▾
+// unfolded, and the part as its kind draws (part); on the cursor's row,
+// its lead too, soft, where it fits before column end, so the rows read as
+// names and say more where you are.
+func (v *Term) branch(k *ink, n *outline.Node, bg string, on bool, end int) {
 	caret := "  "
 	if len(held(n)) > 0 {
 		caret = "▸ "
@@ -217,22 +212,12 @@ func (v *Term) branch(i int, n *outline.Node, w, at int) *ink {
 			caret = "▾ "
 		}
 	}
-	k := (&ink{}).add(edge, tty.Accent, bg, false)
-	k.add(fmt.Sprintf("%2d  ", i+1), num, bg, false)
 	k.add(strings.Repeat("│ ", v.depth(n)), tty.Quiet, bg, false)
 	k.add(caret, tty.Accent, bg, false)
 	v.part(k, n, bg, on)
-	t, end := tally(n), w-1
-	if t != "" && at > 0 {
-		end = at - 2
-	}
 	if l := lead(n); l != nil && on && n.Kind != "row" && end-k.w-2 >= 20 {
 		k.add("  "+printable(l.Text), tty.Soft, bg, false)
 	}
-	if t != "" && at > 0 {
-		k.clip(end).pad(at, bg).add(t, tty.Faint, bg, false)
-	}
-	return k.clip(w-1).pad(w, bg)
 }
 
 // part draws a part on a row by its kind: a title bold; a row's name in a
