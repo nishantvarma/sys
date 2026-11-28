@@ -145,12 +145,8 @@ type piece struct {
 // soft, for the eye to skim.
 func (t *setter) set(ns []*outline.Node, in int, declared bool) bool {
 	col := column(ns) + 2 // where a row's text starts
-	any, first := false, true
+	first := true
 	for _, n := range ns {
-		if outline.IsRun(n) {
-			continue
-		}
-		any = true
 		t.gap(n)
 		parts, under := n.Kids, in+2
 		if declares(n) {
@@ -195,7 +191,7 @@ func (t *setter) set(ns []*outline.Node, in int, declared bool) bool {
 		}
 		t.last, t.held = n.Kind, t.set(parts, under, declares(n))
 	}
-	return any
+	return len(ns) > 0
 }
 
 // gap is the room before part n: a blank line, but before the first and
@@ -322,7 +318,7 @@ func (t *setter) end(k *ink, id string) {
 // rest in fg, and bold when asked. Its runs, when it has them, else its
 // text.
 func words(n *outline.Node, fg string, bold bool) [][]piece {
-	runs := runsOf(n)
+	runs := n.Runs
 	if len(runs) == 0 {
 		runs = []*outline.Node{{Text: n.Text}}
 	}

@@ -165,9 +165,9 @@ func (g *golang) field(kind string, f *ast.Field) *Node {
 	return n
 }
 
-// named puts the runs of a part's text first under it: the name it
-// declares, of kind name, and the text around it; none when its text,
-// as written, does not hold the name where its source does.
+// named gives a part the runs of its text: the name it declares, of kind
+// name, and the text around it; none when its text, as written, does not
+// hold the name where its source does.
 func (g *golang) named(n *Node, from token.Pos, name *ast.Ident) {
 	before := g.text(from, name.Pos())
 	if before != "" {
@@ -184,7 +184,7 @@ func (g *golang) named(n *Node, from token.Pos, name *ast.Ident) {
 			runs = append(runs, r)
 		}
 	}
-	n.Kids = append(runs, n.Kids...)
+	n.Runs = runs
 }
 
 // part is a declaration's part, of kind, saying text, from pos: its doc

@@ -166,7 +166,7 @@ func (p *pane) source() []*strip {
 // runeAt is the cursor's rune in line i; column is where that shows
 func (p *pane) runeAt(i int) int {
 	n := 0
-	for _, r := range p.rows[i].Kids {
+	for _, r := range p.rows[i].Runs {
 		if r.Cur {
 			break
 		}
@@ -249,7 +249,7 @@ func (p *pane) line(i, g int) *strip {
 	n := p.rows[i]
 	k := (&strip{}).add(fmt.Sprintf(" %*d  ", g-3, i+1), tty.Quiet, "",
 		false)
-	runs := n.Kids
+	runs := n.Runs
 	if len(runs) == 0 {
 		runs = []*outline.Node{{Text: n.Text}}
 	}

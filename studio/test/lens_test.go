@@ -280,7 +280,8 @@ func TestLensKinds(t *testing.T) {
 
 // TestLensPython: Python's reader, page/py -t, gives each part the line
 // it starts on, as its id, a docstring's every paragraph too, so that no
-// two parts share one and the cursor lights the one it is on.
+// two parts share one and the cursor lights the one it is on; and a def's
+// name is a run of its text, not a part under it.
 func TestLensPython(t *testing.T) {
 	src := `"""Title.
 
@@ -313,6 +314,11 @@ def f():
 	want := "m.py:1 m.py:3 m.py:5 m.py:8 m.py:12"
 	if got := strings.Join(ids, " "); got != want {
 		t.Errorf("the parts start at %s, not %s", got, want)
+	}
+	f := parts[len(parts)-1]
+	if len(f.Runs) != 3 || f.Runs[1].Kind != "name" ||
+		f.Runs[1].Text != "f" || len(f.Kids) != 0 {
+		t.Errorf("def f(): runs %v, parts %v", f.Runs, f.Kids)
 	}
 }
 

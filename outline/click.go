@@ -12,7 +12,7 @@ func Clicked(text *Node, i, at int) string {
 	}
 	ln := text.Kids[i]
 	r := 0
-	for _, run := range ln.Kids {
+	for _, run := range ln.Runs {
 		n := len([]rune(run.Text))
 		if at-1 >= r && at-1 < r+n {
 			if run.Sel {
@@ -30,7 +30,7 @@ func Clicked(text *Node, i, at int) string {
 func Selected(text *Node) string {
 	var b []rune
 	for _, ln := range text.Kids {
-		for _, r := range ln.Kids {
+		for _, r := range ln.Runs {
 			if r.Sel {
 				b = append(b, []rune(r.Text)...)
 			}

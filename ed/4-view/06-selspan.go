@@ -4,7 +4,7 @@
 func selSpan(ln *outline.Node) (lo, hi int, tail bool) {
 	lo, hi = -1, -1
 	i := 0
-	for _, r := range ln.Kids {
+	for _, r := range ln.Runs {
 		if r.Text == "\n" {
 			tail = r.Sel
 			continue

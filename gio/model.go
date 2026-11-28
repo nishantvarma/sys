@@ -79,7 +79,7 @@ func (a *app) layout() {
 	}
 	a.rows = a.tree.Kids
 	for i, k := range a.rows {
-		for _, r := range k.Kids { // a line holds the cursor in a run
+		for _, r := range k.Runs { // a line holds the cursor in a run
 			if r.Cur {
 				a.cur = i
 			}

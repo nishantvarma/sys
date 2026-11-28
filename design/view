@@ -79,7 +79,7 @@ Kinds, never looks
 	a note's     title section para row item step code (outline.Parts)
 	a program's  type func value (outline.Go)
 	a run's      addr, an address; name, what a declaration names; and
-	             the text around them, first under their part
+	             the text around them: its part's runs, not its parts
 	the floor's  line, a line by its indent (outline.Text)
 	a folder's   dir file link exec bad, fm's things
 	a diff's     add del same hunk meta, and waits, a lens's why

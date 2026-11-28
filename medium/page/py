@@ -469,7 +469,8 @@ def tree(name: str, source: str) -> list:
             "id": f"{name}:{first_line(d.node)}",
             "kind": "type" if isinstance(d.node, ast.ClassDef) else "func",
             "text": before + called + after,
-            "kids": runs + paras(d.node) + [part(c) for c in d.children],
+            "runs": runs,
+            "kids": paras(d.node) + [part(c) for c in d.children],
         }
 
     top = paras(mod)

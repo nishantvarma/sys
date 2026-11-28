@@ -12,11 +12,16 @@ import (
 )
 
 // Node is one thing to show: what kind it is, what it says, and the nodes
-// under it. id is how its program knows it, so a key can name it.
+// under it. id is how its program knows it, so a key can name it. Its
+// runs are its text again, in pieces, where a piece says more than the
+// rest: an address, of kind addr; the name a declaration names, of kind
+// name; the selection, or the cursor, in a line of a text. A view that
+// knows no runs draws its text; the nodes under it are its parts alone.
 type Node struct {
 	ID   string   `json:"id,omitempty"`
 	Kind string   `json:"kind,omitempty"` // what a view picks its look by
 	Text string   `json:"text,omitempty"`
+	Runs []*Node  `json:"runs,omitempty"` // its text, in pieces
 	Tags []string `json:"tags,omitempty"` // short words beside it: [2]
 	Cur  bool     `json:"cur,omitempty"`  // the cursor is on it
 	Sel  bool     `json:"sel,omitempty"`  // it is selected

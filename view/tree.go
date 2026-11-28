@@ -22,10 +22,10 @@ func (v *Term) isOutline() bool {
 }
 
 // lead is what is said of a part, which stands beside it: its first
-// paragraph, after the runs of its text; nil for none.
+// part, when that is a paragraph; nil for none.
 func lead(n *outline.Node) *outline.Node {
-	if k := n.Kids[len(runsOf(n)):]; len(k) > 0 && k[0].Kind == "para" {
-		return k[0]
+	if len(n.Kids) > 0 && n.Kids[0].Kind == "para" {
+		return n.Kids[0]
 	}
 	return nil
 }
@@ -33,30 +33,16 @@ func lead(n *outline.Node) *outline.Node {
 // declares is whether a part declares a name, as a type or a func does:
 // a run of its text is the name it declares.
 func declares(n *outline.Node) bool {
-	return slices.ContainsFunc(runsOf(n),
+	return slices.ContainsFunc(n.Runs,
 		func(r *outline.Node) bool { return r.Kind == "name" })
 }
 
-// runsOf is the runs of a part's text, first under it: an address, the
-// name it declares, and the text around them; none when its text is one.
-func runsOf(n *outline.Node) []*outline.Node {
-	i := 0
-	for i < len(n.Kids) && outline.IsRun(n.Kids[i]) {
-		i++
-	}
-	return n.Kids[:i]
-}
-
-// held is the rows a part holds: the parts under it, but its lead and the
-// runs of its text.
+// held is the rows a part holds: the parts under it, but its lead.
 func held(n *outline.Node) []*outline.Node {
-	var out []*outline.Node
-	for _, k := range n.Kids {
-		if k != lead(n) && !outline.IsRun(k) {
-			out = append(out, k)
-		}
+	if lead(n) != nil {
+		return n.Kids[1:]
 	}
-	return out
+	return n.Kids
 }
 
 // sign is what stands before an item's or a step's text, and its colour:
@@ -125,12 +111,11 @@ func (v *Term) marked() *outline.Node {
 	return find(v.last.Kids)
 }
 
-// rowOf is the row a part is drawn on: its own, or, for a run or a lead,
-// which stand on their part's row, that part's.
+// rowOf is the row a part is drawn on: its own, or, for a lead, which
+// stands on its part's row, that part's.
 func (v *Term) rowOf(n *outline.Node) *outline.Node {
-	for p := v.up[n]; p != nil && p != v.last &&
-		(outline.IsRun(n) || n == lead(p)); p = v.up[n] {
-		n = p
+	for p := v.up[n]; p != nil && p != v.last && n == lead(p); {
+		n, p = p, v.up[p]
 	}
 	return n
 }
@@ -250,7 +235,7 @@ func (v *Term) part(k *ink, n *outline.Node, bg string, on bool) {
 		k.add(text, tty.Soft, bg, false)
 	default:
 		l, head := look(n.Kind), n.Kind == "section"
-		runs := runsOf(n)
+		runs := n.Runs
 		if len(runs) == 0 {
 			runs = []*outline.Node{{Text: text}}
 		}

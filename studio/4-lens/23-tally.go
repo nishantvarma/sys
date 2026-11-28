@@ -1,15 +1,11 @@
 // tallyOf is what a lens's tree says of itself in a word: a diff's lines
-// added and removed, +2 −1, else how many parts it holds, a paragraph's
-// runs no parts of their own; nothing when the lens only says why it has
-// none.
+// added and removed, +2 −1, else how many parts it holds; nothing when
+// the lens only says why it has none.
 func tallyOf(t *outline.Node) string {
 	add, del, n := 0, 0, 0
 	var walk func(ns []*outline.Node)
 	walk = func(ns []*outline.Node) {
 		for _, k := range ns {
-			if outline.IsRun(k) {
-				continue
-			}
 			switch k.Kind {
 			case "add":
 				add++

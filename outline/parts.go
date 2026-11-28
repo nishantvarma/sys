@@ -71,14 +71,6 @@ func cut(text string) (name, said string) {
 	return text[:i], strings.TrimLeft(text[i:], " ")
 }
 
-// IsRun is whether a node is a run of its part's text, and so no part of
-// its own: an address (runs), the name a declaration declares (Go), or
-// the text around them. A part's runs come first under it, its parts
-// after.
-func IsRun(n *Node) bool {
-	return n.Kind == "" || n.Kind == "addr" || n.Kind == "name"
-}
-
 // parts is a block of lines, all at one indent or past it, as its parts,
 // each paragraph's text as written: its runs are set after (spans).
 func parts(ls []line, id string) []*Node {
@@ -240,11 +232,11 @@ func code(ls []line, in int, at string) *Node {
 	return &Node{ID: at, Kind: "code", Text: strings.Join(out, "\n")}
 }
 
-// spans sets each paragraph's runs under it (runs).
+// spans gives each paragraph its runs (runs).
 func spans(ns []*Node) {
 	for _, n := range ns {
 		if n.Kind == "para" {
-			n.Text, n.Kids = runs(n.Text)
+			n.Text, n.Runs = runs(n.Text)
 		}
 		spans(n.Kids)
 	}

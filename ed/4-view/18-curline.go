@@ -2,7 +2,7 @@
 // that holds it.
 func curLine(n *outline.Node) int {
 	for i, ln := range n.Kids {
-		for _, r := range ln.Kids {
+		for _, r := range ln.Runs {
 			if r.Cur {
 				return i
 			}

@@ -38,7 +38,7 @@ func (e *editor) lineNode(i int, a, c pos) *outline.Node {
 	for _, end := range append(slices.Compact(cuts), len(line)) {
 		if end > start {
 			in := lo >= 0 && lo <= hi && start >= lo && end-1 <= hi
-			n.Kids = append(n.Kids, &outline.Node{
+			n.Runs = append(n.Runs, &outline.Node{
 				Text: string(line[start:end]),
 				Sel:  in,
 				Cur:  start == at,
@@ -47,10 +47,10 @@ func (e *editor) lineNode(i int, a, c pos) *outline.Node {
 		start = end
 	}
 	if at == len(line) {
-		n.Kids = append(n.Kids, &outline.Node{Cur: true})
+		n.Runs = append(n.Runs, &outline.Node{Cur: true})
 	}
 	if tail {
-		n.Kids = append(n.Kids, &outline.Node{Text: "\n", Sel: true})
+		n.Runs = append(n.Runs, &outline.Node{Text: "\n", Sel: true})
 	}
 	return n
 }

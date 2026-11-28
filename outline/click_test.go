@@ -6,7 +6,7 @@ import "testing"
 // blank; and inside the selection the selection, every line of it.
 func TestClicked(t *testing.T) {
 	text := &Node{Kind: "text", Kids: []*Node{
-		{Text: "see sh/o:24 now", Kids: []*Node{
+		{Text: "see sh/o:24 now", Runs: []*Node{
 			{Text: "see "}, {Text: "sh/o:24", Sel: true},
 			{Text: " now"}}},
 		{Text: "git log -p"},

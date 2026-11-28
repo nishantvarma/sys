@@ -6,23 +6,19 @@ import (
 )
 
 // parted is parts as text again: a part a line, two spaces a level, its
-// kind, its text, done for a step done, and its line. Runs are no parts,
-// so a part's text is said from its runs when it has them, an address
-// between backticks again, and a name it declares between stars.
+// kind, its text, done for a step done, and its line. A part's text is
+// said from its runs when it has them, an address between backticks
+// again, and a name it declares between stars.
 func parted(b *strings.Builder, ns []*Node, depth int) {
 	for _, n := range ns {
-		if IsRun(n) {
-			continue
-		}
 		text := n.Text
-		if len(n.Kids) > 0 && IsRun(n.Kids[0]) {
+		if len(n.Runs) > 0 {
 			text = ""
-			for _, r := range n.Kids {
-				switch {
-				case !IsRun(r):
-				case r.Kind == "addr":
+			for _, r := range n.Runs {
+				switch r.Kind {
+				case "addr":
 					text += "`" + r.Text + "`"
-				case r.Kind == "name":
+				case "name":
 					text += "*" + r.Text + "*"
 				default:
 					text += r.Text
@@ -111,8 +107,9 @@ func TestParts(t *testing.T) {
 	}
 	want = "A program says what to show as nodes; a view draws them," +
 		" as view/term.go does."
-	if p := ps[1]; p.Text != want || len(p.Kids) != 3 {
-		t.Errorf("a paragraph is its runs, its backticks gone:"+
-			" %q, %d runs", p.Text, len(p.Kids))
+	if p := ps[1]; p.Text != want || len(p.Runs) != 3 || p.Kids != nil {
+		t.Errorf("a paragraph is its runs, its backticks gone, and no"+
+			" parts: %q, %d runs, %d parts", p.Text, len(p.Runs),
+			len(p.Kids))
 	}
 }

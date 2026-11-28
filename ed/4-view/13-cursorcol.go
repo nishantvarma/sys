@@ -2,7 +2,7 @@
 // the run that holds it.
 func cursorCol(ln *outline.Node) int {
 	col := 0
-	for _, r := range ln.Kids {
+	for _, r := range ln.Runs {
 		if r.Cur {
 			break
 		}
