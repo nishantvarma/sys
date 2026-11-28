@@ -43,7 +43,7 @@ func (v *Term) typeset(w int) []line {
 		return c.lines
 	}
 	t := &setter{w: w}
-	t.set(v.last.Kids, margin)
+	t.set(v.last.Kids, margin, false)
 	v.typed = typed{v.last, w, t.out}
 	return t.out
 }
@@ -126,10 +126,13 @@ type piece struct {
 // fellows' names; an item's or a step's sign before its text; and any
 // other kind, a section's or Go's, a head, in its look, bold, or its name
 // bold when it declares one; a top head, and the title, ruled off; and
-// under each its parts, two columns in, a row's from its column.
-func (t *setter) set(ns []*outline.Node, in int) bool {
+// under each its parts, two columns in, a row's from its column, a
+// declaration's four, hung under its name as a man page hangs a tag's.
+// A doc, the parts under a declaration, keeps its first paragraph, the
+// summary, bright, and its later ones soft, for the eye to skim.
+func (t *setter) set(ns []*outline.Node, in int, doc bool) bool {
 	col := column(ns) + 2 // where a row's text starts
-	any := false
+	any, first := false, true
 	for _, n := range ns {
 		if outline.IsRun(n) {
 			continue
@@ -137,12 +140,20 @@ func (t *setter) set(ns []*outline.Node, in int) bool {
 		any = true
 		t.gap(n)
 		parts, under := n.Kids, in+2
+		if declares(n) {
+			under = in + 4
+		}
 		switch n.Kind {
 		case "title":
 			t.fill(n, in, in, nil, tty.Fore, true)
 			t.rule(n, in)
 		case "para":
-			t.fill(n, in, in, nil, tty.Fore, false)
+			fg := tty.Fore
+			if doc && !first {
+				fg = tty.Soft
+			}
+			first = false
+			t.fill(n, in, in, nil, fg, false)
 		case "code":
 			t.code(n, in)
 		case "row":
@@ -165,7 +176,7 @@ func (t *setter) set(ns []*outline.Node, in int) bool {
 			}
 			t.last = "head"
 		}
-		t.last, t.held = n.Kind, t.set(parts, under)
+		t.last, t.held = n.Kind, t.set(parts, under, declares(n))
 	}
 	return any
 }

@@ -55,9 +55,10 @@ func shown(v *Term) []string {
 }
 
 // TestOutline: an outline is rows that fold. The way to the cursor is
-// unfolded, the rest folded, each part saying the first of what it says
-// and how many rows it holds; a guide stands under a part's caret beside
-// the rows it holds; a row's name stands in a column with its fellows'.
+// unfolded, the rest folded, each part saying how many rows it holds, and
+// the cursor's the first of what it says too; a guide stands under a
+// part's caret beside the rows it holds; a row's name stands in a column
+// with its fellows'.
 // → unfolds a folded part and, on an unfolded one, steps in, which the
 // program hears; ← on a part holding none goes to the part it is under
 // and folds it; and as thumbs → goes a card on, as it does in a folder.
@@ -69,7 +70,7 @@ func TestOutline(t *testing.T) {
 	want := strings.Join([]string{
 		"  1    view: a program and its view",
 		"  2    A program says what to show, as view/term.go does.",
-		"  3  ▸ Messages  plain data, a line each             1 row",
+		"  3  ▸ Messages                                      1 row",
 		"  4  ▾ Who holds what                                2 rows",
 		"  5  │   program  the data and the cursor",
 		"▌ 6  │   between  ideas, by name",
@@ -83,6 +84,9 @@ func TestOutline(t *testing.T) {
 	v.Handle(tty.Key{Name: tty.KUp})
 	v.Handle(tty.Key{Name: tty.KUp})
 	v.Handle(tty.Key{Name: tty.KUp})
+	if !strings.Contains(shown(v)[7], "Messages  plain data, a line") {
+		t.Errorf("the cursor's row says no lead: %q", shown(v)[7])
+	}
 	if ev, theirs := v.Handle(tty.Key{Name: tty.KRight}); theirs {
 		t.Errorf("→ on a folded part is the view's, not %v", ev)
 	}
@@ -166,5 +170,37 @@ func TestDoc(t *testing.T) {
 	if strings.Contains(end, "view: a program") ||
 		!strings.Contains(end, "ideas, by name") {
 		t.Errorf("G scrolled not to the end:\n%s", end)
+	}
+}
+
+// TestDocDeclared: a declaration's doc hangs under its name, four columns
+// in, its summary bright and its later paragraphs soft, the name bold.
+func TestDocDeclared(t *testing.T) {
+	src := "package p\n\n// F says what it does.\n//\n" +
+		"// And how, in more words.\nfunc F() {}\n"
+	parts, err := outline.Go(strings.NewReader(src), "p.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	v := New(nil, "")
+	v.In(0, 0, 60, 20)
+	v.Draw(&outline.Node{ID: "p.go", Kind: "doc", Kids: parts}, "", nil)
+	looks, at := map[string]Run{}, map[string]int{}
+	for y, l := range v.Lines() {
+		line := shown(v)[y]
+		said := strings.TrimSpace(line)
+		for _, r := range l {
+			if strings.HasPrefix(said, "func ") || r.Text != "F" {
+				looks[r.Text] = r // the name's run, its line's
+			}
+		}
+		at[said] = len(line) - len(strings.TrimLeft(line, " "))
+	}
+	if n := at["F says what it does."]; n != margin+4 {
+		t.Errorf("the doc stands at column %d, not %d", n, margin+4)
+	}
+	name, later := looks["F"], looks["And"]
+	if !name.Bold || later.Color != tty.Soft {
+		t.Errorf("the name %+v, the later paragraph %+v", name, later)
 	}
 }

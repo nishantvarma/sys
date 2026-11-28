@@ -30,6 +30,13 @@ func lead(n *outline.Node) *outline.Node {
 	return nil
 }
 
+// declares is whether a part declares a name, as a type or a func does:
+// a run of its text is the name it declares.
+func declares(n *outline.Node) bool {
+	return slices.ContainsFunc(runsOf(n),
+		func(r *outline.Node) bool { return r.Kind == "name" })
+}
+
 // runsOf is the runs of a part's text, first under it: an address, the
 // name it declares, and the text around them; none when its text is one.
 func runsOf(n *outline.Node) []*outline.Node {
@@ -184,8 +191,9 @@ func (v *Term) fold(name string) (to string, moved bool) {
 // branch is row i of an outline, part n, w wide, as paint draws a row:
 // the cursor's edge, its number, a guide for each part it is under, a
 // quiet │ beneath that part's caret, then its own caret when it holds
-// rows, ▸ folded and ▾ unfolded, the part as its kind draws (part), its
-// lead, soft, where it fits, and its tally from column at.
+// rows, ▸ folded and ▾ unfolded, the part as its kind draws (part), and
+// its tally from column at; on the cursor's row, its lead too, soft,
+// where it fits, so the rows read as names and say more where you are.
 func (v *Term) branch(i int, n *outline.Node, w, at int) *ink {
 	on := v.isCur(n)
 	bg, edge, num := "", " ", tty.Quiet
@@ -208,7 +216,7 @@ func (v *Term) branch(i int, n *outline.Node, w, at int) *ink {
 	if t != "" && at > 0 {
 		end = at - 2
 	}
-	if l := lead(n); l != nil && n.Kind != "row" && end-k.w-2 >= 20 {
+	if l := lead(n); l != nil && on && n.Kind != "row" && end-k.w-2 >= 20 {
 		k.add("  "+printable(l.Text), tty.Soft, bg, false)
 	}
 	if t != "" && at > 0 {
