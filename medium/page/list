@@ -36,6 +36,12 @@ from pathlib import Path
 
 BIG = 1 << 20
 KEYS = "title|state|after|tags"
+# what marks an item, its first group: a bullet as markdown has one, - * or
+# +, and one space, the item's text right after it; and a step, its second,
+# a box between, [ ] or [x], and its spaces. a bullet two spaces or more
+# before its text is no mark but a row's name, as a key table's * is. it is
+# outline.Parts' mark (`outline/parts.go:/var marked/`)
+MARK = re.compile(r"([-*+] (\[[ x]\] +)?)[^ ]")
 
 
 def node(title, kids, **meta):
@@ -99,14 +105,6 @@ def outline(lines):
         if got:
             kids.append(got)
     return kids
-
-
-# what marks an item, its first group: a bullet as markdown has one, - * or
-# +, and one space, the item's text right after it; and a step, its second,
-# a box between, [ ] or [x], and its spaces. a bullet two spaces or more
-# before its text is no mark but a row's name, as a key table's * is. it is
-# outline.Parts' mark (`outline/parts.go:/var marked/`)
-MARK = re.compile(r"([-*+] (\[[ x]\] +)?)[^ ]")
 
 
 def item(text, under, before, b=0):
