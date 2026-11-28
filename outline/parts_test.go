@@ -113,3 +113,38 @@ func TestParts(t *testing.T) {
 			len(p.Kids))
 	}
 }
+
+// TestBullets: markdown's bullets, - * and +, each mark an item, its kids
+// the bullets indented under it, as a README writes them; and a bullet two
+// spaces or more before its text is a row's name, as a key table's * is.
+func TestBullets(t *testing.T) {
+	in := "# tl;dr\n" +
+		"* outliner: filesystem\n" +
+		"  * a folder can group ideas\n" +
+		"  + a link, a reference\n" +
+		"* editor: neatvi\n" +
+		"  - a vi clone\n" +
+		"# keys\n" +
+		"*        the selection, found\n" +
+		"+        a new terminal\n"
+	want := "section tl;dr   :1\n" +
+		"  item outliner: filesystem   :2\n" +
+		"    item a folder can group ideas   :3\n" +
+		"    item a link, a reference   :4\n" +
+		"  item editor: neatvi   :5\n" +
+		"    item a vi clone   :6\n" +
+		"section keys   :7\n" +
+		"  row *   :8\n" +
+		"    para the selection, found   :8\n" +
+		"  row +   :9\n" +
+		"    para a new terminal   :9\n"
+	ps, err := Parts(strings.NewReader(in), "note")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var b strings.Builder
+	parted(&b, ps, 0)
+	if b.String() != want {
+		t.Errorf("parts:\n%s\nwant:\n%s", b.String(), want)
+	}
+}

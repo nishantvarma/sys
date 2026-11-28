@@ -63,22 +63,17 @@ func Text(r io.Reader, id string) []*Node {
 }
 
 // mark is how long the mark that leads a line's text is, 0 with none: a
-// dash, with a box after it or not ("- [ ] "), and the spaces after it;
-// or a row's name and the run of spaces after it, as Parts reads a row
-// (cut): "1  ", "view     ".
+// bullet, with a box after it or not ("- [ ] "), as Parts reads an item
+// (marked); or a row's name and the run of spaces after it, as Parts
+// reads a row (cut): "1  ", "view     ".
 func mark(s string) int {
-	if m := marked.FindString(s); m != "" {
-		return len(m) + gap(s[len(m):])
+	if m := marked.FindStringSubmatch(s); m != nil {
+		return len(m[1])
 	}
 	if _, said := cut(s); said != "" {
 		return len(s) - len(said)
 	}
 	return 0
-}
-
-// gap is how many spaces lead s.
-func gap(s string) int {
-	return len(s) - len(strings.TrimLeft(s, " "))
 }
 
 // untab is line with each tab spaced out to the next multiple of 8.

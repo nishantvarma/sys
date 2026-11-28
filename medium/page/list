@@ -10,10 +10,11 @@ PATH is a note (text), a folder (its files are its nodes) or an html page
 
 text is read as the notes are written: "key: value" lines on top are the
 head; indent is depth, so a line with lines under it is a node; "name  text"
-is a row, and goes on under it; "- " an item, "- [ ]" a step, and the
-lines under either at its text's column are its text, wrapped; fenced
-lines, or a file that starts "#!", are code. a leaf is typed, so a view
-can pick a component for it: para row item step code html file.
+is a row, and goes on under it; a bullet, "- ", "* " or "+ " as markdown
+has them, an item, and with a box, "- [ ]", a step, the lines under either
+at its text's column its text, wrapped; fenced lines, or a file that
+starts "#!", are code. a leaf is typed, so a view can pick a component for
+it: para row item step code html file.
 
 a folder's README is the folder's own text, not a child of it: its head is
 the folder's head, and its leaves come first in the folder.
@@ -100,29 +101,37 @@ def outline(lines):
     return kids
 
 
+# what marks an item, its first group: a bullet as markdown has one, - * or
+# +, and one space, the item's text right after it; and a step, its second,
+# a box between, [ ] or [x], and its spaces. a bullet two spaces or more
+# before its text is no mark but a row's name, as a key table's * is. it is
+# outline.Parts' mark (`outline/parts.go:/var marked/`)
+MARK = re.compile(r"([-*+] (\[[ x]\] +)?)[^ ]")
+
+
 def item(text, under, before, b=0):
-    mark = re.match(r"- (\[[ x]\] )?", text)
+    mark = MARK.match(text)
     if mark:  # its wrapped lines: those under it at its text's column
         while (
             under
-            and indent(under[0]) == b + len(mark[0])
-            and not under[0].lstrip().startswith("- ")
+            and indent(under[0]) == b + len(mark[1])
+            and not MARK.match(under[0].lstrip())
         ):
             text += " " + under.pop(0).strip()
         while under and not under[0].strip():
             under.pop(0)
-    step = re.match(r"- \[( |x)\] (.*)", text)
+    said = text[len(mark[1]) :] if mark else text
+    box = mark and mark[2]
     row = re.match(r"([^\s-]\S*)\s{2,}(.*)", text)
-    if step and not under:
-        return leaf("step", done=step[1] == "x", text=step[2])
+    if box and not under:
+        return leaf("step", done=box[1] == "x", text=said)
     if row:
         more = " ".join(u.strip() for u in under if u.strip())
         return leaf("row", name=row[1], text=f"{row[2]} {more}".strip())
     if under:
-        title = step[2] if step else text.removeprefix("- ")
-        return node(title, outline(under))
-    if text.startswith("- "):
-        return leaf("item", text=text[2:])
+        return node(said, outline(under))
+    if mark:
+        return leaf("item", text=said)
     if before and before[-1]["type"] == "para":
         before[-1]["text"] += " " + text
         return None

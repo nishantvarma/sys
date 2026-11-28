@@ -101,7 +101,7 @@ Kinds, never looks
 
 The structure is the tree, not a language
   Folders and files carry it down to the idea, and inside a file the
-  note's own marks carry the rest: its indent, a dash, two spaces, a
+  note's own marks carry the rest: its indent, a bullet, two spaces, a
   fence, which a writer makes anyway, and which its reader reads. A
   primitive is a kind the views know, a package of its own as
   sys/picture is, asked by kind: no plugin system and no runtime library.

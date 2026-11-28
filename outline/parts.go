@@ -20,8 +20,9 @@ import (
 //	         it an address, a run of kind addr, the text around it runs
 //	row      a name, two spaces or more, and what is said of it, the para
 //	         under it; a line hung under that text runs on with it
-//	item     a line marked "- ", its own parts indented under it
-//	step     a line marked "- [ ] ", tagged done when "- [x] "
+//	item     a line marked by a bullet, "- ", "* " or "+ ", as markdown
+//	         has them, its own parts indented under it
+//	step     a bullet with a box, "- [ ] ", tagged done when "- [x] "
 //	code     the lines between two fences of ```, as written
 //
 // A line holds what is indented under it only when a part starts on it:
@@ -57,8 +58,12 @@ type line struct {
 	text  string
 }
 
-// marked is what marks an item, a dash, and a step, a box after it.
-var marked = regexp.MustCompile(`^- (\[[ x]\] )?`)
+// marked is what marks an item, its first match: a bullet as markdown has
+// one, - * or +, and one space, the item's text right after it; and a
+// step, its second, a box between, [ ] or [x], and its spaces. A bullet
+// two spaces or more before its text is no mark but a row's name, as a
+// key table's * is.
+var marked = regexp.MustCompile(`^([-*+] (\[[ x]\] +)?)[^ ]`)
 
 // cut parts a row's text at its first run of two spaces or more: its name
 // before, and what is said of it after; said is "" when it is no row. Text
@@ -142,13 +147,13 @@ func parts(ls []line, id string) []*Node {
 // item or a step, a row, a section, or a paragraph's first line.
 func part(l line, under []line, id string) *Node {
 	at := At(id, l.n)
-	if m := marked.FindString(l.text); m != "" {
-		text, rest := hung(l.text[len(m):], under, l.in+len(m))
+	if m := marked.FindStringSubmatch(l.text); m != nil {
+		text, rest := hung(l.text[len(m[1]):], under, l.in+len(m[1]))
 		n := &Node{ID: at, Kind: "item", Text: text,
 			Kids: parts(rest, id)}
-		if m != "- " {
+		if box := m[2]; box != "" {
 			n.Kind = "step"
-			if m[3] == 'x' {
+			if box[1] == 'x' {
 				n.Tags = []string{"done"}
 			}
 		}
