@@ -31,13 +31,17 @@ for (d in Downloads Pictures scratch Videos)
 
 # the log outlives what it names, and m must not curate it: position is
 # m's meaning, 0 here and 1 back. so the wipe curates. what is gone goes,
-# and a place is its newest mention, under its newest verb, rather than
-# every visit to it.
+# and a place is its newest mention, rather than every visit to it, under
+# the newest verb that ran on it: a select keeps a place's verb, as c
+# keeps it.
 step -ab places
 log=.config/sys/log
 if (test -s $log) {
 	keep=()
-	newest='{k=$0; sub(/^[^ ]* /,"",k); sub(/:[0-9]*$/,"",k)} !seen[k]++'
+	newest='{ k = $0; sub(/^[^ ]* /, "", k); sub(/:[0-9]*$/, "", k) }
+		!(k in at) { at[k] = ++n; line[n] = $0 }
+		$1 != "c" && !(k in ran) { ran[k] = 1; line[at[k]] = $0 }
+		END { for (i = 1; i <= n; i++) print line[i] }'
 	for (l in `{tac $log | awk $newest}) {
 		p=`{echo $"l | sed 's,^[^ ]* ,,; s,:[0-9]*$,,'}
 		if (test -e $"p) keep=($"l $keep)

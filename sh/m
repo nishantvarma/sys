@@ -21,13 +21,17 @@ if (! ~ $#TMUX_PANE 0) {
 
 here=`{cat $dir/cur/$"id >[2]/dev/null}
 if (~ $#here 0) here=`{pwd}
-log=`{tac $dir/log >[2]/dev/null}
-if (! ~ $#log 0) {
-	head=`{echo $log(1) | sed 's,^[^ ]* ,,'}
-	if (~ $"head $"here) log=$log(2-)
-}
+# here leads under the verb its own line carries, else as a select, for a
+# select keeps a place's verb (sh/c): a script run leads as run. its line
+# is walked once, where it leads, so 1 is one back
+mine='{ l = $0; sub(/^[^ ]* /, "", l) }'
+first=`{tac $dir/log >[2]/dev/null | \
+	awk -v here=$"here $mine^' l == here { print; exit }'}
+if (~ $#first 0) first=c^' '^$"here
+log=`{tac $dir/log >[2]/dev/null | \
+	awk -v here=$"here $mine^' l != here'}
 
-if (~ $#* 0) { echo c $"here; for (l in $log) echo $"l; exit }
+if (~ $#* 0) { echo $"first; for (l in $log) echo $"l; exit }
 if (~ $1 0) { echo $"here; exit }
 l=$log($1)
 if (! ~ $#l 0) echo $"l | sed 's,^[^ ]* ,,'

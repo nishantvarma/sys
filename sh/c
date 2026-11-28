@@ -75,13 +75,26 @@ if (! ~ $#line 0) addr=$"file^:^$"line
 mkdir -p $dir/cur
 echo $addr > $cur^.^$pid
 mv $cur^.^$pid $cur
-# one line per place, carrying the last verb that touched it. the verb
+# one line per place, carrying the last verb that ran on it. the verb
 # that ran is the one to keep — o hands a text file to e, p hands the
 # word to o — so the same address rewrites rather than appends, and one
-# back stays one place back. the line it rewrites is wherever the address
-# already sits, not only the last: m says an old line again, and a place
-# said twice would be two lines to walk past and pick between.
+# back stays one place back. a select runs nothing, a click's or a
+# bookmark's, or p asking what a word names: c with no verb moves a
+# place's line to the newest and keeps the verb it carries, so a script
+# run stays run however often it is clicked since. the line it rewrites
+# is wherever the address already sits, not only the last: m says an old
+# line again, and a place said twice would be two lines to walk past and
+# pick between.
 if (test -f $dir/log) {
+	if (~ $verb c) {
+		was=`{awk -v addr=$"addr '{
+			l = $0
+			sub(/^[^ ]* /, "", l)
+			if (l == addr) v = $1
+		}
+		END { if (v != "") print v }' $dir/log}
+		if (! ~ $#was 0) verb=$was
+	}
 	awk -v addr=$"addr '{
 		l = $0
 		sub(/^[^ ]* /, "", l)
