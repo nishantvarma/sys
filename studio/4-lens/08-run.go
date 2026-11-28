@@ -40,7 +40,7 @@ func (l *lensing) run(ui outline.View, t *tty.Term,
 		if fi, err := os.Stat(th.path); err == nil {
 			wt.Follow(folder(th.path, fi))
 		}
-		tr, word := tree(th, ln)
+		tr, word := l.tree(th, ln)
 		switch {
 		case th.held && ln.typed:
 			word += ", as ed holds it unsaved"
@@ -54,7 +54,15 @@ func (l *lensing) run(ui outline.View, t *tty.Term,
 		if n := tallyOf(tr); n != "" {
 			shows = append(shows, n)
 		}
-		ui.Draw(tr, word, shows)
+		// drawn once: the same tree, place, word, state and size
+		// again, its own write to cur waking it, is no draw
+		w, h := ui.Size()
+		d := fmt.Sprintf("%p %s %q %q %d %d", tr, th.at, word, shows,
+			w, h)
+		if d != l.drew {
+			ui.Draw(tr, word, shows)
+			l.drew = d
+		}
 		ev, ok := take(ui, keys, wt)
 		if !ok {
 			return nil

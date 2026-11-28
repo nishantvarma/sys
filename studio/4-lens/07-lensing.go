@@ -4,7 +4,8 @@
 // the frame's tabs; the address it is on, cur as it last read it, whether
 // its pane has the eye, so that it may say a move of its own to cur, a
 // word to say once in place of the lens's own, and the frame's slot it
-// runs in, if any, where q is fm's.
+// runs in, if any, where q is fm's; the tree it made last, and what it
+// drew last, so that it makes and draws only what changed.
 type lensing struct {
 	curf, unsavedf, textf string
 	lens                  int
@@ -14,4 +15,6 @@ type lensing struct {
 	msg                   string
 	slot                  string
 	framed                bool
+	made                  made
+	drew                  string
 }

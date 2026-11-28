@@ -151,6 +151,10 @@ What is where
 What it costs
   - a program a lens, each following cur, and a file between them and ed:
     what ed holds unsaved, put whole at each pause in typing
+  - a reader's run each time the text changes, and only then: a move
+    marks the cursor on the tree the lens made and draws once, and the
+    view sets a render once for a tree and a width; Python's reader is a
+    program, a third of a second for a file of a thousand lines
   - a line over the frame for the tab lines, once a slot has one
   - outside a frame ed keeps no text file, and has no tabs: Tab there says
     so

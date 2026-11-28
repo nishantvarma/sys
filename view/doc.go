@@ -35,19 +35,33 @@ func (v *Term) here() string {
 }
 
 // typeset is the doc as its lines, w wide, each line's spot the part it
-// sets, so that a click names that part.
+// sets, so that a click names that part: set once for a tree and a width,
+// and kept, so that a scroll, a frame or the cursor moving sets nothing
+// again (typed).
 func (v *Term) typeset(w int) []line {
-	t := &setter{w: w, at: v.here()}
+	if c := v.typed; c.tree == v.last && c.w == w {
+		return c.lines
+	}
+	t := &setter{w: w}
 	t.set(v.last.Kids, margin)
+	v.typed = typed{v.last, w, t.out}
 	return t.out
+}
+
+// typed is a doc as it was typeset last: the tree and the width it was set
+// for, and its lines.
+type typed struct {
+	tree  *outline.Node
+	w     int
+	lines []line
 }
 
 // docked is the body as the doc, scrolled (scrolled), the part at the
 // cursor brought into sight first when it is another than when it was
-// drawn last.
+// drawn last, and its lines lit (lit).
 func (v *Term) docked(w, room int) []line {
-	ls := v.typeset(w)
-	if here := v.here(); here != v.seen {
+	ls, here := v.typeset(w), v.here()
+	if here != v.seen {
 		for i, l := range ls {
 			if len(l.spots) > 0 && l.spots[0].id == here {
 				v.top = i - room/3
@@ -56,7 +70,30 @@ func (v *Term) docked(w, room int) []line {
 		}
 		v.seen = here
 	}
-	return v.scrolled(ls, w, room)
+	vis := v.scrolled(ls, w, room)
+	for i, l := range vis {
+		if len(l.spots) > 0 && l.spots[0].id == here {
+			vis[i] = lit(l)
+		}
+	}
+	return vis
+}
+
+// lit is a line of the part at the cursor, as a doc marks one: its edge
+// the accent's ▌, and its ground the bar's, but where it is the panel's,
+// a code's.
+func lit(l line) line {
+	k := &ink{w: l.ink.w}
+	for i, r := range l.ink.runs {
+		if r.Ground == "" {
+			r.Ground = tty.Bar
+		}
+		if i == 0 {
+			r.Text = "▌"
+		}
+		k.runs = append(k.runs, r)
+	}
+	return line{k, l.spots}
 }
 
 // The doc's measure: its left margin, and the most columns a line of its
@@ -66,16 +103,14 @@ const (
 	measure = 72
 )
 
-// setter sets a doc's parts as lines, w wide: the lines so far; the kind
-// of the part set last and whether it held parts, which say the room
-// before the next (gap); and the id of the part at the cursor, whose
-// lines it marks.
+// setter sets a doc's parts as lines, w wide: the lines so far, and the
+// kind of the part set last and whether it held parts, which say the room
+// before the next (gap).
 type setter struct {
 	out  []line
 	w    int
 	last string
 	held bool
-	at   string
 }
 
 // piece is some of a word, in its look: an address and the text around
@@ -100,7 +135,7 @@ func (t *setter) set(ns []*outline.Node, in int) bool {
 			continue
 		}
 		any = true
-		t.gap(n.Kind)
+		t.gap(n)
 		parts, under := n.Kids, in+2
 		switch n.Kind {
 		case "title":
@@ -135,15 +170,19 @@ func (t *setter) set(ns []*outline.Node, in int) bool {
 	return any
 }
 
-// gap is the room before a part of kind: a blank line, but before the
-// first and under a head; and leaves of a kind, rows, fields, a list's
-// items and steps, stand together, as a table does.
-func (t *setter) gap(kind string) {
+// gap is the room before part n: a blank line, but before the first and
+// under a head; and leaves of a kind, rows, fields, a list's items and
+// steps, stand together, as a table does, while a part that holds parts
+// stands apart on both sides.
+func (t *setter) gap(n *outline.Node) {
+	kind := n.Kind
 	block := kind == "title" || kind == "para" || kind == "code" ||
 		kind == "section"
 	list := func(k string) bool { return k == "item" || k == "step" }
 	same := kind == t.last || list(kind) && list(t.last)
-	if len(t.out) > 0 && t.last != "head" && (block || !same || t.held) {
+	holds := len(held(n)) > 0 || kind != "row" && lead(n) != nil
+	if len(t.out) > 0 && t.last != "head" &&
+		(block || !same || t.held || holds) {
 		t.out = append(t.out, blank(t.w))
 	}
 	t.last, t.held = kind, false
@@ -155,14 +194,14 @@ func (t *setter) gap(kind string) {
 func (t *setter) fill(n *outline.Node, in, hang int, mark []piece, fg string,
 	bold bool) {
 	right := min(t.w-2, margin+measure)
-	k := t.start(n.ID, in)
+	k := t.start(in)
 	for _, p := range mark {
-		t.put(k, p, n.ID)
+		t.put(k, p)
 	}
 	if k.w > hang { // a mark too wide for its column
-		k.add(" ", "", t.ground(n.ID), false)
+		k.add(" ", "", "", false)
 	}
-	k.pad(hang, t.ground(n.ID))
+	k.pad(hang, "")
 	fresh, last := true, piece{}
 	for _, w := range words(n, fg, bold) {
 		wide := 0
@@ -171,24 +210,24 @@ func (t *setter) fill(n *outline.Node, in, hang int, mark []piece, fg string,
 		}
 		if !fresh && k.w+1+wide > right {
 			t.end(k, n.ID)
-			k, fresh = t.start(n.ID, hang), true
+			k, fresh = t.start(hang), true
 		}
 		// a space between two words of an address is the address's
 		if !fresh {
 			in := last.under && w[0].under
-			t.put(k, piece{" ", last.fg, false, in}, n.ID)
+			t.put(k, piece{" ", last.fg, false, in})
 		}
 		for _, p := range w {
-			t.put(k, p, n.ID)
+			t.put(k, p)
 		}
 		fresh, last = false, w[len(w)-1]
 	}
 	t.end(k, n.ID)
 }
 
-// put puts a piece on a line of part id, in its look.
-func (t *setter) put(k *ink, p piece, id string) {
-	k.add(p.text, p.fg, t.ground(id), p.bold)
+// put puts a piece on a line, in its look.
+func (t *setter) put(k *ink, p piece) {
+	k.add(p.text, p.fg, "", p.bold)
 	if p.under {
 		k.under()
 	}
@@ -198,9 +237,8 @@ func (t *setter) put(k *ink, p piece, id string) {
 // page sets a section's head apart.
 func (t *setter) rule(n *outline.Node, in int) {
 	wide := min(tty.Width(name(n)), measure, t.w-in-2)
-	k := t.start(n.ID, in)
-	k.add(strings.Repeat("─", max(0, wide)), tty.Quiet, t.ground(n.ID),
-		false)
+	k := t.start(in)
+	k.add(strings.Repeat("─", max(0, wide)), tty.Quiet, "", false)
 	t.end(k, n.ID)
 }
 
@@ -213,37 +251,23 @@ func (t *setter) code(n *outline.Node, in int) {
 		wide = max(wide, tty.Width(printable(l)))
 	}
 	for _, l := range ls {
-		k := t.start(n.ID, in)
+		k := t.start(in)
 		k.add(" "+printable(l), tty.Fore, tty.Panel, false)
 		k.pad(in+wide+2, tty.Panel)
 		t.end(k, n.ID)
 	}
 }
 
-// start is a line of part id, from column in: its first column the
-// cursor's edge when the part is the one at the cursor.
-func (t *setter) start(id string, in int) *ink {
-	edge := " "
-	if id == t.at {
-		edge = "▌"
-	}
-	return (&ink{}).add(edge, tty.Accent, t.ground(id), false).
-		pad(in, t.ground(id))
+// start is a line from column in, its first column the edge, which the
+// part at the cursor lights (lit).
+func (t *setter) start(in int) *ink {
+	return (&ink{}).add(" ", tty.Accent, "", false).pad(in, "")
 }
 
 // end puts a line of part id among the lines, w wide, its spot the part.
 func (t *setter) end(k *ink, id string) {
-	k.clip(t.w).pad(t.w, t.ground(id))
+	k.clip(t.w).pad(t.w, "")
 	t.out = append(t.out, line{k, []spot{{x: 0, id: id}}})
-}
-
-// ground is what a line of part id is drawn on: the bar's colour for the
-// part at the cursor, else the view's own.
-func (t *setter) ground(id string) string {
-	if id == t.at {
-		return tty.Bar
-	}
-	return ""
 }
 
 // words is a part's text as its words, each its pieces in their looks:

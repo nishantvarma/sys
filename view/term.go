@@ -67,10 +67,12 @@ type Term struct {
 	top    int    // a picture's or a doc's first line shown
 	drew   []line // the lines drawn last, all but the bottom one
 	// an outline's rows unfolded, by id; each part's, the part it is
-	// under; and the part a doc's cursor was on when it was drawn last
+	// under; the part a doc's cursor was on when it was drawn last; and
+	// the doc as it was typeset last
 	unfolded map[string]bool
 	up       map[*outline.Node]*outline.Node
 	seen     string
+	typed    typed
 	// the last left press, for a second soon after on its cell (mouse)
 	press  time.Time
 	px, py int

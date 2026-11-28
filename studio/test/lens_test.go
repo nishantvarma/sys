@@ -54,34 +54,7 @@ func (d drawn) find(ok func(*outline.Node) bool) *outline.Node {
 func lensOn(t *testing.T, home, dir string, args ...string) (
 	press func(outline.Key), until func(string, func(drawn) bool) drawn,
 	ended <-chan struct{}) {
-	c := exec.Command(built(t), append([]string{"show"}, args...)...)
-	c.Env = append(os.Environ(), "HOME="+home, "TMUX=", "TMUX_PANE=",
-		"STUDIO=")
-	c.Dir = dir
-	in, _ := c.StdinPipe()
-	out, _ := c.StdoutPipe()
-	if err := c.Start(); err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { in.Close(); c.Process.Kill(); c.Wait() })
-	draws, done := make(chan drawn, 64), make(chan struct{})
-	go func() {
-		defer close(done)
-		dec := json.NewDecoder(out)
-		for {
-			var m struct{ Draw *drawn }
-			if dec.Decode(&m) != nil {
-				return
-			}
-			if m.Draw != nil {
-				draws <- *m.Draw
-			}
-		}
-	}()
-	enc := json.NewEncoder(in)
-	press = func(k outline.Key) {
-		enc.Encode(map[string]outline.Key{"key": k})
-	}
+	press, draws, done := lensDraws(t, home, dir, args...)
 	var last drawn
 	until = func(why string, ok func(d drawn) bool) drawn {
 		t.Helper()
@@ -102,6 +75,41 @@ func lensOn(t *testing.T, home, dir string, args ...string) (
 		}
 	}
 	return press, until, done
+}
+
+// lensDraws is studio show, as lensOn runs it: a way to press a key, and
+// each draw as it comes; done is closed as the lens ends.
+func lensDraws(t *testing.T, home, dir string, args ...string) (
+	press func(outline.Key), draws <-chan drawn, done <-chan struct{}) {
+	c := exec.Command(built(t), append([]string{"show"}, args...)...)
+	c.Env = append(os.Environ(), "HOME="+home, "TMUX=", "TMUX_PANE=",
+		"STUDIO=")
+	c.Dir = dir
+	in, _ := c.StdinPipe()
+	out, _ := c.StdoutPipe()
+	if err := c.Start(); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { in.Close(); c.Process.Kill(); c.Wait() })
+	ds, ended := make(chan drawn, 64), make(chan struct{})
+	go func() {
+		defer close(ended)
+		dec := json.NewDecoder(out)
+		for {
+			var m struct{ Draw *drawn }
+			if dec.Decode(&m) != nil {
+				return
+			}
+			if m.Draw != nil {
+				ds <- *m.Draw
+			}
+		}
+	}()
+	enc := json.NewEncoder(in)
+	press = func(k outline.Key) {
+		enc.Encode(map[string]outline.Key{"key": k})
+	}
+	return press, ds, ended
 }
 
 // shows is whether a draw shows the lens named, first in its state.
@@ -296,5 +304,34 @@ func TestLensGo(t *testing.T) {
 	if len(d.Tree.Kids) != 2 || !strings.Contains(d.Status, "b.go:3:") {
 		t.Errorf("a file half typed: %d parts, the word %q",
 			len(d.Tree.Kids), d.Status)
+	}
+}
+
+// TestLensDrawsOnce: a key on a row draws the lens once, the cursor there,
+// and nothing after it: its own write to cur, which wakes it, changes
+// nothing it shows, so it draws nothing again.
+func TestLensDrawsOnce(t *testing.T) {
+	home, dir := t.TempDir(), t.TempDir()
+	file := filepath.Join(dir, "note")
+	os.WriteFile(file, []byte(note), 0o644)
+	cur := filepath.Join(home, ".config", "sys", "cur", "none")
+	os.MkdirAll(filepath.Dir(cur), 0o755)
+	os.WriteFile(cur, []byte(file+":1\n"), 0o644)
+	press, draws, _ := lensDraws(t, home, dir, "outline", "-s")
+	<-draws
+	press(outline.Key{Name: "FOCUS"})
+	press(outline.Key{Node: outline.At(file, 5)})
+	n := 0
+	for quiet := time.After(time.Second); ; {
+		select {
+		case <-draws:
+			n++
+			continue
+		case <-quiet:
+		}
+		break
+	}
+	if n != 1 {
+		t.Errorf("a key on a row drew %d times, not once", n)
 	}
 }
