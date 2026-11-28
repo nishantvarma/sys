@@ -76,10 +76,10 @@ act
            swaps its number with the one it passes, 02-b becoming 01-b,
            two renames
 
-  selection    c x d
-  cursor       enter e o b r y * = + F shift-arrow
-  the clip     p L
-  here         ; a v V i I
+  selection    c d x
+  cursor       b e F o r y ! * + = enter shift-arrow
+  the clip     L p
+  here         a i I v V ;
 
 The header carries all three — [n] selected, cp:n or cut:n pending,
 mark:name. A cd clears the selection. Nothing clears the clip but u, a
@@ -116,20 +116,22 @@ o is the same word on both sides: the command with no argument takes
 cur, and the key hands it the row — a directory row is another fm in a
 pane beside you, a file row its app, a text ed. In a frame the frame's
 own take them: a text opens in its ed, and a directory is this fm's,
-already on it. o never runs a row; a script is text, and opens in ed.
+already on it. o never runs a row; a script is text, and opens in ed,
+and ! hands it to the shell's prompt, where Return runs it.
 
-tools — every one a script in sh/, replaceable
+tools — every one a script in sh/, replaceable, by key
+  a      a copilot session here (a)
+  b      say the row out loud (c)
   e      edit (e)
-  o      open the row beside you, or in the frame's ed (o)
-  w      wipe, at home (w)
-  F      format (lint -f)
   f s m  the finders (f, s, m — each piped through fzy, which needs
          a terminal: in gio's frame fm's console, and in fm -w, which
          has none, they say so)
-  b      say the row out loud (c)
+  F      format (lint -f)
+  o      open the row beside you, or in the frame's ed (o)
   v      version control (v)
   V      gitk
-  a      a copilot session here (a)
+  w      wipe, at home (w)
+  !      the row at the shell's prompt, where Return runs it (run)
 
 a, o and ; open a pane and fm keeps running; in a frame, a and ; open
 a terminal in its panel (`studio/cheatsheet`). b runs and only flashes. The

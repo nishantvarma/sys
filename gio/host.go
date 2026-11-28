@@ -438,8 +438,8 @@ func (s *studio) drop(p *pane) bool {
 }
 
 // asked is a line of the window's ask file, as studio adds it
-// (`studio/5-verbs/22-ask/01-asked.go`): the verb, tab or panel, the slot
-// asked of, "." for the one with the eye, and the verb's words
+// (`studio/5-verbs/22-ask/01-asked.go`): the verb, hand, panel or tab,
+// the slot asked of, "." for the one with the eye, and the verb's words
 type asked struct {
 	Verb  string
 	Slot  string
@@ -447,9 +447,10 @@ type asked struct {
 }
 
 // asks does what studio asked of the window since it last read the ask
-// file, a line an ask, in order (asked): a slot's tabs turned (turn), the
-// panel hidden, shown, or, with no word, turned (hide). A line not yet
-// whole waits for the rest
+// file, a line an ask, in order (asked), each verb by name: text handed
+// to the panel's shell (hand), the panel hidden, shown, or, with no word,
+// turned (hide), and a slot's tabs turned (turn). A line not yet whole
+// waits for the rest
 func (s *studio) asks() {
 	b, err := os.ReadFile(s.askf)
 	if err != nil {
@@ -473,14 +474,16 @@ func (s *studio) asks() {
 			a.Slot = s.order[s.eye].name
 		}
 		switch a.Verb {
-		case "tab":
-			s.turn(a.Slot, a.Words)
+		case "hand":
+			s.hand(strings.Join(a.Words, " "))
 		case "panel":
 			hidden := !s.hidden
 			if len(a.Words) == 1 {
 				hidden = a.Words[0] == "hide"
 			}
 			s.hide(hidden)
+		case "tab":
+			s.turn(a.Slot, a.Words)
 		}
 	}
 }

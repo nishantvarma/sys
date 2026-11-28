@@ -3,6 +3,7 @@ package main
 import (
 	"image"
 	"os"
+	"os/exec"
 	"slices"
 	"strings"
 	"testing"
@@ -20,7 +21,8 @@ import (
 // TestTerminal: the frame's panel runs a shell in a terminal of the
 // window's own: what is typed reaches it and what it writes shows, as
 // the window draws it, and a press on its last row, which the window's
-// height leaves part of, is on its screen. + opens a second, l new typed
+// height leaves part of, is on its screen; studio hand, run's way in the
+// window, puts its text at the shell's prompt. + opens a second, l new typed
 // in a terminal a third, and l outline the lens view's tab by that name;
 // a number is a terminal's place, after a close and a new too; a
 // terminal's exit gives its place to the next, though a job it left
@@ -148,6 +150,16 @@ func TestTerminal(t *testing.T) {
 	if !until(func() bool { return strings.Contains(screen(), "\nhi") }) {
 		t.Errorf("echo hi typed, and the terminal shows %q", screen())
 	}
+	hand := exec.Command("studio", "hand", "handed")
+	hand.Env = s.env
+	if out, err := hand.CombinedOutput(); err != nil {
+		t.Fatalf("studio hand: %v: %s", err, out)
+	}
+	handed := func() bool { return strings.HasSuffix(last(), " handed") }
+	if !until(handed) {
+		t.Errorf("studio hand, and the terminal shows %q", last())
+	}
+	typing("") // Return runs it, a word no shell knows, and a prompt again
 	if words, _ := bar(); !slices.Equal(words, []string{"1", "new"}) {
 		t.Errorf("the panel's bar says %q", words)
 	}

@@ -95,31 +95,39 @@ func (v *window) do(p *pane, x, y int) {
 	}
 }
 
-// handon hands text, said in folder dir, to the shell at its prompt, as p
-// -a does (`sh/p:/the shell takes it at its prompt/`): what c makes of
-// it, a phrase as it is, after a space, in the panel's terminal, shown
-// again if hidden, the eye going there, and waiting there for Return;
-// but only while its shell waits at its prompt, for a program there
-// would read it as its keys (prompting). With no terminal left, p -a's
-// own way, to tmux's pane marked, or the last one
+// handon hands text, said in folder dir, to the shell at its prompt: a
+// middle press's do, which is run's (`sh/run`), so what it names is said
+// as run does, a file that runs logged as run for m, and run asks the
+// window to paste it (hand). With no terminal left, p -a's own way, to
+// tmux's pane marked, or the last one
 func (s *studio) handon(text, dir string) {
 	t := s.panes[s.panel]
 	switch {
 	case text == "":
 	case t == nil || t.term == nil || t.gone:
 		plumb(text, "-a")
-	case !s.prompting(t):
 	default:
-		if !strings.Contains(text, " ") {
-			c := exec.Command("c", text)
-			c.Dir, c.Env = dir, s.env
-			if out, err := c.Output(); err == nil && len(out) > 0 {
-				text = strings.TrimSpace(string(out))
-			}
+		c := exec.Command("run", text)
+		c.Dir, c.Env = dir, s.env
+		if c.Start() == nil {
+			go c.Wait()
 		}
-		s.show(s.panel, t)
-		t.term.Paste(" " + text)
 	}
+}
+
+// hand pastes text in the panel's terminal, after a space, as studio
+// hand asks (`studio/5-verbs/24-handverb.go`): the panel shown again if
+// hidden, the eye going there, and waiting there for Return; but only
+// while its shell waits at its prompt, for a program there would read
+// it as its keys (prompting)
+func (s *studio) hand(text string) {
+	t := s.panes[s.panel]
+	if text == "" || t == nil || t.term == nil || t.gone ||
+		!s.prompting(t) {
+		return
+	}
+	s.show(s.panel, t)
+	t.term.Paste(" " + text)
 }
 
 // say says text to cur from folder dir, as a left press on a word does in

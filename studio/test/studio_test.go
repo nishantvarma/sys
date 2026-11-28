@@ -194,9 +194,11 @@ shell
 // the eye, one on a folder fm's, and one on a script opens it there and
 // runs nothing, each with no pane opened beside; a middle click pastes
 // the word, whole, at the shell's prompt and gives the shell the eye, but
-// not while the shell runs a program; outside a frame a right click on a
-// text opens ed beside. sys's own p, c, o, e and m, which a click
-// runs, are rc, and the test skips without it.
+// not while the shell runs a program; a middle click on a script says it
+// as run, so m offers it again, and a left click after, a select, leaves
+// it so; outside a frame a right click on a text opens ed beside. sys's
+// own c, e, m, o, p and run, which a click runs, are rc, and the test
+// skips without it.
 func TestMouse(t *testing.T) {
 	for _, b := range []string{"tmux", "9"} {
 		if _, err := exec.LookPath(b); err != nil {
@@ -205,7 +207,7 @@ func TestMouse(t *testing.T) {
 	}
 	studio := built(t)
 	home, bin, work := t.TempDir(), t.TempDir(), t.TempDir()
-	for _, f := range []string{"p", "c", "o", "e", "m", "spawn"} {
+	for _, f := range []string{"c", "e", "m", "o", "p", "run", "spawn"} {
 		b, err := os.ReadFile(filepath.Join("..", "..", "sh", f))
 		if err != nil {
 			t.Fatal(err)
@@ -319,6 +321,20 @@ func TestMouse(t *testing.T) {
 	time.Sleep(200 * time.Millisecond)
 	if shows(slot["shell"], path) {
 		t.Error("a middle click typed into the shell's program")
+	}
+	log := filepath.Join(home, ".config", "sys", "log")
+	logged := func() string {
+		b, _ := os.ReadFile(log)
+		return string(b)
+	}
+	script := filepath.Join(work, "run.sh")
+	click(slot["ed"], "./run.sh", "-a")
+	if !strings.Contains(logged(), "run "+script+"\n") {
+		t.Errorf("a middle click on a script logged %q", logged())
+	}
+	click(slot["ed"], "./run.sh", "-c")
+	if l := logged(); !strings.HasSuffix(l, "run "+script+"\n") {
+		t.Errorf("a left click after it logged %q", l)
 	}
 
 	plain := tm("new-window", "-P", "-F", "#{window_id}", "-c", work)

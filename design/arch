@@ -11,7 +11,7 @@ you             at a host: tmux, or gio's window
     → verbs     a word
   see           the frame, as each view draws it
 surface         verbs on words, views of kinds
-  verbs         c, p and p -a: this, look, do
+  verbs         c, p and run: this, look, do
     → cur       this
   views         the terminal, gio, the page
     → see       drawn

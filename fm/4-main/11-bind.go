@@ -44,13 +44,11 @@ func (m *fm) bind() {
 	b("y", "yank path", func() { m.yank(false) })
 	b("Y", "yank content", func() { m.yank(true) })
 	b("z", "zoxide", m.zoxide)
+	// the keys that are no letter, by byte, as sort has them
 	b(" ", "select", m.toggleSel)
-	b("?", "help", m.help)
-	b("*", "chmod +x", m.chmod)
-	b("=", "clone", func() { m.clone(false) })
-	b("+", "clone dir", func() { m.clone(true) })
-	b(".", "hidden", func() { m.hidden = !m.hidden })
-	b("/", "search", m.search)
+	b("!", "run: to the shell's prompt", func() {
+		m.spawn(true, false, cmdRun)
+	})
 	b("'", "mark here", func() {
 		if m.alt != "" {
 			m.alt = ""
@@ -58,7 +56,13 @@ func (m *fm) bind() {
 			m.alt = m.cwd
 		}
 	})
+	b("*", "chmod +x", m.chmod)
+	b("+", "clone dir", func() { m.clone(true) })
+	b(".", "hidden", func() { m.hidden = !m.hidden })
+	b("/", "search", m.search)
 	b(";", "shell", func() { m.detach() })
+	b("=", "clone", func() { m.clone(false) })
+	b("?", "help", m.help)
 	b("`", "home", func() { m.cd(userHome) })
 	// in and out: enter and backspace in either layout, and right and
 	// left, h and l, where the view's rows have no left or right

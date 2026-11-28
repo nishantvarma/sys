@@ -113,8 +113,8 @@ a back key.
 
 The mouse is acme's three buttons on these verbs, the same in every
 pane: left is this, `c`; right is look, `p`, which opens what the word
-names; middle is do, `p -a`, which hands it to the shell's prompt, where
-Return runs it (`design/mouse`).
+names; middle is do, `run`, which hands it to the shell's prompt, where
+Return runs it, and fm's `!` says it too (`design/mouse`).
 
 ## the filesystem is the outline
 
@@ -221,9 +221,9 @@ in POSIX and fm won't notice; it only ever execs these by name.
     zathura, mpv, mocp, foliate, xchm, microsoft-edge
                   o's openers, by extension, and edge p's for a url
 
-`sh/` is the scripts these bindings actually run — c, m, p, e, o, v, l,
-spawn, warp, todo, lint, check, the finders f and s, and v's small prompt
-helpers. `./build` copies them into bin/ next to the compiled programs;
+`sh/` is the scripts these bindings actually run — c, check, e, l, lint,
+m, o, p, run, spawn, todo, v, warp, the finders f and s, and v's small
+prompt helpers. `./build` copies them into bin/ next to the compiled programs;
 edit or replace them like anything else here.
 
 `tmux/` is the same idea one layer out: the bindings that run those

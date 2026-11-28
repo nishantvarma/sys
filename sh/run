@@ -1,0 +1,53 @@
+#!/usr/bin/env -S 9 rc
+
+# run is do, the middle button's verb (design/mouse), said with a key too,
+# fm's !, and again from m: it hands a thing to the shell, at its prompt,
+# and Return is yours. a word is said to cur, as a click says it; a file
+# that runs is said as run, so the log keeps the act and m offers it
+# again, while a file the shell takes only as a word, git add's, stays
+# the select it was. a phrase is a command and no name, and a url no
+# file: each goes as it came.
+#
+#	run [text]	text, else cur
+#
+# the shell is the pane you marked, else the pane named shell, @slot, a
+# frame's, the eye going with it, else the last pane; in gio's window,
+# which keeps its terminals itself, the window is asked (studio hand). a
+# pane found so takes it only while a shell waits at its prompt, for a
+# program there would read the text as its keys. it goes as a paste, not
+# keys, bracketed for a program that asks, so nothing in it runs.
+
+ifs='
+'
+n=$"*
+if (~ $#* 0) n=`{c}
+if (! ~ $"n *' '* http://* https://*) {
+	n=`{c $"n}
+	if (test -f $"n && test -x $"n) n=`{c -v run $"n}
+}
+if (~ $#n 0) exit
+
+# what gio's frame starts is told its window, and has no tmux pane
+if (~ $"TMUX_PANE '' && ! ~ $"STUDIO_WINDOW '') exec studio hand $"n
+
+eye=()
+dst='{marked}'
+if (~ `{tmux display -p '#{pane_marked_set}'} 0) {
+	# a frame's panel, hidden, shows again to take it
+	frame=`{tmux show -wqv -t $TMUX_PANE @studio-frame >[2]/dev/null}
+	if (! ~ $#frame 0) studio panel show >[2]/dev/null
+	dst=`{tmux list-panes -t $TMUX_PANE -f '#{==:#{@slot},shell}' \
+		-F '#{pane_id}' >[2]/dev/null}
+	if (~ $#dst 0) dst='{last}'
+	if not eye=$dst
+	sh=`{tmux show -gv default-shell | sed 's,.*/,,'}
+	at=`{tmux display -p -t $dst '#{pane_current_command}'}
+	if (! ~ $"at $"sh) {
+		tmux display-message 'run: no shell at its prompt'
+		exit
+	}
+}
+tmux copy-mode -q -t $dst
+tmux set-buffer -b p -- ' '^$"n
+tmux paste-buffer -d -p -b p -t $dst
+if (! ~ $#eye 0) tmux select-pane -t $eye

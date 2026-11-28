@@ -6,7 +6,7 @@ Each is a verb sys has already. The eye is the pane keys go to.
 	left     this     c       the text becomes cur, and every view on
 	                          cur goes there; the eye stays
 	right    look     p, o    open what it names, and the eye goes there
-	middle   do       p -a    hand it to the shell, at its prompt
+	middle   do       run     hand it to the shell, at its prompt
 
 The case, carried through: the shell in a frame prints sh/o:24, as
 grep -n prints a hit.
@@ -19,9 +19,9 @@ grep -n prints a hit.
 
 In a frame, the frame is where it lands
   A frame's panes carry their slots' names, @slot (`studio/frame`), and
-  the three verbs name theirs: e reaches ed, o a folder's fm, and p -a
-  the shell. e asks studio to show the source tab, and p -a the panel,
-  which studio does in tmux and in gio's window alike; then o and p -a
+  the three verbs name theirs: e reaches ed, o a folder's fm, and run
+  the shell. e asks studio to show the source tab, and run the panel,
+  which studio does in tmux and in gio's window alike; then o and run
   ask tmux for the pane by its name, so the rule is one: the pane named
   for the verb, else a pane of its own. ed and fm run with -f, following
   cur, so opening a thing there is saying it and moving the eye: nothing
@@ -37,16 +37,19 @@ Look never runs
   o shows a thing, and the shell runs one: a script is text, so a right
   click opens it in ed, and a middle click hands it to the prompt, where
   only Return runs it. o ran what was executable until this, which made
-  a tap on ./w a run of sudo and rm -rf.
+  a tap on ./w a run of sudo and rm -rf. fm's ! hands the row on as a
+  middle click does, and a script handed so is said as run: a click
+  after it only selects, and keeps it, so m offers the run again
+  (`sh/run`).
 
 The click is the word, or the selection it falls in
   As in acme, a right or a middle click inside a selection takes the
   selection: ed's, or one copy mode holds. One word is resolved to what
-  it names, its punctuation stripped; several are a phrase, which p -a
+  it names, its punctuation stripped; several are a phrase, which run
   hands on as it came, for it is a command, not a name.
 
 The text goes in as a paste
-  p -a pastes rather than types: a selection's lines come joined, and a
+  run pastes rather than types: a selection's lines come joined, and a
   program that asks for brackets, bash among them, takes the paste as
   text and never as its keys, so nothing in it runs. It goes only to a
   shell at its prompt, unless the pane is the one you marked: a program
@@ -55,7 +58,7 @@ The text goes in as a paste
 What is where
 	gesture    tmux/conf, ed's view, sys/view    which text, which button
 	resolve    sh/c                              text to an address
-	dispatch   sh/o, sh/e, sh/p -a               an address to a program,
+	dispatch   sh/o, sh/e, sh/run                an address to a program,
 	                                             or to the frame's slot
 	views      ed -f, fm -f                      follow cur
   Nothing new runs: no plumber, no socket, no table but o's

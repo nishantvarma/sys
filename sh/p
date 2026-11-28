@@ -10,7 +10,7 @@
 #	p [%pane] [-a | -c] [- | text]
 #	p	look: open what the text names, a right click (design/mouse)
 #	p -c	this: say it, and stop at cur, a left click
-#	p -a	do: hand it to the shell, at its prompt, a middle click
+#	p -a	do: hand it to the shell, at its prompt, a middle click (run)
 
 pane=()
 if (~ $1 %*) { pane=(-t $1); TMUX_PANE=$1; shift }
@@ -40,41 +40,13 @@ if (! ~ $#pane 0) {
 # and c is not asked.
 text=`{echo $"* | sed 's,^[^/~._a-zA-Z0-9]*,,; s,[^/~_a-zA-Z0-9]*$,,'}
 if (~ $#text 0) exit
-n=$"text
-if (~ $mode -a && ~ $"* *' '*) n=$"*
-if not if (! ~ $"text http://* https://*) n=`{c $"text}
 
-# the shell takes it at its prompt: the pane you marked, else the pane
-# named shell, @slot, a frame's, the eye going with it, else the last
-# pane. a pane found so takes it only while a shell waits at its prompt,
-# for a program there would read the text as its keys. it goes as a
-# paste, not keys, bracketed for a program that asks, so nothing in it
-# runs: Return is yours.
-if (~ $mode -a) {
-	eye=()
-	dst='{marked}'
-	if (~ `{tmux display -p '#{pane_marked_set}'} 0) {
-		# a frame's panel, hidden, shows again to take it
-		frame=`{tmux show -wqv -t $TMUX_PANE @studio-frame \
-			>[2]/dev/null}
-		if (! ~ $#frame 0) studio panel show >[2]/dev/null
-		dst=`{tmux list-panes -t $TMUX_PANE -f '#{==:#{@slot},shell}' \
-			-F '#{pane_id}' >[2]/dev/null}
-		if (~ $#dst 0) dst='{last}'
-		if not eye=$dst
-		sh=`{tmux show -gv default-shell | sed 's,.*/,,'}
-		at=`{tmux display -p -t $dst '#{pane_current_command}'}
-		if (! ~ $"at $"sh) {
-			tmux display-message 'p -a: no shell at its prompt'
-			exit
-		}
-	}
-	tmux copy-mode -q -t $dst
-	tmux set-buffer -b p -- ' '^$"n
-	tmux paste-buffer -d -p -b p -t $dst
-	if (! ~ $#eye 0) tmux select-pane -t $eye
-	exit
-}
+# do is run's (sh/run): a phrase goes as it came, a word as the strip
+# leaves it, and run says what it names
+if (~ $mode -a && ~ $"* *' '*) exec run $"*
+if (~ $mode -a) exec run $"text
+n=$"text
+if (! ~ $"text http://* https://*) n=`{c $"text}
 if (~ $mode -c) exit
 
 # said once, then handed on whole: m 0 is the address with its line, so

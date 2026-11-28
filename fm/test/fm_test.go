@@ -476,8 +476,8 @@ func TestWindowed(t *testing.T) {
 // terminal of its own, and draws on neither: a pick's fzy shows the
 // finder's lines there and takes its choice from there, and fm lands on
 // the line chosen; F's lint writes there and pause holds it, and fm draws
-// again only once a key is typed there. Stand-ins play the finder, fzy,
-// lint, pause and zoxide.
+// again only once a key is typed there; and ! hands the row to run.
+// Stand-ins play the finder, fzy, lint, pause, run and zoxide.
 func TestConsole(t *testing.T) {
 	dir := t.TempDir()
 	for _, f := range []string{"alpha", "beta"} {
@@ -490,6 +490,7 @@ func TestConsole(t *testing.T) {
 			`read pick </dev/tty; echo "$pick"`,
 		"lint":   `echo "lint $*"`,
 		"pause":  "echo continue; read x",
+		"run":    `echo "run $*"`,
 		"zoxide": "",
 	} {
 		os.WriteFile(filepath.Join(stand, name),
@@ -537,6 +538,13 @@ func TestConsole(t *testing.T) {
 	pty.Write([]byte("\n"))
 	if got := drawn(held); got != ". .. alpha >beta" {
 		t.Errorf("a key on the console, and fm shows %q", got)
+	}
+	handed := later("!")
+	if !seen("run " + filepath.Join(dir, "beta")) {
+		t.Error("! handed run nothing on the console")
+	}
+	if got := drawn(handed); got != ". .. alpha >beta" {
+		t.Errorf("! on beta, and fm shows %q", got)
 	}
 }
 
