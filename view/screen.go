@@ -127,12 +127,14 @@ func (v *Term) screen(word string, w, h int) ([]line, line) {
 	if v.last == nil {
 		return nil, bottom
 	}
-	top, foot := chrome(h)
+	top, foot := v.chrome(h)
 	room := max(0, h-top-foot)
 	lines := []line{v.head(w)}
 	if top > 1 {
-		lines = append(lines, rule(w), blank(w), v.switches(w),
-			blank(w))
+		lines = append(lines, rule(w), blank(w))
+	}
+	if top > 3 {
+		lines = append(lines, v.switches(w), blank(w))
 	}
 	var body []line
 	switch {
@@ -157,11 +159,15 @@ func (v *Term) screen(word string, w, h int) ([]line, line) {
 
 // chrome is how many lines the view keeps above its body and below it, h
 // high: the head, a rule, a blank, the switch and a blank on top, and a
-// blank and the status below. A pane too short for that keeps the head
-// and the status alone.
-func chrome(h int) (top, foot int) {
-	if h < 12 {
+// blank and the status below; a picture or a doc, which have no layouts
+// to switch, keep the head, the rule and a blank. A pane too short for
+// that keeps the head and the status alone.
+func (v *Term) chrome(h int) (top, foot int) {
+	switch {
+	case h < 12:
 		return 1, 1
+	case v.scrolls():
+		return 3, 2
 	}
 	return 5, 2
 }
@@ -292,22 +298,20 @@ func (v *Term) chips(room int) (*ink, []spot) {
 }
 
 // switches is the line over the body: the view's layouts, the one in use
-// lit and the other a click's to turn to; none for a picture or a doc.
+// lit and the other a click's to turn to.
 func (v *Term) switches(w int) line {
 	k := (&ink{}).add(" ", "", "", false)
 	var spots []spot
-	if !v.scrolls() {
-		for _, name := range layouts {
-			on := name == v.layout()
-			c, key := tty.Quiet, "t"
-			if on {
-				c, key = tty.Accent, ""
-			}
-			spots = append(spots, spot{x: k.w, key: key})
-			k.add(name, c, "", on)
-			spots = append(spots, spot{x: k.w})
-			k.add("  ", "", "", false)
+	for _, name := range layouts {
+		on := name == v.layout()
+		c, key := tty.Quiet, "t"
+		if on {
+			c, key = tty.Accent, ""
 		}
+		spots = append(spots, spot{x: k.w, key: key})
+		k.add(name, c, "", on)
+		spots = append(spots, spot{x: k.w})
+		k.add("  ", "", "", false)
 	}
 	return line{k.clip(w).pad(w, ""), spots}
 }
@@ -319,24 +323,43 @@ func (v *Term) layout() string {
 
 // listed is the body as the folder's rows: as many as fit in room lines,
 // the cursor's kept in the middle when it can be, and a count of the rows
-// that did not fit.
+// that did not fit; an outline's parts with a blank line between those
+// that stand apart (apart).
 func (v *Term) listed(w, room int) []line {
-	rows := v.rows()
+	rows, c := v.rows(), 0
+	cur, parts := v.curRow(rows), v.isOutline()
+	var items []int // a row's index, or -1 for a blank line between parts
+	last := map[*outline.Node]*outline.Node{}
+	for i, r := range rows {
+		if prev := last[v.up[r]]; parts && prev != nil && apart(prev, r) {
+			items = append(items, -1)
+		}
+		last[v.up[r]] = r
+		if i == cur {
+			c = len(items)
+		}
+		items = append(items, i)
+	}
 	n := room
-	if len(rows) > n {
+	if len(items) > n {
 		n--
 	}
 	n = max(0, n)
-	off := max(0, min(v.curRow(rows)-n/2, len(rows)-n))
-	vis := rows[off:min(off+n, len(rows))]
+	off := max(0, min(c-n/2, len(items)-n))
 	at := v.factsAt(rows, w)
 	var lines []line
-	for i, r := range vis {
-		lines = append(lines, line{v.paint(off+i, r, w, at),
-			[]spot{{x: 0, id: r.ID}}})
+	shown := 0
+	for _, i := range items[off:min(off+n, len(items))] {
+		if i < 0 {
+			lines = append(lines, blank(w))
+			continue
+		}
+		lines = append(lines, line{v.paint(i, rows[i], w, at),
+			[]spot{{x: 0, id: rows[i].ID}}})
+		shown++
 	}
-	if len(rows) > n && room > 0 {
-		lines = append(lines, more(len(rows)-n, w))
+	if len(items) > n && room > 0 {
+		lines = append(lines, more(len(rows)-shown, w))
 	}
 	return lines
 }
@@ -503,11 +526,12 @@ func (v *Term) pictured(w, room int) []line {
 // scrolled is lines from the one the view has scrolled to, as many as fit
 // in room, w wide, the last a count of those below when they do not all
 // fit: a picture's or a doc's, which scroll to their last page and no
-// further.
+// further. They are a copy, for a doc keeps its lines (typed), and the
+// count, or a line lit, put in its place would stay in them.
 func (v *Term) scrolled(lines []line, w, room int) []line {
 	v.top = max(0, min(v.top, len(lines)-room))
-	vis := lines[v.top:min(len(lines), v.top+room):min(len(lines),
-		v.top+room)]
+	vis := append([]line(nil),
+		lines[v.top:min(len(lines), v.top+room)]...)
 	below := len(lines) - v.top - len(vis)
 	if below > 0 && len(vis) > 0 {
 		vis, below = vis[:len(vis)-1], below+1

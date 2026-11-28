@@ -90,11 +90,15 @@ Kinds, never looks
   in cells, as sys/picture lays one out, each view drawing the cells its
   way. A picture is the one tree a view reads, not draws only: its parts
   go as the note's lines, which sys/picture, asked by kind, reads. The
-  terminal's best is nroff's: a doc's prose to a measure of 72 columns,
-  a name bold, an address underlined, a top head ruled off, and a
-  declaration's doc hung under its name, its summary bright and the rest
-  soft; and an outline's rows its parts' names, a quiet guide under each
-  part unfolded, what is said of a part on the cursor's row alone.
+  terminal's best is nroff's: a doc's prose to a measure of 72 columns, a
+  name bold, an address underlined, a top head ruled off, and a
+  declaration, which is code, on the panel, as code is, its doc, which is
+  prose, hung under it, its summary bright and the rest soft, as godoc and
+  a man page set them; and an outline's rows its parts' names, a quiet
+  guide under each part unfolded, what is said of a part on the cursor's
+  row alone. Both set parts apart as one rule says: a blank line between
+  parts of two kinds and around a part that holds parts, while leaves of a
+  kind stand together, as a table does.
 
 The structure is the tree, not a language
   Folders and files carry it down to the idea, and inside a file the

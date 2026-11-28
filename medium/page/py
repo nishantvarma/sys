@@ -454,8 +454,8 @@ def tree(name: str, source: str) -> list:
             if ln.strip():
                 lines.append((at + i, ln.strip()))
             elif lines:
-                at, text = lines[0][0], " ".join(t for _, t in lines)
-                para = {"id": f"{name}:{at}", "kind": "para", "text": text}
+                start, text = lines[0][0], " ".join(t for _, t in lines)
+                para = {"id": f"{name}:{start}", "kind": "para", "text": text}
                 out.append(para)
                 lines = []
         return out

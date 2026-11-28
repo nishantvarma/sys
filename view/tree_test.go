@@ -1,6 +1,7 @@
 package view
 
 import (
+	"regexp"
 	"strings"
 	"testing"
 
@@ -58,25 +59,38 @@ func shown(v *Term) []string {
 // unfolded, the rest folded, each part saying how many rows it holds, and
 // the cursor's the first of what it says too; a guide stands under a
 // part's caret beside the rows it holds; a row's name stands in a column
-// with its fellows'.
+// with its fellows'; and a blank line stands between parts of two kinds,
+// and around a part that holds rows.
 // → unfolds a folded part and, on an unfolded one, steps in, which the
 // program hears; ← on a part holding none goes to the part it is under
 // and folds it; and as thumbs → goes a card on, as it does in a folder.
 func TestOutline(t *testing.T) {
 	v := New(nil, "")
-	v.In(0, 0, 60, 16)
+	v.In(0, 0, 60, 18)
 	v.Draw(spoken(t, "outline", 10), "hi", nil)
-	got := strings.Join(shown(v)[5:11], "\n")
+	got := strings.Join(shown(v)[5:15], "\n")
 	want := strings.Join([]string{
 		"  1    view: a program and its view",
+		"",
 		"  2    A program says what to show, as view/term.go does.",
+		"",
 		"  3  ▸ Messages                                      1 row",
+		"",
 		"  4  ▾ Who holds what                                2 rows",
 		"  5  │   program  the data and the cursor",
 		"▌ 6  │   between  ideas, by name",
+		"",
 	}, "\n")
 	if got != want {
 		t.Errorf("the outline:\n%s\nwant:\n%s", got, want)
+	}
+	row := func(of string) string { // the body's line with of in it
+		for _, l := range shown(v)[1:] {
+			if strings.Contains(l, of) {
+				return l
+			}
+		}
+		return ""
 	}
 	if !strings.Contains(shown(v)[0], ": between") {
 		t.Errorf("the head names no cursor's row: %q", shown(v)[0])
@@ -84,16 +98,15 @@ func TestOutline(t *testing.T) {
 	v.Handle(tty.Key{Name: tty.KUp})
 	v.Handle(tty.Key{Name: tty.KUp})
 	v.Handle(tty.Key{Name: tty.KUp})
-	if !strings.Contains(shown(v)[7], "Messages  plain data, a line") {
-		t.Errorf("the cursor's row says no lead: %q", shown(v)[7])
+	if l := row("Messages"); !strings.Contains(l, "plain data, a line") {
+		t.Errorf("the cursor's row says no lead: %q", l)
 	}
 	if ev, theirs := v.Handle(tty.Key{Name: tty.KRight}); theirs {
 		t.Errorf("→ on a folded part is the view's, not %v", ev)
 	}
-	if !strings.Contains(shown(v)[7], "▾ Messages") ||
-		!strings.Contains(shown(v)[8], "to the view  draw, ask") {
-		t.Errorf("→ opened nothing:\n%s",
-			strings.Join(shown(v)[5:12], "\n"))
+	if !strings.Contains(row("Messages"), "▾") ||
+		row("to the view  draw, ask") == "" {
+		t.Errorf("→ opened nothing:\n%s", strings.Join(shown(v), "\n"))
 	}
 	ev, _ := v.Handle(tty.Key{Name: tty.KRight})
 	if ev.Node != outline.At("n", 7) {
@@ -116,7 +129,8 @@ func TestOutline(t *testing.T) {
 // wider than the measure however wide the view; a row's text beside its
 // name, bold, filled from its column; an address underlined; the part at
 // the cursor marked, its lines on the bar behind an edge; a word a click
-// falls on is said whole, an address too; and G scrolls to the end.
+// falls on is said whole, an address too; G scrolls to the end; and a
+// scroll leaves the doc's lines as they were, one count of those below.
 func TestDoc(t *testing.T) {
 	v := New(nil, "")
 	v.In(0, 0, 36, 24)
@@ -161,9 +175,23 @@ func TestDoc(t *testing.T) {
 	}
 	v.In(0, 0, 36, 12)
 	v.Handle(tty.Key{Rune: 'g'})
-	if top := strings.Join(shown(v), "\n"); !strings.Contains(top,
-		"view: a program") {
+	top := strings.Join(shown(v), "\n")
+	if !strings.Contains(top, "view: a program") {
 		t.Errorf("g scrolled not to the top:\n%s", top)
+	}
+	count := regexp.MustCompile(`^ \+[0-9]+$`) // how many lines below
+	for i := 0; i < 4; i++ {
+		v.Handle(tty.Key{Name: tty.KDown})
+		n := 0 // drawn at each step, as a window draws a frame
+		for _, l := range shown(v) {
+			if count.MatchString(l) {
+				n++
+			}
+		}
+		if n > 1 {
+			t.Fatalf("a count among the doc's lines, %d down:\n%s",
+				i+1, strings.Join(shown(v), "\n"))
+		}
 	}
 	v.Handle(tty.Key{Rune: 'G'})
 	end := strings.Join(shown(v), "\n")
@@ -173,8 +201,9 @@ func TestDoc(t *testing.T) {
 	}
 }
 
-// TestDocDeclared: a declaration's doc hangs under its name, four columns
-// in, its summary bright and its later paragraphs soft, the name bold.
+// TestDocDeclared: a declaration stands on the panel, its name bold, and
+// its doc hangs under it, four columns in, its summary bright and its
+// later paragraphs soft.
 func TestDocDeclared(t *testing.T) {
 	src := "package p\n\n// F says what it does.\n//\n" +
 		"// And how, in more words.\nfunc F() {}\n"
@@ -200,7 +229,7 @@ func TestDocDeclared(t *testing.T) {
 		t.Errorf("the doc stands at column %d, not %d", n, margin+4)
 	}
 	name, later := looks["F"], looks["And"]
-	if !name.Bold || later.Color != tty.Soft {
+	if !name.Bold || name.Ground != tty.Panel || later.Color != tty.Soft {
 		t.Errorf("the name %+v, the later paragraph %+v", name, later)
 	}
 }

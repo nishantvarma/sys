@@ -278,6 +278,44 @@ func TestLensKinds(t *testing.T) {
 	}
 }
 
+// TestLensPython: Python's reader, page/py -t, gives each part the line
+// it starts on, as its id, a docstring's every paragraph too, so that no
+// two parts share one and the cursor lights the one it is on.
+func TestLensPython(t *testing.T) {
+	src := `"""Title.
+
+Two.
+
+Three,
+run on.
+
+Four.
+"""
+
+
+def f():
+    pass
+`
+	c := exec.Command("../../medium/page/py", "-t", "m.py")
+	c.Stdin = strings.NewReader(src)
+	out, err := c.Output()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var parts []*outline.Node
+	if err := json.Unmarshal(out, &parts); err != nil {
+		t.Fatal(err)
+	}
+	var ids []string
+	for _, p := range parts {
+		ids = append(ids, p.ID)
+	}
+	want := "m.py:1 m.py:3 m.py:5 m.py:8 m.py:12"
+	if got := strings.Join(ids, " "); got != want {
+		t.Errorf("the parts start at %s, not %s", got, want)
+	}
+}
+
 // TestLensGo: Go's reader puts a method under its type, out of the order
 // the file has them, and the cursor still goes to the part ed's line is
 // in, the method; and a file half typed shows as far as it parses, the

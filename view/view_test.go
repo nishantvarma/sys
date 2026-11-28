@@ -256,9 +256,9 @@ func TestAt(t *testing.T) {
 		{thumbs, 23, 6, ""},
 		{thumbs, 25, 5, "/a/c"},
 		{fig, 0, 0, "n"},
-		{fig, 9, 7, "n:3"},
-		{fig, 11, 11, "n:4"},
-		{fig, 9, 10, ""},
+		{fig, 9, 5, "n:3"},
+		{fig, 11, 9, "n:4"},
+		{fig, 9, 8, ""},
 	} {
 		if got := c.v.At(c.x, c.y); got != c.want {
 			t.Errorf("%d,%d: %q, want %q", c.x, c.y, got, c.want)

@@ -85,6 +85,16 @@ func column(ns []*outline.Node) int {
 	return w
 }
 
+// apart is whether a blank line stands between two parts side by side in
+// an outline, prev and n, as a doc sets them apart (gap): parts of two
+// kinds, a list's items and steps one, and a part that holds rows on
+// both sides, while leaves of a kind stand together, as a table does.
+func apart(prev, n *outline.Node) bool {
+	list := func(k string) bool { return k == "item" || k == "step" }
+	same := prev.Kind == n.Kind || list(prev.Kind) && list(n.Kind)
+	return !same || len(held(prev)) > 0 || len(held(n)) > 0
+}
+
 // index notes the part each part is under, in the tree drawn last.
 func (v *Term) index() {
 	v.up = map[*outline.Node]*outline.Node{}

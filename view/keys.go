@@ -100,7 +100,7 @@ func (v *Term) Ask(prompt, def string) (string, bool) {
 // when the key is no scroll.
 func (v *Term) scroll(name string) bool {
 	_, h := v.Size()
-	top, foot := chrome(h)
+	top, foot := v.chrome(h)
 	page := max(1, h-top-foot-1)
 	switch name {
 	case tty.KDown:
@@ -206,7 +206,7 @@ func (v *Term) move(name string) (to string, moved bool) {
 	}
 	rows := v.rows()
 	w, h := v.Size()
-	top, foot := chrome(h)
+	top, foot := v.chrome(h)
 	page := max(1, h-top-foot-1)
 	step := 1
 	if v.layout() == "thumbs" {

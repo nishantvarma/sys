@@ -64,7 +64,7 @@ func (v *Term) docked(w, room int) []line {
 	if here != v.seen {
 		for i, l := range ls {
 			if len(l.spots) > 0 && l.spots[0].id == here {
-				v.top = i - room/3
+				v.top = block(ls, i-room/3, i-room+1)
 				break
 			}
 		}
@@ -79,9 +79,23 @@ func (v *Term) docked(w, room int) []line {
 	return vis
 }
 
+// block is where a doc shown from line top starts, moved up to the first
+// line of the block that line is in, the line after a blank one, so that a
+// head is never cut from its rule nor a paragraph from its first line;
+// but not above line least, past which what was to be in sight is not.
+func block(ls []line, top, least int) int {
+	top = max(0, top)
+	for at := top; at > 0 && at > least; at-- {
+		if len(ls[at-1].spots) == 0 {
+			return at
+		}
+	}
+	return top
+}
+
 // lit is a line of the part at the cursor, as a doc marks one: its edge
 // the accent's ▌, and its ground the bar's, but where it is the panel's,
-// a code's.
+// a code's or a declaration's.
 func lit(l line) line {
 	k := &ink{w: l.ink.w}
 	for i, r := range l.ink.runs {
@@ -103,14 +117,16 @@ const (
 	measure = 72
 )
 
-// setter sets a doc's parts as lines, w wide: the lines so far, and the
-// kind of the part set last and whether it held parts, which say the room
-// before the next (gap).
+// setter sets a doc's parts as lines, w wide: the lines so far; the kind
+// of the part set last and whether it held parts, which say the room
+// before the next (gap); and the ground it sets text on, the panel's
+// while it sets a declaration, whose text is code (set).
 type setter struct {
 	out  []line
 	w    int
 	last string
 	held bool
+	bg   string
 }
 
 // piece is some of a word, in its look: an address and the text around
@@ -126,10 +142,12 @@ type piece struct {
 // fellows' names; an item's or a step's sign before its text; and any
 // other kind, a section's or Go's, a head, in its look, bold, or its name
 // bold when it declares one; a top head, and the title, ruled off; and
-// under each its parts, two columns in, a row's from its column, a
-// declaration's four, hung under its name as a man page hangs a tag's.
-// A doc, the parts under a declaration, keeps its first paragraph, the
-// summary, bright, and its later ones soft, for the eye to skim.
+// under each its parts, two columns in, a row's from its column. A
+// declaration is code, and stands on the panel, as a code does, across
+// the measure, its lines past the first four columns in, as code goes on;
+// its doc is prose, hung four columns under it, as a man page hangs a
+// tag's, its first paragraph, the summary, bright, and its later ones
+// soft, for the eye to skim.
 func (t *setter) set(ns []*outline.Node, in int, doc bool) bool {
 	col := column(ns) + 2 // where a row's text starts
 	any, first := false, true
@@ -170,11 +188,15 @@ func (t *setter) set(ns []*outline.Node, in int, doc bool) bool {
 			mark := []piece{{text: s, fg: c}}
 			t.fill(n, in, in+2, mark, tty.Fore, false)
 		default:
-			t.fill(n, in, in, nil, look(n.Kind).Color, true)
+			hang := in
+			if declares(n) {
+				hang, t.bg = in+4, tty.Panel
+			}
+			t.fill(n, in, hang, nil, look(n.Kind).Color, true)
 			if n.Kind == "section" && in == margin {
 				t.rule(n, in)
 			}
-			t.last = "head"
+			t.bg, t.last = "", "head"
 		}
 		t.last, t.held = n.Kind, t.set(parts, under, declares(n))
 	}
@@ -194,25 +216,28 @@ func (t *setter) gap(n *outline.Node) {
 	holds := len(held(n)) > 0 || kind != "row" && lead(n) != nil
 	if len(t.out) > 0 && t.last != "head" &&
 		(block || !same || t.held || holds) {
-		t.out = append(t.out, blank(t.w))
+		t.out = append(t.out, line{ink: t.start(t.w)})
 	}
 	t.last, t.held = kind, false
 }
 
-// fill sets a part's text, its words filled to the measure, the first
-// line from column in, after mark, and the rest from column hang, in fg
-// and bold as words says them.
+// fill sets a part's text, its words filled to the measure, in fg and
+// bold as words says them: the first line from column in, and when it has
+// a mark, a row's name or an item's sign, that first, its text then from
+// column hang; and the rest of its lines from column hang.
 func (t *setter) fill(n *outline.Node, in, hang int, mark []piece, fg string,
 	bold bool) {
-	right := min(t.w-2, margin+measure)
+	right := t.right()
 	k := t.start(in)
 	for _, p := range mark {
 		t.put(k, p)
 	}
-	if k.w > hang { // a mark too wide for its column
-		k.add(" ", "", "", false)
+	if len(mark) > 0 {
+		if k.w > hang { // a mark too wide for its column
+			k.add(" ", "", "", false)
+		}
+		k.pad(hang, "")
 	}
-	k.pad(hang, "")
 	fresh, last := true, piece{}
 	for _, w := range words(n, fg, bold) {
 		wide := 0
@@ -236,9 +261,15 @@ func (t *setter) fill(n *outline.Node, in, hang int, mark []piece, fg string,
 	t.end(k, n.ID)
 }
 
-// put puts a piece on a line, in its look.
+// right is the column a doc's lines end at: the measure's, or the view's
+// last but one, when it is narrower.
+func (t *setter) right() int {
+	return min(t.w-2, margin+measure)
+}
+
+// put puts a piece on a line, in its look, on the setter's ground.
 func (t *setter) put(k *ink, p piece) {
-	k.add(p.text, p.fg, "", p.bold)
+	k.add(p.text, p.fg, t.bg, p.bold)
 	if p.under {
 		k.under()
 	}
@@ -270,14 +301,23 @@ func (t *setter) code(n *outline.Node, in int) {
 }
 
 // start is a line from column in, its first column the edge, which the
-// part at the cursor lights (lit).
+// part at the cursor lights (lit); on a ground, from the column before in.
 func (t *setter) start(in int) *ink {
-	return (&ink{}).add(" ", tty.Accent, "", false).pad(in, "")
+	k := (&ink{}).add(" ", tty.Accent, "", false)
+	if t.bg != "" {
+		k.pad(in-1, "")
+	}
+	return k.pad(in, t.bg)
 }
 
-// end puts a line of part id among the lines, w wide, its spot the part.
+// end puts a line of part id among the lines, w wide, its spot the part;
+// on a ground, to the column past the right edge.
 func (t *setter) end(k *ink, id string) {
-	k.clip(t.w).pad(t.w, "")
+	k.clip(t.w)
+	if t.bg != "" {
+		k.pad(t.right()+1, t.bg)
+	}
+	k.pad(t.w, "")
 	t.out = append(t.out, line{k, []spot{{x: 0, id: id}}})
 }
 
