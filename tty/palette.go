@@ -35,10 +35,25 @@ const (
 // Paint is s drawn in colour fg on ground bg, each from the palette, or
 // "" for the terminal's own, and bold when asked; the look ends with s.
 func Paint(s, fg, bg string, bold bool) string {
+	return paint(s, fg, bg, bold, false)
+}
+
+// Underline is s painted as Paint paints it, and underlined: an address,
+// as nroff marks one on a terminal.
+func Underline(s, fg, bg string, bold bool) string {
+	return paint(s, fg, bg, bold, true)
+}
+
+// paint is s in its look: SGR's reset, then bold and underline when asked,
+// then its colours.
+func paint(s, fg, bg string, bold, under bool) string {
 	var b strings.Builder
 	b.WriteString("\x1b[0")
 	if bold {
 		b.WriteString(";1")
+	}
+	if under {
+		b.WriteString(";4")
 	}
 	if fg != "" {
 		b.WriteString(";38;2;" + rgb(fg))

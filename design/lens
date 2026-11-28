@@ -6,20 +6,30 @@ frame whose tabs are the thing's source and its lenses, one shown at a
 time, Tab turning to the next:
 
 	source     the text as written, the one tab typed in: ed -f
-	outline    its items by their indent, as rows, or as thumbs with t,
-	           as fm lays out a folder: studio show outline
-	render     what the text makes for a person to see: for a note its
-	           picture, as sys/picture lays it out: studio show render
+	outline    its parts, as rows that fold, or as thumbs with t, as fm
+	           lays out a folder: studio show outline
+	render     what the text makes for a person to see: its parts set
+	           for the eye, or a note's picture when it is written as
+	           parts and messages: studio show render
 	diff       what changed since the last commit, as git says it:
 	           studio show diff
 
-render is what the text becomes for the eye, whatever form that takes: a
-note's picture now, and a scene's animation or a video in time, each by
-a renderer for its kind, as the view asks a primitive by its kind
-(`design/view:/asked by kind/`); a renderer joins
-`studio/4-lens/18-rendered.go`, and a new way to see a thing joins the
-lenses as a line (`studio/4-lens/02-lenses.go:/var lenses/`) and the lens
-view as a tab.
+The reader, by kind
+  The outline and the render are one tree, which the reader for the
+  thing's kind makes of it, the right tool, picked by a line as sh/o
+  picks an opener (`studio/4-lens/26-readers.go:/var readers/`):
+	a note     its parts as its writer marks them (outline.Parts)
+	Go         its declarations, by go/parser (outline.Go)
+	Python     its classes and defs, by page/py -t, a program, as pic
+	           is troff's
+	the rest   its lines, by their indent, the floor (outline.Text)
+  The outline draws the tree's parts, a row each, and folds them, the way
+  to the cursor unfolded; the render draws all of it set as nroff sets a
+  page, prose filled to a measure, a table's names in a column, a name
+  bold, an address underlined. The lens says what each part is, and how
+  is the view's (`design/view:/Kinds, never looks/`). A reader joins as a
+  line, and a way to see a thing joins the lenses as one
+  (`studio/4-lens/02-lenses.go:/var lenses/`) and the lens view as a tab.
 
 The idea: a frame is slots, and a slot is tabs
 	frame      slots in the order they take room, laid out as a golden
@@ -43,8 +53,9 @@ The case, carried through: design/arch at fm's cursor
 	            render  diff, is the border over the slot, source lit
 	Tab         in ed runs l, and the outline shows in the slot's place,
 	            from the text as ed holds it, unsaved lines too
-	j, enter    the next item, said to cur, so ed's cursor goes to its
-	            line; enter opens it, and the source shows there
+	j, enter    the next part, said to cur, so ed's cursor goes to its
+	            line; l unfolds a part, h folds it, and enter opens it,
+	            the source showing there
 	Tab Tab     the render, then the diff; Tab again, the source
 
 Layout: the golden spiral, over the panel
@@ -107,7 +118,8 @@ The tabs in gio's window
 Read, never typed
   No key types in the outline, the render or the diff, so none changes the
   text out of sight. A move says where it is to cur; enter, or a right
-  click, opens what the row names
+  click, opens what the row names, and in the render a right click opens
+  the word it falls on, as in ed
   (`studio/4-lens/08-run.go:/func (l *lensing) run/`). Run alone, outside a
   frame, studio show has every lens, Tab turning them, its state saying
   the one shown.
@@ -124,13 +136,17 @@ What is where
 	studio/cheatsheet     the keys, the tab line and l, for use
 	the frame's layout    the golden spiral over the panel
 	                      (`studio/1-frame`)
-	sys/view              outline, render and diff, drawn as it draws fm
+	sys/view              the outline as rows that fold, the render set
+	                      as nroff sets a page, and the diff as rows
 	gio's window          the same tabs, its tab line's names buttons
 	sys/vt                a terminal, st's: the window's panel's
 	                      terminals
 	outline.Note          the note an address names, for ed and the lens
-	outline.Text          the items, by their indent
-	sys/picture           a note's render, its picture
+	the readers           a note's parts, Go's declarations, Python's
+	                      by page/py, the rest by its indent
+	                      (`studio/4-lens/26-readers.go`)
+	sys/picture           a note's picture, its render when it is
+	                      written as parts and messages
 
 What it costs
   - a program a lens, each following cur, and a file between them and ed:

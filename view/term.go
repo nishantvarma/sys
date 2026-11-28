@@ -21,10 +21,33 @@ import (
 // Look is how the terminal draws a kind: its colour, from tty's palette;
 // the mark after its name, as / after a folder's; the word a card says it
 // by, folder; and the colour of what is said beside it, its facts. The
-// program says how its kinds look; what it leaves out is the palette's
-// foreground, and facts faint.
+// view says how each kind looks (looks), never the program
+// (`design/view:/Kinds, never looks/`).
 type Look struct {
 	Color, Mark, Word, Said string
+}
+
+// looks is how the view draws the kinds it knows, from tty's palette: a
+// folder's things each in its colour, with the mark ls -F gives it after
+// its name and the word a card says it by, a broken link's target in its
+// own red; a diff's added lines as additions are, its removed lines as
+// removals are, its hunks as links, as git colours them, and its header
+// faint, as the words of a lens with nothing to show are; and a section
+// in the accent, as a folder is, for it holds parts as a folder holds
+// things. What it leaves out is the palette's foreground, and facts faint.
+var looks = map[string]Look{
+	"bad": {Color: tty.Minus, Mark: "@", Word: "broken link",
+		Said: tty.Gone},
+	"link":    {Color: tty.Link, Mark: "@", Word: "link"},
+	"dir":     {Color: tty.Accent, Mark: "/", Word: "folder"},
+	"exec":    {Color: tty.Plus, Mark: "*", Word: "program"},
+	"file":    {Word: "file"},
+	"add":     {Color: tty.Plus},
+	"del":     {Color: tty.Minus},
+	"hunk":    {Color: tty.Link},
+	"meta":    {Color: tty.Faint},
+	"waits":   {Color: tty.Faint},
+	"section": {Color: tty.Accent},
 }
 
 // Term is the view: the tree drawn last, the program's word and state,
@@ -32,18 +55,22 @@ type Look struct {
 // columns it is given.
 type Term struct {
 	t      *tty.Term
-	home   string          // the folder the top line says as ~
-	looks  map[string]Look // how the program's kinds are drawn
-	last   *outline.Node   // the tree drawn last
-	cur    string          // the row a move went to, till the next Draw
+	home   string        // the folder the top line says as ~
+	last   *outline.Node // the tree drawn last
+	cur    string        // the row a move went to, till the next Draw
 	status string
 	state  []string // the program's state, drawn last
 	lay    int      // the layout in use, of layouts
 	region bool     // in x, y, w, h, not the whole terminal
 	x, y   int
 	w, h   int
-	top    int    // a picture's first line shown
+	top    int    // a picture's or a doc's first line shown
 	drew   []line // the lines drawn last, all but the bottom one
+	// an outline's rows unfolded, by id; each part's, the part it is
+	// under; and the part a doc's cursor was on when it was drawn last
+	unfolded map[string]bool
+	up       map[*outline.Node]*outline.Node
+	seen     string
 	// the last left press, for a second soon after on its cell (mouse)
 	press  time.Time
 	px, py int
@@ -71,9 +98,9 @@ type spot struct {
 }
 
 // New is the view on the whole of t, as fm draws itself: home is the
-// folder its top line says as ~, and looks is how it draws each kind.
-func New(t *tty.Term, home string, looks map[string]Look) *Term {
-	return &Term{t: t, home: home, looks: looks}
+// folder its top line says as ~.
+func New(t *tty.Term, home string) *Term {
+	return &Term{t: t, home: home}
 }
 
 // In puts the view in a region of the terminal: w by h, its top left at
@@ -82,13 +109,21 @@ func (v *Term) In(x, y, w, h int) {
 	v.region, v.x, v.y, v.w, v.h = true, x, y, w, h
 }
 
-// Draw shows the tree, the program's word and its state. A picture
-// scrolled down starts at its top again when the tree is another.
+// Draw shows the tree, the program's word and its state. When the tree is
+// another, a picture or a doc scrolled down starts at its top again, and
+// an outline's rows fold; an outline unfolds the way to the part the
+// program draws the cursor on.
 func (v *Term) Draw(n *outline.Node, status string, state []string) {
 	if v.last == nil || n.ID != v.last.ID {
-		v.top = 0
+		v.top, v.unfolded, v.seen = 0, map[string]bool{}, ""
 	}
-	v.last, v.status, v.state, v.cur = n, status, state, ""
+	v.last, v.status, v.state, v.cur, v.up = n, status, state, "", nil
+	if v.isOutline() || v.isDoc() {
+		v.index()
+	}
+	if c := v.marked(); v.isOutline() && c != nil {
+		v.reveal(c)
+	}
 	v.show(status)
 }
 

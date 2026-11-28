@@ -10,11 +10,6 @@ import (
 	"sys/tty"
 )
 
-// looks is how the tests' program draws its kinds: a folder in the
-// accent, / after its name, a card saying folder.
-var looks = map[string]Look{"dir": {Color: tty.Accent, Mark: "/",
-	Word: "folder"}}
-
 // sgr is a colour said in the terminal's words, for reading a screen
 // without its colours (plain).
 var sgr = regexp.MustCompile(`\x1b\[[0-9;]*m`)
@@ -41,7 +36,7 @@ func pair() *outline.Node {
 // region is a view of n alone in a region w by h at the terminal's top
 // left, drawn: what it wrote, and the view.
 func region(n *outline.Node, w, h int) (string, *Term) {
-	v := New(nil, "", looks)
+	v := New(nil, "")
 	v.In(0, 0, w, h)
 	v.last = n
 	return v.drawn("hi"), v
@@ -54,7 +49,7 @@ var placed = regexp.MustCompile(`\x1b\[(\d+);(\d+)H`)
 // starts at its own corner and is padded to its width, the header first
 // and the bottom line last.
 func TestRegion(t *testing.T) {
-	v := New(nil, "", looks)
+	v := New(nil, "")
 	v.In(10, 2, 20, 6)
 	v.last = tree()
 	out := v.drawn("hi")
@@ -195,7 +190,6 @@ func TestScroll(t *testing.T) {
 		{tty.Key{Rune: '3'}, 1, true},
 		{tty.Key{Name: tty.KLeft}, 1, true},
 		{tty.Key{Rune: 'g'}, 0, false},
-		{tty.Key{Rune: 'G'}, 13, false},
 	} {
 		ev, ok := v.Handle(c.key)
 		if ok != c.theirs || v.top != c.top ||
@@ -204,9 +198,10 @@ func TestScroll(t *testing.T) {
 				c.key.Token(), ev, ok, v.top, c.top)
 		}
 	}
+	v.Handle(tty.Key{Rune: 'G'})
 	v.drawn("")
 	if v.top != 9 {
-		t.Errorf("drawn at top %d, want 9: 13 lines, 4 shown", v.top)
+		t.Errorf("G drew at top %d, want 9: 13 lines, 4 shown", v.top)
 	}
 	if v.lay != 0 {
 		t.Errorf("t in a picture turned the layout to %d", v.lay)
@@ -237,7 +232,7 @@ func TestTop(t *testing.T) {
 // the chrome, below the rows, or off the view.
 func TestAt(t *testing.T) {
 	_, list := region(tree(), 40, 12)
-	thumbs := New(nil, "", looks)
+	thumbs := New(nil, "")
 	thumbs.In(0, 0, 60, 12)
 	thumbs.last, thumbs.lay = tree(), 1
 	thumbs.drawn("")
@@ -293,7 +288,7 @@ func TestLayouts(t *testing.T) {
 		append(top[:5:5], rows...),
 		append(home, cards...),
 	} {
-		v := New(nil, "/a", looks)
+		v := New(nil, "/a")
 		v.In(0, 0, 40, 12)
 		v.last, v.lay = tree(), lay
 		v.drawn("")
@@ -335,7 +330,7 @@ func TestFacts(t *testing.T) {
 		{60, long, 51, false}, // the name cut short before them
 		{20, "c", -1, true},   // too narrow: the name alone
 	} {
-		v := New(nil, "/a", looks)
+		v := New(nil, "/a")
 		v.In(0, 0, c.w, 12)
 		v.last = tree()
 		v.last.Kids[1].Text = c.name
@@ -361,7 +356,7 @@ func TestFacts(t *testing.T) {
 // its region is high, the bottom line last, saying what the terminal's
 // would, and the cursor's row on the bar.
 func TestLines(t *testing.T) {
-	v := New(nil, "/a", looks)
+	v := New(nil, "/a")
 	v.In(0, 0, 40, 12)
 	v.Draw(tree(), "hi", nil)
 	lines := v.Lines()
@@ -393,7 +388,7 @@ func TestLines(t *testing.T) {
 // as rows, which have no left or right, the program hears h as left and l
 // as right, to go out and in.
 func TestVi(t *testing.T) {
-	thumbs := New(nil, "", looks)
+	thumbs := New(nil, "")
 	thumbs.In(0, 0, 60, 12)
 	thumbs.last, thumbs.lay = tree(), 1
 	thumbs.drawn("")
@@ -423,7 +418,7 @@ func TestVi(t *testing.T) {
 // comes through Handle, as a host that reads the terminal hands it on.
 func TestMouse(t *testing.T) {
 	t.Setenv("PATH", "") // no p to send anything with
-	v := New(nil, "", looks)
+	v := New(nil, "")
 	v.In(0, 2, 40, 12)
 	v.last = tree()
 	v.drawn("")

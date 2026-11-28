@@ -7,14 +7,13 @@ import (
 	"time"
 
 	"sys/outline"
-	"sys/picture"
 	"sys/tty"
 )
 
 // Key reads the next key, does what is the view's own (see Handle), and
-// hands back the first that is the program's. Outside a picture a digit
-// starts a row's number, which takes the keys after it (see jump); the
-// mouse is read as a click (mouse).
+// hands back the first that is the program's. Among rows a digit starts a
+// row's number, which takes the keys after it (see jump); the mouse is
+// read as a click (mouse).
 func (v *Term) Key() (outline.Key, bool) {
 	for {
 		k, ok := v.t.ReadKey()
@@ -27,7 +26,7 @@ func (v *Term) Key() (outline.Key, bool) {
 			}
 			continue
 		}
-		if name := k.Token(); digit(name) && !v.isPicture() {
+		if name := k.Token(); digit(name) && !v.scrolls() {
 			return outline.Key{Node: v.jump(name)}, true
 		}
 		if ev, theirs := v.Handle(k); theirs {
@@ -38,11 +37,12 @@ func (v *Term) Key() (outline.Key, bool) {
 
 // Handle is a key given to the view, as a host gives one, rather than read by
 // it. What is the view's own it does itself. vi's h j k l are the arrows. In
-// a picture, down and up scroll it, a line or a page, and g and G to its top
-// and its bottom. Elsewhere, t turns to the other layout, the folder's rows
-// or thumbs; a move goes down, up, to the last row or a page on, and as
-// thumbs right and left too, where rows have no left or right, and the
-// program hears them. The program hears where the cursor landed, and every
+// a picture or a doc, down and up scroll it, a line or a page, and g and G to
+// its top and its bottom. Elsewhere, t turns to the other layout, the
+// folder's rows or thumbs; a move goes down, up, to the last row or a page
+// on, and as thumbs right and left too; an outline's rows fold, right and
+// left as the page has them (fold); and where rows have no left or right,
+// the program hears them. The program hears where the cursor landed, and every
 // other key, a digit too, for a row's number takes the keys after it, and
 // only Key reads keys; false when there is nothing for it to hear. A mouse
 // report is a click, as Key reads one (mouse), so a host that reads the
@@ -56,7 +56,7 @@ func (v *Term) Handle(k tty.Key) (outline.Key, bool) {
 		name, text = arrow, ""
 	}
 	theirs := outline.Key{Name: name, Text: text}
-	if v.isPicture() {
+	if v.scrolls() {
 		if v.scroll(name) {
 			return outline.Key{}, false
 		}
@@ -64,6 +64,15 @@ func (v *Term) Handle(k tty.Key) (outline.Key, bool) {
 	}
 	if name == "t" {
 		v.lay = (v.lay + 1) % len(layouts)
+		v.show(v.status)
+		return outline.Key{}, false
+	}
+	if v.isOutline() && v.layout() == "rows" &&
+		(name == tty.KRight || name == tty.KLeft) {
+		if to, moved := v.fold(name); moved {
+			v.cur = to
+			return outline.Key{Node: to}, true
+		}
 		v.show(v.status)
 		return outline.Key{}, false
 	}
@@ -86,9 +95,9 @@ func (v *Term) Ask(prompt, def string) (string, bool) {
 	return tty.ReadLine(v.t, prompt, nil, def)
 }
 
-// scroll does a key that scrolls a picture: down and up a line or a page,
-// g to its top and G to its bottom, where drawing it stops; false when
-// the key is no scroll.
+// scroll does a key that scrolls a picture or a doc: down and up a line or
+// a page, g to its top and G to its bottom, where drawing it stops; false
+// when the key is no scroll.
 func (v *Term) scroll(name string) bool {
 	_, h := v.Size()
 	top, foot := chrome(h)
@@ -105,10 +114,7 @@ func (v *Term) scroll(name string) bool {
 	case "g":
 		v.top = 0
 	case "G":
-		// past the last page: pictured stops it there
-		if f, err := picture.New(v.last.Kids); err == nil {
-			v.top = len(f.Runes())
-		}
+		v.top = 1 << 30 // past the last page, where drawing stops it
 	default:
 		return false
 	}
@@ -127,9 +133,10 @@ var vi = map[string]string{"h": tty.KLeft, "j": tty.KDown, "k": tty.KUp,
 // card or a part of the head's path, or presses the key a chip or the
 // other layout's name shows (keyAt); a right press, or a second left one
 // soon after on the same cell, the touchpad's right click, is enter on
-// it, the program's own open, but on the head, whose parts are places, it
-// goes there as a left press does; a middle press hands it to the shell
-// (send); and the wheel moves, as down and up do.
+// it, the program's own open, with the word it fell on in a doc (Word),
+// but on the head, whose parts are places, it goes there as a left press
+// does; a middle press hands it to the shell (send); and the wheel moves,
+// as down and up do.
 // A report comes at a cell counted from 1, of the whole terminal.
 func (v *Term) mouse(k tty.Key) (outline.Key, bool) {
 	switch {
@@ -151,7 +158,7 @@ func (v *Term) mouse(k tty.Key) (outline.Key, bool) {
 	if id == "" {
 		return outline.Key{}, false
 	}
-	open := outline.Key{Name: tty.KEnter, Node: id}
+	open := outline.Key{Name: tty.KEnter, Node: id, Text: v.Word(x, y)}
 	if y == 0 {
 		open.Name = ""
 	}

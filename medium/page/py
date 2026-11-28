@@ -17,8 +17,12 @@ after a body's last def are its end, Field.end; at the top, before-Field
 and end. no id holds a line number, so an added line moves no address.
 
     medium/page/py file.py [page.html] > file.html
+    medium/page/py -t file.py < text
 
-page.html defaults to the medium's.
+page.html defaults to the medium's. -t is the reader the lens runs for a
+python file (`studio/4-lens/26-readers.go`): the tree of the text on
+stdin, which may be what ed holds unsaved, as sys's outline.Node in JSON,
+its ids file.py:line (tree).
 
 check: node medium/page/run.mjs file.html, on the page it made
 """
@@ -26,6 +30,7 @@ check: node medium/page/run.mjs file.html, on the page it made
 import ast
 import html
 import io
+import json
 import keyword
 import re
 import sys
@@ -328,13 +333,10 @@ def node(d: Def, lines, marks) -> str:
     )
 
 
-def heading(n) -> str:
-    """the def line: its decorators and def, or class, faint, the name bold,
-    then a def's params or a class's bases."""
-    decos = "".join(
-        f'<span class="kwd">@{esc(ast.unparse(x))} </span>'
-        for x in n.decorator_list
-    )
+def signature(n) -> tuple[list[str], str, str]:
+    """a def line's parts: its decorators, its word, def or class, and,
+    after its name, a def's params or a class's bases."""
+    decos = ["@" + ast.unparse(x) for x in n.decorator_list]
     if isinstance(n, ast.ClassDef):
         bases = [ast.unparse(b) for b in n.bases] + [
             f"{k.arg}={ast.unparse(k.value)}"
@@ -342,12 +344,18 @@ def heading(n) -> str:
             else f"**{ast.unparse(k.value)}"
             for k in n.keywords
         ]
-        word, after = "class", f"({', '.join(bases)})" if bases else ""
-    else:
-        word = "async def" if isinstance(n, ast.AsyncFunctionDef) else "def"
-        after = f"({params(n)})"
+        return decos, "class", f"({', '.join(bases)})" if bases else ""
+    word = "async def" if isinstance(n, ast.AsyncFunctionDef) else "def"
+    return decos, word, f"({params(n)})"
+
+
+def heading(n) -> str:
+    """the def line: its decorators and def, or class, faint, the name bold,
+    then a def's params or a class's bases."""
+    decos, word, after = signature(n)
+    marks = "".join(f'<span class="kwd">{esc(d)} </span>' for d in decos)
     return (
-        f'<span class="sig">{decos}<span class="kwd">{word} </span>'
+        f'<span class="sig">{marks}<span class="kwd">{word} </span>'
         f"<b>{esc(n.name)}</b>{esc(after)}</span>"
     )
 
@@ -420,10 +428,67 @@ def esc(text: str) -> str:
     return html.escape(text)
 
 
+# -- the tree --
+
+
+def tree(name: str, source: str) -> list:
+    """the module as the tree the lens reads (outline.Node): a class a part
+    of kind type, a def one of kind func, its text its def line, and under
+    it the runs of that text, its name of kind name, then its docstring, a
+    para a paragraph, then a class's own; the module's docstring first,
+    its first paragraph the title. an id is name:n, n the line a part
+    starts on, its first decorator's."""
+    mod = ast.parse(source)
+
+    def paras(n) -> list:
+        """a docstring's paragraphs, each its lines run on, its id the line
+        it starts on: get_docstring drops the lines before its text, a
+        docstring's quotes alone on theirs, so they are counted back."""
+        doc, out, lines = ast.get_docstring(n), [], []
+        if not doc:
+            return out
+        raw = n.body[0].value.value
+        before = raw[: len(raw) - len(raw.lstrip())]
+        at = n.body[0].lineno + before.count("\n")
+        for i, ln in enumerate(doc.split("\n") + [""]):
+            if ln.strip():
+                lines.append((at + i, ln.strip()))
+            elif lines:
+                at, text = lines[0][0], " ".join(t for _, t in lines)
+                para = {"id": f"{name}:{at}", "kind": "para", "text": text}
+                out.append(para)
+                lines = []
+        return out
+
+    def part(d: Def) -> dict:
+        decos, word, after = signature(d.node)
+        before, called = " ".join(decos + [word]) + " ", d.node.name
+        runs = [{"text": before}, {"kind": "name", "text": called}]
+        runs += [{"text": after}] if after else []
+        return {
+            "id": f"{name}:{first_line(d.node)}",
+            "kind": "type" if isinstance(d.node, ast.ClassDef) else "func",
+            "text": before + called + after,
+            "kids": runs + paras(d.node) + [part(c) for c in d.children],
+        }
+
+    top = paras(mod)
+    if top:
+        top[0]["kind"] = "title"
+    return top + [part(d) for d in outline(mod)[0]]
+
+
 # -- the files --
 
 
 def main():
+    if sys.argv[1:2] == ["-t"]:
+        name = sys.argv[2]
+        try:
+            print(json.dumps(tree(name, sys.stdin.read())))
+        except SyntaxError as e:
+            sys.exit(f"{name}:{e.lineno}: {e.msg}")
+        return
     path = Path(sys.argv[1])
     medium = Path(__file__).resolve().parent.parent
     template = Path(sys.argv[2]) if len(sys.argv) > 2 else medium / "page.html"

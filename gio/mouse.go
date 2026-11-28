@@ -33,8 +33,9 @@ func (p *pane) clicked(x, y int) string {
 }
 
 // look is a right press at cell x, y of p. On a row of the view it is
-// enter, the program's own open, and on the head's path a step there;
-// on a text its word, or the selection, opens, as p opens it (lookat).
+// enter, the program's own open, with the word it fell on in a doc (as
+// sys/view's Word says it), and on the head's path a step there; on a
+// text its word, or the selection, opens, as p opens it (lookat).
 func (v *window) look(p *pane, x, y int) {
 	if !p.isText() {
 		id := p.v.At(x, y)
@@ -43,7 +44,8 @@ func (v *window) look(p *pane, x, y int) {
 		case y == 0:
 			p.key("", id)
 		default:
-			p.key(tty.KEnter, id)
+			p.send("key", outline.Key{Name: tty.KEnter, Node: id,
+				Text: p.v.Word(x, y)})
 		}
 		return
 	}

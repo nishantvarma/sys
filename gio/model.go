@@ -48,26 +48,11 @@ type app struct {
 	clickedAt time.Time
 }
 
-// looks are how the window draws the kinds of the programs it hosts, as
-// they tell their terminal views: fm's (`fm/1-fs/21-looks.go`) and the
-// lens's (`studio/4-lens/04-looks.go`). Down a pipe a program says none.
-var looks = map[string]view.Look{
-	"bad": {Color: tty.Minus, Mark: "@", Word: "broken link",
-		Said: tty.Gone},
-	"link":  {Color: tty.Link, Mark: "@", Word: "link"},
-	"dir":   {Color: tty.Accent, Mark: "/", Word: "folder"},
-	"exec":  {Color: tty.Plus, Mark: "*", Word: "program"},
-	"file":  {Word: "file"},
-	"add":   {Color: tty.Plus},
-	"del":   {Color: tty.Minus},
-	"hunk":  {Color: tty.Link},
-	"meta":  {Color: tty.Faint},
-	"waits": {Color: tty.Faint},
-}
-
+// newApp is a program as the window holds it, what is no text laid out by
+// sys/view, which says how each kind looks, as on the terminal.
 func newApp(out *json.Encoder) app {
 	home, _ := os.UserHomeDir()
-	return app{out: out, v: view.New(nil, home, looks)}
+	return app{out: out, v: view.New(nil, home)}
 }
 
 func (a *app) send(kind string, v any) {

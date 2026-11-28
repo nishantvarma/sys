@@ -13,8 +13,10 @@ import (
 // line's text, past its mark (see mark), with no blank line between and no
 // mark of its own. A blank line only parts. Tabs count to the next multiple
 // of 8. Each node's id is id:n, n the line it starts on, so it is an
-// address too. Nothing is guessed past the indent: text with no structure
-// is a list of lines, and is made structured by indenting it.
+// address too, and its kind is line. Nothing is guessed past the indent:
+// text with no structure is a list of lines, and is made structured by
+// indenting it. It is the floor, what reads a text no reader knows the
+// kind of (Parts, Go), and what a picture is read by (sys/picture).
 func Text(r io.Reader, id string) []*Node {
 	type level struct {
 		in int // the column its line starts at
@@ -41,7 +43,7 @@ func Text(r io.Reader, id string) []*Node {
 			continue
 		}
 		at := At(id, ln)
-		n := &Node{ID: at, Kind: "item", Text: body}
+		n := &Node{ID: at, Kind: "line", Text: body}
 		for len(up) > 0 && up[len(up)-1].in >= in {
 			up = up[:len(up)-1]
 		}
@@ -61,30 +63,17 @@ func Text(r io.Reader, id string) []*Node {
 }
 
 // mark is how long the mark that leads a line's text is, 0 with none: a
-// dash, with a box after it or not ("- [ ] "); or a number or a label,
-// all up to the last run of two spaces or more ("1  ", "view     ").
+// dash, with a box after it or not ("- [ ] "), and the spaces after it;
+// or a row's name and the run of spaces after it, as Parts reads a row
+// (cut): "1  ", "view     ".
 func mark(s string) int {
-	if strings.HasPrefix(s, "- ") {
-		n := 2
-		box := s[n:min(len(s), n+4)]
-		if box == "[ ] " || box == "[x] " {
-			n += 4
-		}
-		return n + gap(s[n:])
+	if m := marked.FindString(s); m != "" {
+		return len(m) + gap(s[len(m):])
 	}
-	at := 0
-	for i := 0; i < len(s); {
-		if s[i] != ' ' {
-			i++
-			continue
-		}
-		g := gap(s[i:])
-		if g >= 2 && i+g < len(s) {
-			at = i + g
-		}
-		i += g
+	if _, said := cut(s); said != "" {
+		return len(s) - len(said)
 	}
-	return at
+	return 0
 }
 
 // gap is how many spaces lead s.

@@ -51,6 +51,19 @@ func widest(lines ...string) int {
 	return n
 }
 
+// Pictured is whether a note's items are written as a picture, its parts
+// and the messages between them: an item of it is a message, its label
+// starting with →, as read takes one.
+func Pictured(items []*outline.Node) bool {
+	for _, n := range items {
+		label, _ := split(n.Text)
+		if strings.HasPrefix(label, "→") || Pictured(n.Kids) {
+			return true
+		}
+	}
+	return false
+}
+
 // read is the picture a note's items make. Its head, the first item and
 // the items under it, is its title and lead (outline.Head). Each other
 // item is a box: its label up to the first run of two spaces, its note

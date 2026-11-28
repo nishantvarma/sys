@@ -82,11 +82,21 @@ func (p *pane) list() []*strip {
 	return lines
 }
 
-// stripOf is a line of sys/view's runs as the window draws it
+// stripOf is a line of sys/view's runs as the window draws it, an
+// underlined one a run of its own, as a terminal's (row)
 func stripOf(rs []view.Run) *strip {
 	k := &strip{}
 	for _, r := range rs {
-		k.add(r.Text, r.Color, r.Ground, r.Bold)
+		if !r.Under {
+			k.add(r.Text, r.Color, r.Ground, r.Bold)
+			continue
+		}
+		fg := r.Color
+		if fg == "" {
+			fg = tty.Fore
+		}
+		u := run{r.Text, fg, r.Ground, r.Bold, true}
+		k.runs, k.w = append(k.runs, u), k.w+len([]rune(r.Text))
 	}
 	return k
 }

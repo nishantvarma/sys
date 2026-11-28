@@ -8,7 +8,7 @@ func (m *fm) run() error {
 		return err
 	}
 	m.t = t
-	m.ui = view.New(t, userHome, looks)
+	m.ui = view.New(t, userHome)
 	m.wake()
 	catchInterrupt()
 	t.Write(tty.AltOn + tty.Civis)

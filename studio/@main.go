@@ -41,6 +41,7 @@ import (
 	"errors"
 	"fmt"
 	"html"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"

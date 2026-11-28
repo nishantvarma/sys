@@ -73,5 +73,5 @@ func showVerb(args []string) error {
 		t.Close()
 	}()
 	home, _ := os.UserHomeDir()
-	return l.run(view.New(t, home, looks), t, wt)
+	return l.run(view.New(t, home), t, wt)
 }

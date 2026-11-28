@@ -4,7 +4,8 @@
 // In a file's diff, a line of the file as it is now is named by its
 // address, so a key on one goes there; a removed line, and a folder's
 // diff, name no place. git's own word says why there is no diff (git).
-func diffed(th thing) ([]*outline.Node, error) {
+func diffed(th thing) (*outline.Node, string, error) {
+	const word = "git diff, against the last commit"
 	path := th.path
 	dir, file := path, false
 	if fi, err := os.Stat(path); err == nil && !fi.IsDir() {
@@ -13,16 +14,16 @@ func diffed(th thing) ([]*outline.Node, error) {
 	// outside a repository git diff compares two paths, HEAD the first:
 	// ask for the repository first, so that its absence is the word
 	if _, err := git(dir, "rev-parse", "--git-dir"); err != nil {
-		return nil, err
+		return nil, word, err
 	}
 	out, err := git(dir, "diff", "--no-color", "HEAD", "--", path)
 	if err != nil {
-		return nil, err
+		return nil, word, err
 	}
 	diff := strings.TrimRight(string(out), "\n")
 	if diff == "" {
-		return nil, errors.New("no change since the last commit," +
-			" or not tracked")
+		return nil, word, errors.New("no change since the last" +
+			" commit, or not tracked")
 	}
 	var ns []*outline.Node
 	in := false // in a hunk, where a line's first sign says what it does
@@ -52,5 +53,5 @@ func diffed(th thing) ([]*outline.Node, error) {
 		}
 		ns = append(ns, n)
 	}
-	return ns, nil
+	return &outline.Node{Kids: ns}, word, nil
 }

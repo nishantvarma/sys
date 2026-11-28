@@ -1,0 +1,11 @@
+gio draws the kinds itself
+
+the window draws sys/view's runs, one face on one grid
+(`gio/ft.go:/grid of one rune a column/`), so the lens's outline and
+render are the terminal's in a window: nroff where troff could be. it
+would draw the kinds it knows itself (`design/view:/Kinds, never looks/`):
+a face for prose and one for code, sizes, a hairline for depth, a count
+in a pill, a picture's cells as paths, an image by its path; and the
+terminal's cells for any kind it does not. it needs a second face and
+its advances, and a layout of its own beside sys/view's, where a click
+still names the part it falls on.

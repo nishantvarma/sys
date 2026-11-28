@@ -2,10 +2,11 @@
 // for in one q is fm's, or its view is gone. A change to cur moves it
 // there; a key on a node reaches it first (see reach), and one on a node
 // gone goes with it; enter, a right click's too, opens what the row names
-// (plumb). Tab turns to the next lens: for a lens fixed, a tab of the
-// frame's lens view, the frame's next tab (turn); else its own next. Its
-// drawing is a tree, the program's word how the lens sees the thing, and
-// its state the lens shown and a tally of what it shows.
+// (plumb), and in a doc the word it fell on. Tab turns to the next lens:
+// for a lens fixed, a tab of the frame's lens view, the frame's next tab
+// (turn); else its own next. Its drawing is a tree, the program's word how
+// the lens sees the thing, and its state the lens shown and a tally of
+// what it shows.
 func (l *lensing) run(ui outline.View, t *tty.Term,
 	wt *watch.Watcher) error {
 	var keys chan keyed
@@ -39,7 +40,7 @@ func (l *lensing) run(ui outline.View, t *tty.Term,
 		if fi, err := os.Stat(th.path); err == nil {
 			wt.Follow(folder(th.path, fi))
 		}
-		word := ln.by
+		tr, word := tree(th, ln)
 		switch {
 		case th.held && ln.typed:
 			word += ", as ed holds it unsaved"
@@ -49,7 +50,6 @@ func (l *lensing) run(ui outline.View, t *tty.Term,
 		if l.msg != "" {
 			word, l.msg = l.msg, ""
 		}
-		tr := tree(th, ln)
 		shows := []string{ln.name}
 		if n := tallyOf(tr); n != "" {
 			shows = append(shows, n)
@@ -85,7 +85,11 @@ func (l *lensing) run(ui outline.View, t *tty.Term,
 				}
 			}
 		case tty.KEnter:
-			plumb(l.at)
+			to := l.at // or, in a doc, the word a click fell on
+			if ev.Text != "" {
+				to = ev.Text
+			}
+			plumb(to)
 		}
 	}
 }

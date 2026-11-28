@@ -35,17 +35,26 @@ type ink struct {
 }
 
 // Run is text in one look, as the view draws it: its colour and its
-// ground, each from tty's palette or "" for the view's own, and bold or
-// not. A host that is no terminal draws a line's runs (Lines).
+// ground, each from tty's palette or "" for the view's own, bold or not,
+// and underlined or not. A host that is no terminal draws a line's runs
+// (Lines).
 type Run struct {
 	Text, Color, Ground string
-	Bold                bool
+	Bold, Under         bool
 }
 
 // add puts s at the end of the line, in fg on bg.
 func (k *ink) add(s, fg, bg string, bold bool) *ink {
-	k.runs = append(k.runs, Run{s, fg, bg, bold})
+	r := Run{Text: s, Color: fg, Ground: bg, Bold: bold}
+	k.runs = append(k.runs, r)
 	k.w += tty.Width(s)
+	return k
+}
+
+// under underlines the run put last: an address, as nroff marks one on a
+// terminal.
+func (k *ink) under() *ink {
+	k.runs[len(k.runs)-1].Under = true
 	return k
 }
 
@@ -100,6 +109,10 @@ func (k *ink) String() string {
 		if bg == "" {
 			bg = tty.Ground
 		}
+		if r.Under {
+			b.WriteString(tty.Underline(r.Text, fg, bg, r.Bold))
+			continue
+		}
 		b.WriteString(tty.Paint(r.Text, fg, bg, r.Bold))
 	}
 	return b.String()
@@ -125,6 +138,8 @@ func (v *Term) screen(word string, w, h int) ([]line, line) {
 	switch {
 	case v.isPicture():
 		body = v.pictured(w, room)
+	case v.isDoc():
+		body = v.docked(w, room)
 	case v.layout() == "thumbs":
 		body = v.cards(w, room)
 	default:
@@ -158,23 +173,29 @@ func (v *Term) isPicture() bool {
 }
 
 // where is the node the head names: the cursor's, else the folder shown;
-// as thumbs, the folder its cards are; a picture's, the note.
+// as thumbs, the folder its cards are; a picture's, the note; a doc's,
+// the part at its cursor, else the note.
 func (v *Term) where() *outline.Node {
+	if c := v.marked(); v.isDoc() && c != nil {
+		return v.rowOf(c)
+	}
 	rows := v.rows()
-	if v.isPicture() || len(rows) == 0 || v.layout() == "thumbs" {
+	if v.scrolls() || len(rows) == 0 || v.layout() == "thumbs" {
 		return v.last
 	}
 	return rows[v.curRow(rows)]
 }
 
-// head is the top line: where the cursor is (where), with its keys at
-// the right (headed).
+// head is the top line: where the cursor is (where), its label at most
+// half the line, with its keys at the right (headed).
 func (v *Term) head(w int) line {
 	n := v.where()
 	path, at := outline.Address(n.ID)
 	label := ""
 	if at > 0 {
-		label, _, _ = strings.Cut(printable(n.Text), "  ")
+		label, _, _ = strings.Cut(name(n), "  ")
+		k := (&ink{}).add(label, "", "", false).clip(w / 2)
+		label = k.runs[0].Text
 	}
 	return v.headed(path, n.ID, label, w)
 }
@@ -259,7 +280,7 @@ func (v *Term) crumbs(p string) []string {
 // from the chips' first column, is a spot that presses the key.
 func (v *Term) chips(room int) (*ink, []spot) {
 	k := &ink{}
-	if v.last == nil || v.isPicture() {
+	if v.last == nil || v.scrolls() {
 		return k, nil
 	}
 	k.add(" t ", tty.Fore, tty.Rule, false)
@@ -271,11 +292,11 @@ func (v *Term) chips(room int) (*ink, []spot) {
 }
 
 // switches is the line over the body: the view's layouts, the one in use
-// lit and the other a click's to turn to; none for a picture.
+// lit and the other a click's to turn to; none for a picture or a doc.
 func (v *Term) switches(w int) line {
 	k := (&ink{}).add(" ", "", "", false)
 	var spots []spot
-	if !v.isPicture() {
+	if !v.scrolls() {
 		for _, name := range layouts {
 			on := name == v.layout()
 			c, key := tty.Quiet, "t"
@@ -324,19 +345,23 @@ func (v *Term) listed(w, room int) []line {
 // past its longest name that has facts, so that no name is cut while the
 // view has room for it, and from saidAt at the least, so that facts line
 // up; but left enough for them to fit, the names then cut short before
-// them. 0 when the view is too narrow for a name and its facts both, and
-// shows the names alone.
+// them; an outline's at its right, leaving its parts room for what is
+// said of them. 0 when the view is too narrow for a name and its facts
+// both, and shows the names alone.
 func (v *Term) factsAt(rows []*outline.Node, w int) int {
 	lead := 1 + tty.Width(fmt.Sprintf("%2d  ", len(rows)))
-	name, said := 0, 0
+	wide, said := 0, 0
 	for _, n := range rows {
-		if s := printable(strings.Join(n.Tags, " ")); s != "" {
-			shown := printable(n.Text) + v.look(n.Kind).Mark
-			name = max(name, tty.Width(shown))
+		if s := v.facts(n); s != "" {
+			shown := printable(n.Text) + look(n.Kind).Mark
+			wide = max(wide, tty.Width(shown))
 			said = max(said, min(tty.Width(s), saidW))
 		}
 	}
-	at := min(max(saidAt, lead+name+2), w-1-said)
+	at := min(max(saidAt, lead+wide+2), w-1-said)
+	if v.isOutline() {
+		at = w - 1 - said
+	}
 	if at < lead+nameMin+2 {
 		return 0
 	}
@@ -347,8 +372,11 @@ func (v *Term) factsAt(rows []*outline.Node, w int) int {
 // then its name in its kind's look and its facts from column at, the name
 // cut short before them when it is longer; no facts at 0. The cursor's
 // row is lit across, its name bold; numbers are quiet and marks faint,
-// so that names are the loudest thing.
+// so that names are the loudest thing. An outline's row is a branch.
 func (v *Term) paint(i int, n *outline.Node, w, at int) *ink {
+	if v.isOutline() {
+		return v.branch(i, n, w, at)
+	}
 	on := v.isCur(n)
 	bg, edge, num := "", " ", tty.Quiet
 	switch {
@@ -357,16 +385,25 @@ func (v *Term) paint(i int, n *outline.Node, w, at int) *ink {
 	case n.Sel:
 		bg = tty.Rule
 	}
-	look := v.look(n.Kind)
+	l := look(n.Kind)
 	k := &ink{}
 	k.add(edge, tty.Accent, bg, false)
 	k.add(fmt.Sprintf("%2d  ", i+1), num, bg, false)
-	k.add(printable(n.Text), look.Color, bg, on)
-	k.add(look.Mark, tty.Faint, bg, false)
-	if said := printable(strings.Join(n.Tags, " ")); said != "" && at > 0 {
-		k.clip(at-2).pad(at, bg).add(said, look.Said, bg, false)
+	k.add(printable(n.Text), l.Color, bg, on)
+	k.add(l.Mark, tty.Faint, bg, false)
+	if f := v.facts(n); f != "" && at > 0 {
+		k.clip(at-2).pad(at, bg).add(f, l.Said, bg, false)
 	}
 	return k.clip(w-1).pad(w, bg)
+}
+
+// facts is what the view says of a row at its right, faint: what the
+// program says of it, its tags, or of an outline's part, its tally.
+func (v *Term) facts(n *outline.Node) string {
+	if v.isOutline() {
+		return tally(n)
+	}
+	return printable(strings.Join(n.Tags, " "))
 }
 
 // cards is the body as thumbs: the folder's things as cards, as many
@@ -420,16 +457,14 @@ func (v *Term) card(rows []*outline.Node, start, per, w int) (*ink, *ink,
 		case n.Sel:
 			bg = tty.Rule
 		}
-		look := v.look(n.Kind)
-		name := printable(n.Text)
-		said := strings.Join(strings.Fields(printable(
-			strings.Join(n.Tags, " "))), " ")
+		look := look(n.Kind)
+		said := strings.Join(strings.Fields(v.facts(n)), " ")
 		word := look.Word
 		if word == "" {
 			word = n.Kind
 		}
 		a.add(edge, tty.Accent, bg, false)
-		a.add(name, look.Color, bg, true)
+		a.add(name(n), look.Color, bg, true)
 		a.add(look.Mark, tty.Faint, bg, false)
 		b.add(" ", "", bg, false).add(word, tty.Soft, bg, false)
 		if said != "" {
@@ -448,37 +483,39 @@ func (v *Term) card(rows []*outline.Node, start, per, w int) (*ink, *ink,
 
 // pictured is the body as a picture, a note whose kind is picture: its
 // items laid out as parts and messages (sys/picture) and drawn in runes,
-// from the line the view has scrolled to, as many as fit, with a count of
-// those below; a note that makes no picture says why. A cell of the
-// picture names what the picture says stands there.
+// scrolled (scrolled); a note that makes no picture says why. A cell of
+// the picture names what the picture says stands there.
 func (v *Term) pictured(w, room int) []line {
 	f, err := picture.New(v.last.Kids)
-	var pic []string
 	if err != nil {
-		pic = []string{printable(err.Error())}
-	} else {
-		for _, p := range f.Runes() {
-			pic = append(pic, printable(p))
-		}
+		why := drawing(" "+printable(err.Error()), true)
+		why.clip(w).pad(w, "")
+		return v.scrolled([]line{{ink: why}}, w, room)
 	}
-	v.top = max(0, min(v.top, len(pic)-room))
-	vis := pic[v.top:min(len(pic), v.top+room)]
-	below := len(pic) - v.top - len(vis)
+	var lines []line
+	for y, p := range f.Runes() {
+		k := drawing(" "+printable(p), false).clip(w).pad(w, "")
+		lines = append(lines, line{k, parts(f, y, w)})
+	}
+	return v.scrolled(lines, w, room)
+}
+
+// scrolled is lines from the one the view has scrolled to, as many as fit
+// in room, w wide, the last a count of those below when they do not all
+// fit: a picture's or a doc's, which scroll to their last page and no
+// further.
+func (v *Term) scrolled(lines []line, w, room int) []line {
+	v.top = max(0, min(v.top, len(lines)-room))
+	vis := lines[v.top:min(len(lines), v.top+room):min(len(lines),
+		v.top+room)]
+	below := len(lines) - v.top - len(vis)
 	if below > 0 && len(vis) > 0 {
 		vis, below = vis[:len(vis)-1], below+1
 	}
-	var lines []line
-	for i, p := range vis {
-		l := line{ink: drawing(" "+p, err != nil).clip(w).pad(w, "")}
-		if f != nil {
-			l.spots = parts(f, v.top+i, w)
-		}
-		lines = append(lines, l)
-	}
 	if below > 0 {
-		lines = append(lines, more(below, w))
+		vis = append(vis, more(below, w))
 	}
-	return lines
+	return vis
 }
 
 // drawing is a line of a picture in its looks: a box's border and a
@@ -536,12 +573,11 @@ func rule(w int) line {
 	return line{ink: k}
 }
 
-// look is how the view draws a kind: as the program says, a colour and a
-// mark, a word for a card, and a colour for what is said of it; a kind
-// the program says nothing of is the foreground's, and what is said of
-// it faint.
-func (v *Term) look(kind string) Look {
-	l := v.looks[kind]
+// look is how the view draws a kind (looks): a colour and a mark, a word
+// for a card, and a colour for what is said of it; a kind it says nothing
+// of is the foreground's, and what is said of it faint.
+func look(kind string) Look {
+	l := looks[kind]
 	if l.Color == "" {
 		l.Color = tty.Fore
 	}
@@ -588,10 +624,10 @@ func (v *Term) foot(word string, w int) *ink {
 }
 
 // pos is where the cursor is among what the view shows, 12/34; nothing
-// for a picture, which has no cursor, or for no rows.
+// for a picture or a doc, which scroll, or for no rows.
 func (v *Term) pos() string {
 	rows := v.rows()
-	if v.isPicture() || len(rows) == 0 {
+	if v.scrolls() || len(rows) == 0 {
 		return ""
 	}
 	return fmt.Sprintf("%d/%d", v.curRow(rows)+1, len(rows))

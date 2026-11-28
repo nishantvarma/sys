@@ -35,8 +35,9 @@ rebuild away.
 and the packages they share:
 
     outline   the tree a view draws, and the messages between a program
-              and its view; a note read into that tree by its indent,
-              and what a click on a text names
+              and its view; the readers that make it of a thing, a
+              note by its parts, Go by its declarations, any text by
+              its indent; and what a click on a text names
     tty       the shared terminal layer: raw mode, escape codes,
               key and click decoding, line input
     vt        a terminal as a host runs one, st's ported: what a
@@ -44,9 +45,10 @@ and the packages they share:
               and the mouse made what it reads; a program started on a
               pty. tty's other side, for gio's window to run terminals
     view      the outline drawn on a terminal: fm's layouts, rows and
-              thumbs, on the whole screen or in a region a host gives,
-              or as runs of text for a host that is no terminal, gio,
-              and a slot's tab line for it
+              thumbs, a lens's outline as rows that fold and its render
+              set as nroff sets a page, on the whole screen or in a
+              region a host gives, or as runs of text for a host that is
+              no terminal, gio, and a slot's tab line for it
     watch     says when files change in a folder: how a program follows
               cur
     state     a window's own files, cur and what ed holds unsaved, its
@@ -136,9 +138,10 @@ cursor, whose items are its indent. ed stays an editor: what more is
 known of a file's structure is for something beside it to say, the lens,
 whose ways to see the file take turns with ed as the tabs of one slot,
 the file as written, its outline, its render and its diff
-(`design/lens`). outline.Text reads a note into that tree by its indent,
-as Python is read, for what draws a note another way: studio's frame,
-and the lens's outline and render.
+(`design/lens`). outline.Parts reads a note into that tree as its writer
+marks it, its parts each of a kind, for the lens's outline and render;
+outline.Text reads one by its indent, as Python is read, for studio's
+frame and a picture.
 
 ## everything talks in messages
 
@@ -147,11 +150,14 @@ one is as much a foundation as the other. A program and its view, and one
 program and another, pass only messages: plain data, which crosses a
 channel, a pipe or a socket alike. So any piece can be another process,
 a view can be a terminal, a window or a page, and any program can drive
-another by sending it an idea. Nothing is shared but the messages; what a
-piece knows of another is what it was last told. `c` and the `m` log are
-messages already, a verb and the address it was said about, passed
-through files. The messages a program and its view pass are in
-`design/view`, and those between programs in `design/arch`.
+another by sending it an idea. A program says what it shows, its parts
+each of a kind, and never how; each view draws a kind its best, and one
+it does not know as its text (`design/view:/Kinds, never looks/`).
+Nothing is shared but the messages; what a piece knows of another is
+what it was last told. `c` and the `m` log are messages already, a verb
+and the address it was said about, passed through files. The messages a
+program and its view pass are in `design/view`; `design/arch` draws the
+whole, one tree, one pronoun and messages, as `arch.html`.
 
 ## the studio, and where it starts
 

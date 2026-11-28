@@ -31,9 +31,13 @@ l — the frame's verb, as vi's l steps right: the next tab (`sh/l`)
   studio panel   alt-t's verb: hide, show, or bare, turn
 
 a lens — the outline, the render, the diff (studio show)
-  h j k l      move, arrows too; the row moved to is said to cur, and
+  j k          move, arrows too; the row moved to is said to cur, and
                ed's cursor goes to its line
-  enter        open what the row names; a right click does the same
+  l h          the outline's part unfolded, and folded, as on the page:
+               l on one unfolded goes in, h on one folded goes up and
+               folds it
+  enter        open what the row names; a right click does the same,
+               and in the render opens the word it falls on
   t            the outline's rows, or its thumbs
   g G          the render's top and bottom, j k scrolling it
   q            outside a frame, quit; in one, q is fm's

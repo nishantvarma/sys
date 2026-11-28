@@ -1,7 +1,8 @@
 page: the studio's lens makers. Each reads a file and writes a page of nodes.
 
   list      a note, a folder or a page, read into the one list: lisp, or --json
-  py        a python file: its classes and defs, the source as written
+  py        a python file: its classes and defs, the source as written;
+            -t, its tree, which the lens reads (`studio/4-lens/28-python.go`)
   diff      a diff: its files and hunks
   run.mjs   the check, for any page made on page.html
 

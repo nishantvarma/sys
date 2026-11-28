@@ -5,7 +5,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -27,6 +26,24 @@ func (d drawn) rows() string {
 		out = append(out, k.Text)
 	}
 	return strings.Join(out, "|")
+}
+
+// find is the first part of a drawing, its parts and theirs, that ok
+// takes; nil for none.
+func (d drawn) find(ok func(*outline.Node) bool) *outline.Node {
+	var walk func(ns []*outline.Node) *outline.Node
+	walk = func(ns []*outline.Node) *outline.Node {
+		for _, n := range ns {
+			if ok(n) {
+				return n
+			}
+			if f := walk(n.Kids); f != nil {
+				return f
+			}
+		}
+		return nil
+	}
+	return walk(d.Tree.Kids)
 }
 
 // lensOn is studio show, args after it, at the end of a pipe in dir, as a
@@ -95,15 +112,16 @@ func shows(lens string) func(d drawn) bool {
 }
 
 // note is a note in dir that draws as a picture: two lanes, a box in
-// each, and a message between them; and its rows as the outline shows
-// them.
+// each, and a message between them; and its parts as the outline shows
+// them at its top, its title, run on as a paragraph does, and the
+// sections under it (`outline/parts.go:/func Parts/`).
 const note = "t\nup\n  a\n    → b  go\nlow\n  b\n"
-const noted = "t|up|  a|    → b  go|low|  b"
+const noted = "t up|a|low"
 
 // TestLens: given no lens, studio show shows every way: the note cur names
-// as its outline, a row an item, the lens shown in its state, the cursor
-// on the item cur's line is in. While ed holds the note unsaved it shows
-// the text ed holds, and the file again once ed lets it go. Tab turns to
+// as its outline, a tree of its parts, the lens shown in its state, the
+// cursor on the part cur's line is in. While ed holds the note unsaved it
+// shows the text ed holds, and the file again once ed lets it go. Tab turns to
 // the render, the note's items as they nest for its picture, and again to
 // the diff; git reads the file as saved, and the diff says so while ed
 // holds the note. A key on a row, once the pane has the eye, says the row
@@ -130,14 +148,16 @@ func TestLens(t *testing.T) {
 	if d.Tree.Kind != "outline" || d.rows() != noted {
 		t.Fatalf("the outline: %q %q", d.Tree.Kind, d.rows())
 	}
-	if i := slices.IndexFunc(d.Tree.Kids,
-		func(k *outline.Node) bool { return k.Cur }); i != 3 {
-		t.Errorf("the cursor is on row %d, not on cur's line, 4", i)
+	marked := func(k *outline.Node) bool { return k.Cur }
+	if c := d.find(marked); c == nil || c.ID != outline.At(file, 4) {
+		t.Errorf("the cursor is on %v, not on cur's line, 4", c)
 	}
 	put("text", note+"  c\n")
 	put("unsaved", file+"\n")
 	d = until("no text as ed holds it", func(d drawn) bool {
-		return strings.HasSuffix(d.rows(), "|  c")
+		return d.find(func(k *outline.Node) bool {
+			return k.Text == "b c"
+		}) != nil
 	})
 	if !strings.Contains(d.Status, "unsaved") {
 		t.Errorf("ed's text, and the word is %q", d.Status)
@@ -198,5 +218,83 @@ func TestLensOne(t *testing.T) {
 	})
 	if !shows("render")(d) {
 		t.Errorf("Tab outside a frame turned the lens: %v", d.State)
+	}
+}
+
+// TestLensKinds: the lens reads each thing by the reader for its kind
+// (`studio/4-lens/26-readers.go`): a Go file by its declarations, which
+// render as a doc; a note with no message, a doc too; a script by its
+// indent, a line a part, which has no render but its source, and says so.
+func TestLensKinds(t *testing.T) {
+	home, dir := t.TempDir(), t.TempDir()
+	files := map[string]string{
+		"f.go":   "package f\n\n// F is one.\nfunc F() {}\n",
+		"note":   "a note\n\nprose, and no message\n",
+		"script": "#!/bin/sh\necho hi\n",
+	}
+	cur := filepath.Join(home, ".config", "sys", "cur", "none")
+	os.MkdirAll(filepath.Dir(cur), 0o755)
+	for name, text := range files {
+		os.WriteFile(filepath.Join(dir, name), []byte(text), 0o644)
+	}
+	kinds := func(d drawn) string {
+		var out []string
+		for _, k := range d.Tree.Kids {
+			out = append(out, k.Kind)
+		}
+		return strings.Join(out, " ")
+	}
+	for _, c := range []struct{ file, parts, render string }{
+		{"f.go", "title func", "doc"},
+		{"note", "title para", "doc"},
+		{"script", "line line", "waits"},
+	} {
+		at := filepath.Join(dir, c.file) + "\n"
+		os.WriteFile(cur, []byte(at), 0o644)
+		_, until, _ := lensOn(t, home, dir, "outline", "-s")
+		d := until(c.file+": no outline", shows("outline"))
+		if d.Tree.Kind != "outline" || kinds(d) != c.parts {
+			t.Errorf("%s: the outline is %q, its parts %q, not %q",
+				c.file, d.Tree.Kind, kinds(d), c.parts)
+		}
+		_, until, _ = lensOn(t, home, dir, "render", "-s")
+		d = until(c.file+": no render", shows("render"))
+		got := d.Tree.Kind // a render that says why is no kind, a why
+		if got == "" {
+			got = kinds(d)
+		}
+		if got != c.render {
+			t.Errorf("%s: the render is %q, not %q", c.file, got,
+				c.render)
+		}
+	}
+}
+
+// TestLensGo: Go's reader puts a method under its type, out of the order
+// the file has them, and the cursor still goes to the part ed's line is
+// in, the method; and a file half typed shows as far as it parses, the
+// word saying where it stopped.
+func TestLensGo(t *testing.T) {
+	home, dir := t.TempDir(), t.TempDir()
+	m := filepath.Join(dir, "m.go")
+	os.WriteFile(m, []byte("package m\n\ntype T struct{}\n\n"+
+		"func F() {}\n\nfunc (T) M() {\n\treturn\n}\n"), 0o644)
+	b := filepath.Join(dir, "b.go")
+	os.WriteFile(b, []byte("package b\n\nfunc F() {\n"), 0o644)
+	cur := filepath.Join(home, ".config", "sys", "cur", "none")
+	os.MkdirAll(filepath.Dir(cur), 0o755)
+	os.WriteFile(cur, []byte(m+":8\n"), 0o644)
+	_, until, _ := lensOn(t, home, dir, "outline", "-s")
+	d := until("no outline of m.go", shows("outline"))
+	marked := func(k *outline.Node) bool { return k.Cur }
+	if c := d.find(marked); c == nil || c.ID != outline.At(m, 7) {
+		t.Errorf("the cursor is on %v, not on M, line 7", c)
+	}
+	os.WriteFile(cur, []byte(b+"\n"), 0o644)
+	_, until, _ = lensOn(t, home, dir, "outline", "-s")
+	d = until("no outline of b.go", shows("outline"))
+	if len(d.Tree.Kids) != 2 || !strings.Contains(d.Status, "b.go:3:") {
+		t.Errorf("a file half typed: %d parts, the word %q",
+			len(d.Tree.Kids), d.Status)
 	}
 }

@@ -27,7 +27,7 @@ type Node struct {
 // spells it; the id of the node it was said on, as a click names one, else
 // empty for the cursor's, and the rune of its text the click fell on,
 // counted from 1, else 0; and the text that came with it, as a paste
-// brings.
+// brings, or the word a click in a doc fell on.
 type Key struct {
 	Name string `json:"name"`
 	Node string `json:"node,omitempty"`

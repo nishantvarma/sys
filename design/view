@@ -7,6 +7,7 @@ editor does; how either is shown is the view's: the terminal on tty
 cells: cells would make the page a terminal in a browser, as ttyd does,
 where nodes let a view draw a pill or a chip.
 
+    ```
     type View interface {
         Draw(n *Node, status string, state []string)
         Key() (Key, bool)
@@ -14,6 +15,7 @@ where nodes let a view draw a pill or a chip.
         Size() (w, h int)
         Copy(text string) error
     }
+    ```
 
 Messages, not calls
   A program and its view pass only plain data: in one process a call
@@ -33,9 +35,10 @@ Who holds what
            fm sends the folder it stands in, ed every line, its cursor
            and its selection as runs.
   view     how it shows: a folder as rows or as thumbs, t turning between
-           them. It moves the cursor among what it shows, and tells the
-           program where it landed; going in and out is the program's,
-           for it changes what is shown.
+           them, and an outline's parts folded or not. It moves the cursor
+           among what it shows, and tells the program where it landed;
+           going in and out of a folder is the program's, for it changes
+           what is shown.
   between  ideas, by name: down, in, rename. A key is one way to say one
            and a click another; ed passes its keys through, for an
            editor's keys are its language.
@@ -62,10 +65,40 @@ The status line, at the bottom only, in every view
   held while that keeps it from cur's file, and line:col. A prompt takes
   the line while it asks.
 
+Kinds, never looks
+  A node says what it is, its kind, and never how it looks, which is the
+  view's: troff's way, one stream and a device each. A reader makes the
+  tree of a thing, the right tool for its kind
+  (`design/lens:/The reader, by kind/`), and each view draws a kind its
+  best: the terminal in runes, as nroff does, gio's window in pixels, as
+  troff does, and the page in html. A kind a view does not know it draws
+  as its text, so a kind is a promise of more, which a view keeps if it
+  can, and no view says what it can do. The kinds are few, and how each
+  looks is the view's own table, which no program sends
+  (`view/term.go:/var looks/`):
+	a note's     title section para row item step code (outline.Parts)
+	a program's  type func value (outline.Go)
+	a run's      addr, an address; name, what a declaration names; and
+	             the text around them, first under their part
+	the floor's  line, a line by its indent (outline.Text)
+	a folder's   dir file link exec bad, fm's things
+	a diff's     add del same hunk meta, and waits, a lens's why
+	a tree's     outline doc picture: rows that fold, a page set for
+	             the eye, parts and messages laid out
+  What is heavy goes by its name, an image by its path, for the view to
+  open; and a figure, whose arrangement is its meaning, is laid out once,
+  in cells, as sys/picture lays one out, each view drawing the cells its
+  way. A picture is the one tree a view reads, not draws only: its parts
+  go as the note's lines, which sys/picture, asked by kind, reads. The
+  terminal's best is nroff's: a doc's prose to a measure of 72 columns,
+  a name bold, an address underlined, a top head ruled off, and in an
+  outline a quiet guide under each part unfolded.
+
 The structure is the tree, not a language
   Folders and files carry it down to the idea, and inside a file the
-  note's own indent carries the rest. A primitive is a kind the views
-  know, a package of its own as sys/picture is, asked by kind: no plugin
-  system and no runtime library. fm and ed stay programs, each at the end
-  of messages; as Go packages one process could host both, which stays
-  open.
+  note's own marks carry the rest: its indent, a dash, two spaces, a
+  fence, which a writer makes anyway, and which its reader reads. A
+  primitive is a kind the views know, a package of its own as
+  sys/picture is, asked by kind: no plugin system and no runtime library.
+  fm and ed stay programs, each at the end of messages; as Go packages
+  one process could host both, which stays open.
