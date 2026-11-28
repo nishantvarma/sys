@@ -11,6 +11,7 @@
 package view
 
 import (
+	"slices"
 	"strings"
 	"time"
 
@@ -57,7 +58,8 @@ type Term struct {
 	t      *tty.Term
 	home   string        // the folder the top line says as ~
 	last   *outline.Node // the tree drawn last
-	cur    string        // the row a move went to, till the next Draw
+	cur    string        // the row a move went to, till a Draw reaches it
+	moved  []string      // the rows the view's own moves went through
 	status string
 	state  []string // the program's state, drawn last
 	lay    int      // the layout in use, of layouts
@@ -114,19 +116,51 @@ func (v *Term) In(x, y, w, h int) {
 // Draw shows the tree, the program's word and its state. When the tree is
 // another, a picture or a doc scrolled down starts at its top again, and
 // an outline's rows fold; an outline unfolds the way to the part the
-// program draws the cursor on.
+// program draws the cursor on. A draw behind the view's own moves keeps
+// the cursor where they went (behind).
 func (v *Term) Draw(n *outline.Node, status string, state []string) {
 	if v.last == nil || n.ID != v.last.ID {
-		v.top, v.unfolded, v.seen = 0, map[string]bool{}, ""
+		v.top, v.unfolded, v.seen, v.moved = 0, map[string]bool{}, "",
+			nil
 	}
-	v.last, v.status, v.state, v.cur, v.up = n, status, state, "", nil
+	v.last, v.status, v.state, v.up = n, status, state, nil
 	if v.isOutline() || v.isDoc() {
 		v.index()
 	}
-	if c := v.marked(); v.isOutline() && c != nil {
+	c := v.marked()
+	if v.isOutline() && c != nil {
 		v.reveal(c)
 	}
+	v.behind(c)
 	v.show(status)
+}
+
+// behind keeps the view's own moves that a draw is behind. A program down
+// a pipe draws each move as it hears it, so a draw on a row the moves
+// went through, but not the last, was made before it heard the rest: the
+// cursor stays where they went, and the rows up to that one are heard. A
+// draw on the last row, or on any other, is the program's: the cursor is
+// where it drew it, c's row.
+func (v *Term) behind(c *outline.Node) {
+	at := ""
+	if c != nil {
+		at = v.rowOf(c).ID
+	}
+	if i := slices.Index(v.moved, at); i >= 0 && i < len(v.moved)-1 {
+		v.moved = v.moved[i+1:]
+		return
+	}
+	v.cur, v.moved = "", nil
+}
+
+// moveTo is a move of the view's own, to row id: the cursor goes there at
+// once, before the program hears it, its way kept from the row it left
+// (behind).
+func (v *Term) moveTo(id string) {
+	if c := v.cursor(); len(v.moved) == 0 && c != nil {
+		v.moved = []string{c.ID}
+	}
+	v.cur, v.moved = id, append(v.moved, id)
 }
 
 // Size is how much the view shows at once: the terminal, or its region.

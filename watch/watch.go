@@ -12,9 +12,9 @@ import (
 )
 
 // mask is what a watcher hears of: a file written and closed, renamed in,
-// as fm writes cur, made, or removed.
-const mask = unix.IN_CLOSE_WRITE | unix.IN_MOVED_TO | unix.IN_CREATE |
-	unix.IN_DELETE
+// as fm writes cur, or out, made, or removed.
+const mask = unix.IN_CLOSE_WRITE | unix.IN_MOVED_TO | unix.IN_MOVED_FROM |
+	unix.IN_CREATE | unix.IN_DELETE
 
 // Watcher says on On when a file changes in the folders it watches: those
 // it was made on, fixed, and one it follows, which a program moves as it

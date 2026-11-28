@@ -337,7 +337,7 @@ func (v *window) pointed(e pointer.Event, cw, h int) {
 		e.Buttons.Contain(pointer.ButtonTertiary):
 		v.do(p, x, y)
 	case e.Kind == pointer.Scroll && e.Scroll.Y != 0:
-		p.wheel(e.Scroll.Y)
+		p.wheel(e.Scroll.Y, e.Time)
 	}
 }
 

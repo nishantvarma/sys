@@ -1,15 +1,26 @@
 // loop draws, takes a key and acts on it, until a quit or the view is gone;
-// following, it goes where cur was said first (follow). ctrl-c is q.
+// following, it goes where cur was said first (follow). It reads the
+// folder again only when it may have changed (watched): a move reads
+// nothing. Keys that come together, a wheel's turn or a held j, are said
+// and drawn once they are read, the last of them. ctrl-c is q.
 func (m *fm) loop() {
+	m.watched()
 	for !m.done {
 		m.follow()
-		m.ls()
-		m.say()
-		m.draw()
+		if m.watcher == nil || m.stale.Load() {
+			m.ls()
+		}
+		if m.t == nil || !m.t.Pending() {
+			m.say()
+			m.draw()
+		}
 		ev, ok := m.ui.Key()
 		k := ev.Name
 		if !ok {
 			return
+		}
+		if k != tty.KResize { // a wake is news if it changes the draw
+			m.keyed++
 		}
 		if k == tty.KInt {
 			k = "q"
@@ -35,6 +46,7 @@ func (m *fm) loop() {
 		m.msg = ""
 		m.armed = m.armed && k == "q" // another key takes a q back
 		if b, hit := m.keys[k]; hit && b.act != nil {
+			m.stale.Store(true) // a verb may change the folder
 			b.act()
 		}
 	}

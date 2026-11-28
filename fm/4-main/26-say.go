@@ -15,6 +15,6 @@ func (m *fm) say() {
 		return
 	}
 	if state.Write(m.this, c) == nil {
-		m.said = c
+		m.said, m.heard = c, c // its own word, no news to follow
 	}
 }

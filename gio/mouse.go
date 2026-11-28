@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"sys/outline"
 	"sys/tty"
@@ -134,13 +135,19 @@ func (s *studio) say(text, dir string) {
 	}
 }
 
-// wheel is the wheel turned, dy past 0 down: a text's cursor three lines,
-// as on the terminal, and the view's cursor a row
-func (p *pane) wheel(dy float32) {
-	name := tty.KDown
+// wheel is the wheel turned, dy past 0 down, at time at: a text's cursor
+// three lines, as on the terminal, and the view's cursor a row, a notch
+// at a time. X says a notch twice, its button pressed and let go at one
+// time: a turn the same way at the time of the last is that notch again.
+func (p *pane) wheel(dy float32, at time.Duration) {
+	name, way := tty.KDown, 1
 	if dy < 0 {
-		name = tty.KUp
+		name, way = tty.KUp, -1
 	}
+	if way == p.way && at == p.turned {
+		return
+	}
+	p.way, p.turned = way, at
 	if p.isText() {
 		for range 3 {
 			p.key(name, "")

@@ -23,7 +23,13 @@ type fm struct {
 	armed   bool   // a q said ed holds work unsaved: the next ends anyway
 	unsaved string // in a frame's slot, where ed names what it holds
 	follows bool   // -f: fm goes where cur is said (follow)
-	heard   string // cur as fm last read it, following
+	heard   string // cur as fm last read it, following, or said it
+	watcher *watch.Watcher
+	stale   atomic.Bool // the folder may have changed: read it again (ls)
+	// keys taken and folders read, which a draw is new for, and what it
+	// drew last (draw)
+	keyed, reads int
+	drew         string
 	keys    map[string]*binding
 	order   []*binding
 }

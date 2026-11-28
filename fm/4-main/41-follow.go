@@ -3,7 +3,8 @@
 // a folder too, as fm with no argument opens on cur (here), and a file's
 // line rides along for e (hitLine). cur naming the row already, by any
 // path, moves nothing, and neither does cur that names nothing there is.
-// fm's own word comes back to it as cur too, and names its row.
+// fm's own word is heard as it says it (say): it comes back as cur when
+// the cursor may have gone on, and would take it back.
 func (m *fm) follow() {
 	at := state.Read(m.this)
 	if !m.follows || at == "" || at == m.heard {

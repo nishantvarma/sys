@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"time"
 
 	"sys/state"
 	"sys/tabs"
@@ -50,6 +51,8 @@ type pane struct {
 	cols, high int
 	first, off int  // a text's scroll: the first line and column shown
 	gone       bool // what ran in it ended
+	way        int  // the wheel's last turn, 1 down, -1 up, at turned
+	turned     time.Duration
 }
 
 // news is one thing for the window's thread: a pane's message, what its

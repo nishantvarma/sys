@@ -318,14 +318,16 @@ func TestFollow(t *testing.T) {
 	}
 	press := started(t, []string{"-s", "-f", dir}, dir, "HOME="+home)
 	press("", "a")
-	for _, c := range []struct{ cur, want string }{
-		{filepath.Join(sub, "c") + ":3", ". .. b >c"},
-		{sub, ". .. link >sub a"},
-		{filepath.Join(dir, "link"), ". .. link >sub a"},
-		{filepath.Join(dir, "gone"), ". .. link >sub a"},
+	// a wake that moves fm draws; one that moves nothing draws nothing,
+	// so a key, which fm draws after, shows where it stayed
+	for _, c := range []struct{ cur, key, want string }{
+		{filepath.Join(sub, "c") + ":3", "RESIZE", ". .. b >c"},
+		{sub, "RESIZE", ". .. link >sub a"},
+		{filepath.Join(dir, "link"), "", ". .. link >sub a"},
+		{filepath.Join(dir, "gone"), "", ". .. link >sub a"},
 	} {
 		say(c.cur)
-		if rows, _ := press("RESIZE", ""); rows != c.want {
+		if rows, _ := press(c.key, ""); rows != c.want {
 			t.Errorf("cur %s: %q, want %q", c.cur, rows, c.want)
 		}
 	}
@@ -341,7 +343,7 @@ func TestFollow(t *testing.T) {
 	}
 	say(filepath.Join(sub, "b"))
 	still := fm(t, dir, "HOME="+home)
-	if rows, _ := still("RESIZE", ""); strings.Contains(rows, ">b") {
+	if rows, _ := still("", ""); strings.Contains(rows, ">b") {
 		t.Errorf("without -f, fm went to cur: %q", rows)
 	}
 }
@@ -565,5 +567,100 @@ func screen(pty *os.File) (seen func(text string) bool) {
 			}
 		}
 		return false
+	}
+}
+
+// TestOwnWord: fm -f hears its own word to cur as its own. Each move is
+// said to cur, and comes back as cur once the cursor may have gone on:
+// three moves in a row land on the third, no word taking it back.
+func TestOwnWord(t *testing.T) {
+	dir, home := t.TempDir(), t.TempDir()
+	for _, f := range []string{"a", "b", "c"} {
+		os.WriteFile(filepath.Join(dir, f), nil, 0o644)
+	}
+	os.MkdirAll(filepath.Join(home, ".config", "sys", "cur"), 0o755)
+	press := started(t, []string{"-s", "-f", dir}, dir, "HOME="+home)
+	press("FOCUS", "")
+	press("", "a")
+	press("", "b")
+	if rows, _ := press("", "c"); !strings.Contains(rows, ">c") {
+		t.Errorf("moved to a, b and c, fm is on %q", rows)
+	}
+}
+
+// TestChanged: fm reads its folder again when it changes, not at each
+// key: a file another program makes there shows by the next key.
+func TestChanged(t *testing.T) {
+	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, "a"), nil, 0o644)
+	press := fm(t, dir)
+	press("", "a")
+	os.WriteFile(filepath.Join(dir, "b"), nil, 0o644)
+	rows, end := "", time.Now().Add(3*time.Second)
+	for !strings.Contains(rows, " b") && time.Now().Before(end) {
+		rows, _ = press("", "a")
+		time.Sleep(20 * time.Millisecond)
+	}
+	if !strings.Contains(rows, " b") {
+		t.Errorf("b made beside a, fm shows %q", rows)
+	}
+}
+
+// TestStill: a wake that changes nothing draws nothing. fm -f, woken by
+// its own word to cur coming back, as a host wakes it with its size,
+// draws once a move, not twice; a wake with a new size draws.
+func TestStill(t *testing.T) {
+	dir, home := t.TempDir(), t.TempDir()
+	os.WriteFile(filepath.Join(dir, "a"), nil, 0o644)
+	os.MkdirAll(filepath.Join(home, ".config", "sys", "cur"), 0o755)
+	c := exec.Command(built(t), "-s", "-f", dir)
+	c.Env = append(os.Environ(), "HOME="+home, "TMUX_PANE=")
+	in, _ := c.StdinPipe()
+	out, _ := c.StdoutPipe()
+	if err := c.Start(); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { in.Close(); c.Wait() })
+	lines := make(chan string)
+	go func() {
+		sc := bufio.NewScanner(out)
+		sc.Buffer(nil, 1<<20)
+		for sc.Scan() {
+			lines <- sc.Text()
+		}
+		close(lines)
+	}()
+	draws := func() int { // the draws fm makes till it is quiet
+		n := 0
+		for {
+			select {
+			case l, ok := <-lines:
+				if !ok {
+					return n
+				}
+				if strings.HasPrefix(l, `{"draw"`) {
+					n++
+				}
+			case <-time.After(300 * time.Millisecond):
+				return n
+			}
+		}
+	}
+	draws()
+	send := func(m string) { io.WriteString(in, m+"\n") }
+	a := filepath.Join(dir, "a")
+	for _, c := range []struct {
+		msg  string
+		want int
+	}{
+		{`{"key":{"name":"FOCUS"}}`, 1},
+		{`{"key":{"name":"","node":"` + a + `"}}`, 1},
+		{`{"size":{"w":80,"h":24}}`, 0}, // the size it has
+		{`{"size":{"w":100,"h":30}}`, 1},
+	} {
+		send(c.msg)
+		if n := draws(); n != c.want {
+			t.Errorf("%s: %d draws, want %d", c.msg, n, c.want)
+		}
 	}
 }

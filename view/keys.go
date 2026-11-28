@@ -70,7 +70,7 @@ func (v *Term) Handle(k tty.Key) (outline.Key, bool) {
 	if v.isOutline() && v.layout() == "rows" &&
 		(name == tty.KRight || name == tty.KLeft) {
 		if to, moved := v.fold(name); moved {
-			v.cur = to
+			v.moveTo(to)
 			return outline.Key{Node: to}, true
 		}
 		v.show(v.status)
@@ -81,7 +81,7 @@ func (v *Term) Handle(k tty.Key) (outline.Key, bool) {
 		// draws again, for one that draws only after a burst of keys,
 		// or down a pipe after the next, hears the next move from here
 		// and not from where it drew last; what it sent stays its own
-		v.cur = to
+		v.moveTo(to)
 		return outline.Key{Node: to}, true
 	}
 	return theirs, true

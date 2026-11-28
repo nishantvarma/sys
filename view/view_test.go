@@ -1,6 +1,7 @@
 package view
 
 import (
+	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
@@ -453,5 +454,39 @@ func TestMouse(t *testing.T) {
 	if _, said := v.Handle(at(tty.MLeft, 3, 6)); said ||
 		v.layout() != "rows" {
 		t.Errorf("a press on rows left the layout %s", v.layout())
+	}
+}
+
+// TestBehind: a program down a pipe draws each move as it hears it, late.
+// A draw on a row the view's own moves went through keeps the cursor
+// where they went; one on their last row, or on another, is the
+// program's.
+func TestBehind(t *testing.T) {
+	on := func(cur int) *outline.Node { // six rows, the cursor on cur
+		n := &outline.Node{ID: "/a", Text: "a"}
+		for i := range 6 {
+			id := fmt.Sprintf("/a/%d", i)
+			n.Kids = append(n.Kids, &outline.Node{ID: id,
+				Text: strconv.Itoa(i), Cur: i == cur})
+		}
+		return n
+	}
+	v := New(nil, "")
+	v.In(0, 0, 40, 20)
+	v.Draw(on(0), "", nil)
+	for range 3 {
+		v.Handle(tty.Key{Name: tty.KDown})
+	}
+	for _, c := range []struct{ drawn, want int }{
+		{1, 3}, // the program has heard the first move alone
+		{2, 3},
+		{3, 3}, // and now all three
+		{5, 5}, // a move of its own
+	} {
+		v.Draw(on(c.drawn), "", nil)
+		if got := v.cursor().ID; got != fmt.Sprintf("/a/%d", c.want) {
+			t.Errorf("drawn on %d, the cursor is on %s, not /a/%d",
+				c.drawn, got, c.want)
+		}
 	}
 }

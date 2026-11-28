@@ -62,9 +62,11 @@ func at(c image.Point, cw, x, y int) f32.Point {
 	return f32.Pt(float32(c.X+x*cw+cw/2), float32(c.Y+y*cellH+cellH/2))
 }
 
-// TestMouse: in ed's text the wheel moves the cursor three lines, a drag
-// selects, a right press hands the word to p, and a middle one the
-// selection it falls in to p -a; in fm a right press is enter on the row.
+// TestMouse: in ed's text a notch of the wheel, which X says twice, as
+// its button pressed and let go at one time, moves the cursor three
+// lines, once; a drag selects, a right press hands the word to p, and a
+// middle one the selection it falls in to p -a; in fm a right press is
+// enter on the row.
 func TestMouse(t *testing.T) {
 	bin, said := programs(t), filepath.Join(t.TempDir(), "said")
 	stub := t.TempDir() // a p that says what it was handed
@@ -84,8 +86,11 @@ func TestMouse(t *testing.T) {
 	word := func(r int) f32.Point {
 		return at(image.Point{}, cw, g+r-1, top)
 	}
-	router.Queue(pointer.Event{Kind: pointer.Scroll, Source: pointer.Mouse,
-		Position: word(1), Scroll: f32.Pt(0, 1)})
+	for range 2 {
+		router.Queue(pointer.Event{Kind: pointer.Scroll,
+			Source: pointer.Mouse, Position: word(1),
+			Scroll: f32.Pt(0, 10), Time: time.Second})
+	}
 	settle()
 	if p.cur != 3 {
 		t.Errorf("the wheel moved ed to line %d, not 4", p.cur+1)
